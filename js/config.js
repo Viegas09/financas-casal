@@ -10,8 +10,8 @@
 // no navegador, sem login).
 // =====================================================================
 window.CONFIG = {
-  SUPABASE_URL: "",       // ex.: "https://abcdefghijk.supabase.co"
-  SUPABASE_ANON_KEY: "",  // ex.: "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+  SUPABASE_URL: "https://bfpysalsisszdhzceade.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_CYTEmim80FCKQmcqwIKO5g_ANsZI3Qz",
 
   // Nomes que aparecem em "Responsável" (o app acrescenta "Casal").
   PESSOAS: ["Vinícius", "Marcela"],
