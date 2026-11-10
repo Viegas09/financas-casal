@@ -1,0 +1,99 @@
+-- =====================================================================
+-- Finanças do Casal — estrutura do banco (Supabase / PostgreSQL)
+-- Cole TUDO isto em: Supabase → SQL Editor → New query → Run
+-- =====================================================================
+
+-- ---------- Quem pode acessar o painel ----------
+create table if not exists public.membros (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  nome    text not null
+);
+
+-- Função usada pelas regras de segurança: "o usuário logado é membro?"
+create or replace function public.is_membro()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.membros where user_id = auth.uid());
+$$;
+
+-- ---------- Contas fixas ----------
+create table if not exists public.contas (
+  id               uuid primary key default gen_random_uuid(),
+  nome             text not null,
+  categoria        text not null default 'Outros',
+  valor            numeric(12,2) not null check (valor >= 0),
+  dia_vencimento   smallint not null check (dia_vencimento between 1 and 31),
+  responsavel      text not null default 'Casal',
+  forma_pagamento  text,
+  observacao       text,
+  inicio           date not null default date_trunc('month', now())::date,
+  ativa            boolean not null default true,
+  created_at       timestamptz not null default now(),
+  created_by       uuid default auth.uid() references auth.users (id)
+);
+
+-- ---------- Pagamentos (um por conta por mês) ----------
+create table if not exists public.pagamentos (
+  id           uuid primary key default gen_random_uuid(),
+  conta_id     uuid not null references public.contas (id) on delete cascade,
+  competencia  date not null,                     -- sempre o dia 1 do mês (ex.: 2026-11-01)
+  valor_pago   numeric(12,2) not null check (valor_pago >= 0),
+  pago_em      date not null default current_date,
+  pago_por     text,
+  created_at   timestamptz not null default now(),
+  created_by   uuid default auth.uid() references auth.users (id),
+  unique (conta_id, competencia)
+);
+create index if not exists pagamentos_competencia_idx on public.pagamentos (competencia);
+
+-- ---------- Rendas ----------
+create table if not exists public.rendas (
+  id           uuid primary key default gen_random_uuid(),
+  descricao    text not null,
+  valor        numeric(12,2) not null check (valor >= 0),
+  responsavel  text not null,
+  ativa        boolean not null default true,
+  created_at   timestamptz not null default now(),
+  created_by   uuid default auth.uid() references auth.users (id)
+);
+
+-- =====================================================================
+-- SEGURANÇA (Row Level Security)
+-- Só quem está na tabela "membros" lê ou altera qualquer dado.
+-- =====================================================================
+alter table public.membros    enable row level security;
+alter table public.contas     enable row level security;
+alter table public.pagamentos enable row level security;
+alter table public.rendas     enable row level security;
+
+drop policy if exists "membros leem membros" on public.membros;
+create policy "membros leem membros" on public.membros
+  for select to authenticated using (public.is_membro());
+-- (ninguém insere/edita membros pelo site; isso é feito só aqui no SQL Editor)
+
+drop policy if exists "membros gerenciam contas" on public.contas;
+create policy "membros gerenciam contas" on public.contas
+  for all to authenticated using (public.is_membro()) with check (public.is_membro());
+
+drop policy if exists "membros gerenciam pagamentos" on public.pagamentos;
+create policy "membros gerenciam pagamentos" on public.pagamentos
+  for all to authenticated using (public.is_membro()) with check (public.is_membro());
+
+drop policy if exists "membros gerenciam rendas" on public.rendas;
+create policy "membros gerenciam rendas" on public.rendas
+  for all to authenticated using (public.is_membro()) with check (public.is_membro());
+
+-- =====================================================================
+-- DEPOIS de criar os dois usuários em Authentication → Users,
+-- rode as linhas abaixo trocando pelos e-mails de vocês:
+-- =====================================================================
+-- insert into public.membros (user_id, nome)
+--   select id, 'Vinícius' from auth.users where email = 'SEU_EMAIL@exemplo.com';
+-- insert into public.membros (user_id, nome)
+--   select id, 'Marcela'  from auth.users where email = 'EMAIL_DA_MARCELA@exemplo.com';
+--
+-- Conferir:  select m.nome, u.email from public.membros m join auth.users u on u.id = m.user_id;
