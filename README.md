@@ -14,9 +14,9 @@ Funciona como um app de banco: abas fixas na parte de baixo (no computador viram
 |---|---|
 | **Início** | Cartão com o total do mês, rosca de quanto já foi pago, quanto falta e quanto da renda está comprometido (o 👁 esconde os valores); atalhos (nova conta, pagar, nova renda, análises); alertas de contas atrasadas ou vencendo; as 3 próximas contas a pagar. |
 | **Contas** | Contas do mês com filtro *A pagar / Pagas / Todas*. Toque no quadrado para marcar como paga (registra quem pagou e quando; aparece “Desfazer” por 5 s); toque na conta para editar. Cada conta ganha um ícone automático pela categoria ou nome. O número vermelho na aba mostra quantas estão atrasadas ou vencem hoje. |
-| **Gastos** | Gastos do dia a dia (mercado, delivery, lazer…). *Orçamento*: quanto já foi gasto em cada categoria contra o limite do mês, quanto resta e quanto dá para gastar por dia. Toque numa categoria para ver só os gastos dela. *Extrato*: os lançamentos dia a dia, como no app do banco. |
-| **Análises** | *Categorias* (para onde vai o dinheiro), *Quem paga* (contas do Casal divididas meio a meio) e *6 meses* (histórico). |
-| **Mais** | Cadastro de contas fixas, rendas e orçamentos (limite mensal por categoria de gasto), exportar tudo em CSV (abre no Excel/Google Sheets) e sair. |
+| **Gastos** | Gastos do dia a dia (mercado, delivery, lazer…). *Orçamento*: quanto já foi gasto em cada categoria contra o limite do mês, quanto resta e quanto dá para gastar por dia. Toque numa categoria para ver só os gastos dela. *Extrato*: os lançamentos dia a dia, como no app do banco. *Cartões*: a fatura de cada cartão no mês (aberta, fechada, vencida ou paga), com compras parceladas e contas fixas cobradas no cartão, e quanto do limite está usado. |
+| **Metas** | Reserva de emergência, viagem, entrada do apartamento… Cada meta mostra quanto já foi guardado, quanto falta e quanto guardar por mês para chegar no prazo (ou, sem prazo, quando chegam no ritmo atual). Toque numa meta para ver o histórico e registrar *Guardar* ou *Retirar*. |
+| **Mais** | Cadastro de contas fixas, rendas, orçamentos (limite mensal por categoria de gasto) e cartões; *Análises e gráficos* (por categoria, quem paga o quê, últimos 6 meses); exportar tudo em CSV (abre no Excel/Google Sheets) e sair. |
 
 Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próprios pagamentos, então o histórico fica guardado.
 
@@ -67,6 +67,7 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
 - **Conta que acabou** (ex.: cancelou um streaming): edite e desmarque **Conta ativa**. Ela some dos próximos meses mas o histórico fica. Só use **Excluir** para contas cadastradas por engano.
 - **Valor mudou** (ex.: aluguel reajustado): edite o valor. Os meses já pagos mantêm o valor antigo, porque o pagamento guarda o valor do mês.
 - **Conta variável** (luz, água, gás): marque “Valor muda todo mês” no cadastro. Ao marcar como paga, o app pergunta quanto veio a fatura (já sugere a média dos últimos 3 meses). Enquanto não paga, aparece com “~” na frente: é a estimativa.
+- **Cartão de crédito:** cadastre em *Mais → Cartões* com o dia de fechamento e de vencimento. Ao lançar um gasto, escolha o cartão em *Pagamento* (e as parcelas, se for parcelado). Contas fixas cobradas no cartão (streaming, internet) entram na fatura marcando o cartão no cadastro da conta. O gasto conta no orçamento do mês da compra pelo valor total; na fatura, entra parcela por parcela.
 - **Backup:** de vez em quando, *Contas fixas → Exportar CSV*.
 - **Supabase gratuito pausa** o projeto depois de uns 7 dias sem nenhum acesso. Usando toda semana isso não acontece; se pausar, é só entrar no painel do Supabase e clicar em *Restore*.
 
@@ -77,6 +78,7 @@ Quando uma versão nova precisar de tabelas novas, vem um arquivo `supabase/migr
 | Arquivo | O que adiciona |
 |---|---|
 | `migracao-02-gastos.sql` | Gastos variáveis, orçamentos por categoria e contas de valor variável |
+| `migracao-03-metas-cartoes.sql` | Metas e aportes, cartões de crédito, faturas e compras parceladas |
 
 ## Estrutura
 
@@ -92,5 +94,4 @@ supabase/migracao-*   atualizações do banco para quem já instalou
 ```
 
 ## Próximos passos possíveis
-- Metas e aportes de investimento
 - Avisos de vencimento por e-mail

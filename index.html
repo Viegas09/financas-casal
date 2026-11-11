@@ -61,9 +61,9 @@
       <section id="aba-inicio" class="aba">
         <div class="hero" id="hero"></div>
         <div class="atalhos">
-          <button data-acao="nova-conta"><span class="bola"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Nova conta</button>
-          <button data-ir="contas"><span class="bola"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg></span>Pagar</button>
           <button data-acao="novo-gasto"><span class="bola"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></span>Novo gasto</button>
+          <button data-ir="contas"><span class="bola"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg></span>Pagar</button>
+          <button data-acao="novo-aporte"><span class="bola"><svg viewBox="0 0 24 24"><path d="M19 9c-1-3-4-4-7-4-4.5 0-8 2.5-8 6.5 0 2 1 3.5 2.5 4.5V20h3v-2h5v2h3v-3.5c1-.7 1.8-1.6 2.2-2.5H21v-4h-1.5c-.2-.4-.3-.7-.5-1zM15 9.5h.01M3 9.5c-.8-.5-1-1.5-.5-2.3"/></svg></span>Guardar</button>
           <button data-ir="analises"><span class="bola"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7"/></svg></span>Análises</button>
         </div>
         <div id="alertas" class="alertas"></div>
@@ -105,6 +105,7 @@
           <div class="segmento" id="seg-gastos" role="group" aria-label="Visualizar">
             <button data-g="orcamento" class="ativo">Orçamento</button>
             <button data-g="extrato">Extrato</button>
+            <button data-g="cartoes">Cartões</button>
           </div>
         </div>
         <div id="aviso-migracao" class="card aviso" hidden></div>
@@ -115,12 +116,25 @@
         <div class="painel-gastos" data-painel="extrato" hidden>
           <div id="extrato"></div>
         </div>
+        <div class="painel-gastos" data-painel="cartoes" hidden>
+          <div id="faturas"></div>
+        </div>
+      </section>
+
+      <!-- ---------- METAS ---------- -->
+      <section id="aba-metas" class="aba" hidden>
+        <div class="titulo-aba">
+          <div class="titulo-linha"><h1>Metas</h1><button class="btn-add" data-acao="nova-meta" aria-label="Nova meta">+</button></div>
+        </div>
+        <div id="aviso-migracao3" class="card aviso" hidden></div>
+        <div id="resumo-metas"></div>
+        <div id="lista-metas" class="lista-metas"></div>
       </section>
 
       <!-- ---------- ANÁLISES ---------- -->
       <section id="aba-analises" class="aba" hidden>
         <div class="titulo-aba">
-          <h1>Análises</h1>
+          <div class="titulo-linha"><h1>Análises</h1></div>
           <div class="segmento" id="seg-analise" role="group" aria-label="Escolher análise">
             <button data-a="categorias" class="ativo">Categorias</button>
             <button data-a="divisao">Quem paga</button>
@@ -149,9 +163,10 @@
         <div class="titulo-aba">
           <div class="titulo-linha"><h1>Cadastros</h1><button class="btn-add" id="btn-add-cadastro" aria-label="Adicionar">+</button></div>
           <div class="segmento" id="seg-cadastro" role="group" aria-label="Escolher cadastro">
-            <button data-c="contas" class="ativo">Contas fixas</button>
+            <button data-c="contas" class="ativo">Contas</button>
             <button data-c="rendas">Rendas</button>
             <button data-c="orcamentos">Orçamentos</button>
+            <button data-c="cartoes">Cartões</button>
           </div>
         </div>
 
@@ -164,8 +179,12 @@
         <article class="card card-lista painel-cadastro" data-painel="orcamentos" hidden>
           <ul class="lista-cadastro" id="cad-orcamentos"></ul>
         </article>
+        <article class="card card-lista painel-cadastro" data-painel="cartoes" hidden>
+          <ul class="lista-cadastro" id="cad-cartoes"></ul>
+        </article>
 
         <article class="card card-lista menu">
+          <button class="menu-item" data-ir="analises"><span>Análises e gráficos</span><span class="seta">›</span></button>
           <button class="menu-item" id="btn-exportar"><span>Exportar tudo em CSV</span><span class="seta">›</span></button>
           <button class="menu-item perigo" id="btn-sair"><span>Sair</span><span class="seta">›</span></button>
         </article>
@@ -188,9 +207,9 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
         <span>Gastos</span>
       </button>
-      <button role="tab" data-aba="analises" aria-selected="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></svg>
-        <span>Análises</span>
+      <button role="tab" data-aba="metas" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+        <span>Metas</span>
       </button>
       <button role="tab" data-aba="mais" aria-selected="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -233,6 +252,9 @@
       </div>
       <label>Observação
         <input name="observacao" maxlength="200" />
+      </label>
+      <label id="lbl-cartao-conta" hidden>Cobrada no cartão de crédito?
+        <select name="cartao_id" id="sel-cartao-conta"></select>
       </label>
       <label class="check" id="lbl-variavel"><input type="checkbox" name="variavel" /> Valor muda todo mês (luz, água, gás…)</label>
       <label class="check"><input type="checkbox" name="ativa" checked /> Conta ativa</label>
@@ -292,9 +314,14 @@
           <select name="responsavel" id="sel-responsavel-gasto"></select>
         </label>
       </div>
-      <label>Forma de pagamento
-        <input name="forma_pagamento" list="lista-pagamentos" maxlength="40" />
-      </label>
+      <div class="linha">
+        <label>Pagamento
+          <select name="forma" id="sel-forma-gasto"></select>
+        </label>
+        <label id="lbl-parcelas" hidden>Parcelas
+          <select name="parcelas" id="sel-parcelas"></select>
+        </label>
+      </div>
       <div class="modal-acoes">
         <button type="button" class="btn btn-perigo" id="btn-excluir-gasto" hidden>Excluir</button>
         <span class="espaco"></span>
@@ -345,6 +372,134 @@
     </form>
   </dialog>
 
+  <!-- ============ PAINEL META ============ -->
+  <dialog id="modal-meta" class="sheet">
+    <form id="form-meta" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-meta">Nova meta</h2>
+      <label>Nome da meta
+        <input name="nome" required maxlength="60" placeholder="Ex.: Reserva de emergência, Viagem, Casa própria" />
+      </label>
+      <div class="linha">
+        <label>Quanto querem juntar (R$)
+          <input name="valor_alvo" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
+        </label>
+        <label>Até quando (opcional)
+          <input name="prazo" type="month" />
+        </label>
+      </div>
+      <label>Onde o dinheiro fica (opcional)
+        <input name="onde" maxlength="60" list="lista-onde" placeholder="Ex.: CDB 100% CDI, Tesouro Selic, poupança" />
+      </label>
+      <label class="check"><input type="checkbox" name="ativa" checked /> Meta ativa</label>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-perigo" id="btn-excluir-meta" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL DETALHE DA META ============ -->
+  <dialog id="modal-meta-detalhe" class="sheet">
+    <div class="sheet-corpo">
+      <div class="puxador" aria-hidden="true"></div>
+      <div id="meta-detalhe"></div>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-ghost" id="btn-editar-meta">Editar meta</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" id="btn-retirar-meta">Retirar</button>
+        <button type="button" class="btn btn-primary" id="btn-guardar-meta">Guardar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ============ PAINEL APORTE ============ -->
+  <dialog id="modal-aporte" class="sheet">
+    <form id="form-aporte" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-aporte">Guardar dinheiro</h2>
+      <div class="segmento" id="seg-tipo-aporte" role="group" aria-label="Tipo">
+        <button type="button" data-t="guardar" class="ativo">Guardar</button>
+        <button type="button" data-t="retirar">Retirar</button>
+      </div>
+      <label class="valor-grande">Valor
+        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
+      </label>
+      <div class="chips-cat" id="chips-meta" role="group" aria-label="Meta"></div>
+      <input type="hidden" name="meta_id" />
+      <div class="linha">
+        <label>Data
+          <input name="data" type="date" required />
+        </label>
+        <label>Quem
+          <select name="responsavel" id="sel-responsavel-aporte"></select>
+        </label>
+      </div>
+      <label>Observação
+        <input name="observacao" maxlength="120" placeholder="Opcional" />
+      </label>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-perigo" id="btn-excluir-aporte" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL CARTÃO ============ -->
+  <dialog id="modal-cartao" class="sheet">
+    <form id="form-cartao" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-cartao">Novo cartão</h2>
+      <label>Nome do cartão
+        <input name="nome" required maxlength="40" placeholder="Ex.: Nubank, Itaú Visa" />
+      </label>
+      <div class="linha">
+        <label>Fecha todo dia
+          <input name="dia_fechamento" type="number" min="1" max="31" required inputmode="numeric" />
+        </label>
+        <label>Vence todo dia
+          <input name="dia_vencimento" type="number" min="1" max="31" required inputmode="numeric" />
+        </label>
+      </div>
+      <div class="linha">
+        <label>Limite (opcional)
+          <input name="limite" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" />
+        </label>
+        <label>Titular
+          <select name="responsavel" id="sel-responsavel-cartao"></select>
+        </label>
+      </div>
+      <label class="check"><input type="checkbox" name="ativo" checked /> Cartão ativo</label>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-perigo" id="btn-excluir-cartao" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL FATURA ============ -->
+  <dialog id="modal-fatura" class="sheet">
+    <div class="sheet-corpo">
+      <div class="puxador" aria-hidden="true"></div>
+      <div id="fatura-detalhe"></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Fechar</button>
+        <button type="button" class="btn btn-primary" id="btn-pagar-fatura">Marcar fatura como paga</button>
+      </div>
+    </div>
+  </dialog>
+
+  <datalist id="lista-onde">
+    <option value="Tesouro Selic"></option><option value="CDB 100% CDI"></option><option value="Poupança"></option>
+    <option value="Conta remunerada"></option><option value="Fundo de investimento"></option><option value="Ações / ETFs"></option>
+  </datalist>
   <datalist id="lista-categorias"></datalist>
   <datalist id="lista-pagamentos">
     <option value="Pix"></option><option value="Boleto"></option><option value="Débito automático"></option>

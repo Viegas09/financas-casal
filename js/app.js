@@ -48,6 +48,10 @@
     sacola: '<path d="M5 8h14l-1 13H6zM9 8V6a3 3 0 0 1 6 0v2"/>',
     ingresso: '<path d="M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 0 0-4V5H3zM14 5v14"/>',
     pilula: '<path d="M10.5 3.5a5 5 0 0 1 7 7l-7 7a5 5 0 0 1-7-7zM7 10l7 7"/>',
+    alvo: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    aviao: '<path d="M10.5 19.5 12 21l1.5-1.5-.5-4.5 7.5 3V16l-7.5-5V5a1.5 1.5 0 0 0-3 0v6L2.5 16v2l7.5-3z"/>',
+    porquinho: '<path d="M19 9c-1-3-4-4-7-4-4.5 0-8 2.5-8 6.5 0 2 1 3.5 2.5 4.5V20h3v-2h5v2h3v-3.5c1-.7 1.8-1.6 2.2-2.5H21v-4h-1.5c-.2-.4-.3-.7-.5-1zM15 9.5h.01"/>',
+    anel: '<circle cx="12" cy="15" r="6"/><path d="m9 4 3 4 3-4-1.5-1h-3z"/>',
     moeda: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6.5v11"/>'
   };
   const svg = (nome, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONES[nome] || ICONES.etiqueta}</svg>`;
@@ -69,6 +73,17 @@
   const iconeDe = (...textos) => {
     for (const t of textos) { const n = semAcento(t); for (const [re, ic] of REGRAS_ICONE) if (re.test(n)) return ic; }
     return "etiqueta";
+  };
+  const iconeMeta = (m) => {
+    const n = semAcento(m.nome);
+    if (/reserva|emergencia|seguranca/.test(n)) return "escudo";
+    if (/viagem|ferias|japao|europa|paris|lua de mel/.test(n)) return "aviao";
+    if (/casa|apartamento|ape|imovel|entrada|reforma/.test(n)) return "casa";
+    if (/carro|moto/.test(n)) return "carro";
+    if (/casamento|alianca|festa/.test(n)) return "anel";
+    if (/filho|bebe|educa|faculdade|curso/.test(n)) return "livro";
+    if (/aposent|invest|acoes|patrimonio/.test(n)) return "grafico";
+    return "alvo";
   };
   const bolaIcone = (conta) => `<span class="bola-cat" aria-hidden="true">${svg(iconeDe(conta.categoria, conta.nome))}</span>`;
   const vazio = (icone, titulo, texto, acao) => `
@@ -117,7 +132,7 @@
     gravar(d) { try { localStorage.setItem(this.chave, JSON.stringify(d)); } catch {} },
     dados() {
       let d = this.ler();
-      if (!d || !d.gastos) { d = dadosExemplo(); this.gravar(d); }
+      if (!d || !d.gastos || !d.metas) { d = dadosExemplo(); this.gravar(d); }
       return d;
     }
   };
@@ -162,6 +177,11 @@
     gastos: [],
     orcamentos: [],
     migracao2: true,        // tabelas de gastos existem no banco?
+    metas: [],
+    aportes: [],
+    cartoes: [],
+    faturas_pagas: [],
+    migracao3: true,        // tabelas de metas/cartões existem no banco?
     mes: compDe(new Date()),
     filtro: "pendentes"
   };
@@ -231,12 +251,14 @@
   // ================================================================
   async function carregar() {
     try {
-      const opcional = (t) => db.listar(t).catch((e) => { console.warn(t, e); estado.migracao2 = false; return []; });
-      estado.migracao2 = true;
-      const [contas, pagamentos, rendas, gastos, orcamentos] = await Promise.all([
-        db.listar("contas"), db.listar("pagamentos"), db.listar("rendas"), opcional("gastos"), opcional("orcamentos")
+      const opcional = (t, flag) => db.listar(t).catch((e) => { console.warn(t, e); estado[flag] = false; return []; });
+      estado.migracao2 = true; estado.migracao3 = true;
+      const [contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas] = await Promise.all([
+        db.listar("contas"), db.listar("pagamentos"), db.listar("rendas"),
+        opcional("gastos", "migracao2"), opcional("orcamentos", "migracao2"),
+        opcional("metas", "migracao3"), opcional("aportes", "migracao3"), opcional("cartoes", "migracao3"), opcional("faturas_pagas", "migracao3")
       ]);
-      Object.assign(estado, { contas, pagamentos, rendas, gastos, orcamentos });
+      Object.assign(estado, { contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas });
       render();
       esconderSplash();
     } catch (e) {
@@ -302,6 +324,9 @@
     renderCadastroRendas();
     renderGastos();
     renderCadastroOrcamentos();
+    renderFaturas();
+    renderCadastroCartoes();
+    renderMetas();
   }
 
   let totalAnterior = null;
@@ -360,6 +385,10 @@
     if (atr.length) itens.push(`<button class="alerta crit" data-ir="contas">! ${atr.length} atrasada${atr.length > 1 ? "s" : ""} · ${fmt(soma(atr, (c) => c.valorMes))}</button>`);
     if (hoje.length) itens.push(`<button class="alerta warn" data-ir="contas">● ${hoje.length} vence${hoje.length > 1 ? "m" : ""} hoje</button>`);
     if (breve.length) itens.push(`<button class="alerta warn" data-ir="contas">● ${breve.length} em breve</button>`);
+    faturasDoMes(estado.mes).forEach((f) => {
+      if (f.status.chave === "vencida") itens.push(`<button class="alerta crit" data-abrir-fatura="${f.cartao.id}">! Fatura ${esc(f.cartao.nome)} vencida</button>`);
+      else if (f.status.chave === "fechada" && f.status.dias <= DIAS_ALERTA) itens.push(`<button class="alerta warn" data-abrir-fatura="${f.cartao.id}">● Fatura ${esc(f.cartao.nome)} ${f.status.dias === 0 ? "vence hoje" : `vence em ${f.status.dias}d`}</button>`);
+    });
     if (lista.length && !pend.length) itens.push(`<span class="alerta good">✓ Tudo pago neste mês</span>`);
     $("#alertas").innerHTML = itens.join("");
     const cont = $("#contador-pendentes");
@@ -576,7 +605,7 @@
       <article class="card card-lista"><ul class="lista-cadastro">${gr.itens.map((g) => `
         <li><button class="item" data-editar-gasto="${g.id}">
           <span class="bola-cat">${svg(iconeDe(g.categoria, g.descricao))}</span>
-          <div><div class="nome">${esc(g.descricao)}</div><div class="meta">${esc(g.categoria)} · ${esc(g.responsavel)}${g.forma_pagamento ? " · " + esc(g.forma_pagamento) : ""}</div></div>
+          <div><div class="nome">${esc(g.descricao)}</div><div class="meta">${esc(g.categoria)} · ${esc(g.responsavel)}${g.forma_pagamento ? " · " + esc(g.forma_pagamento) : ""}${g.parcelas > 1 ? ` · ${g.parcelas}x` : ""}</div></div>
           <span class="valor">−${fmt(g.valor)}</span><span class="seta">›</span>
         </button></li>`).join("")}</ul></article>`).join("")
       : `<article class="card card-lista"><ul class="lista-cadastro">${vazio("carrinho", "Nenhum gasto neste mês", "Registre mercado, delivery, lazer… e acompanhe o limite de cada categoria.", ["novo-gasto", "Registrar gasto"])}</ul></article>`);
@@ -595,6 +624,245 @@
         </button>
       </li>`).join("") + `<li class="total"><span>Total planejado por mês</span><span>${fmt(soma(orcs.filter((o) => o.ativa), (o) => o.limite))}</span></li>`
       : vazio("carrinho", "Nenhuma categoria de gasto", "Ex.: Mercado R$ 1.200, Lazer R$ 300.", ["novo-orcamento", "Nova categoria"]);
+  }
+
+  // ---------- Cartões de crédito ----------
+  const diasNoMes = (a, m) => new Date(a, m, 0).getDate();
+  const dataNoMes = (comp, dia) => { const [a, m] = comp.split("-").map(Number); return `${a}-${pad(m)}-${pad(Math.min(dia, diasNoMes(a, m)))}`; };
+  const diasEntre = (de, ate) => Math.round((new Date(ate + "T12:00") - new Date(de + "T12:00")) / 864e5);
+  const venceNoMesmoMes = (c) => c.dia_vencimento > c.dia_fechamento;
+
+  /** Mês de vencimento ("AAAA-MM-01") da fatura em que entra uma compra feita em dataISO. */
+  function competenciaFatura(c, dataISO) {
+    const [a, m, d] = dataISO.split("-").map(Number);
+    const fech = Math.min(c.dia_fechamento, diasNoMes(a, m));
+    const mesFech = d <= fech ? compDe(new Date(a, m - 1, 1)) : compDe(new Date(a, m, 1));
+    return venceNoMesmoMes(c) ? mesFech : somaMes(mesFech, 1);
+  }
+  const datasFatura = (c, comp) => ({
+    fechamento: dataNoMes(venceNoMesmoMes(c) ? comp : somaMes(comp, -1), c.dia_fechamento),
+    vencimento: dataNoMes(comp, c.dia_vencimento)
+  });
+
+  function itensFatura(c, comp) {
+    const itens = [];
+    estado.gastos.filter((g) => g.cartao_id === c.id).forEach((g) => {
+      const n = Math.max(1, Number(g.parcelas) || 1);
+      const k = (() => { const [a1, m1] = competenciaFatura(c, g.data).split("-").map(Number); const [a2, m2] = comp.split("-").map(Number); return (a2 - a1) * 12 + (m2 - m1); })();
+      if (k < 0 || k >= n) return;
+      const parcela = Math.floor((Number(g.valor) / n) * 100) / 100;
+      const valor = k === n - 1 ? Math.round((Number(g.valor) - parcela * (n - 1)) * 100) / 100 : parcela;
+      itens.push({ tipo: "gasto", id: g.id, data: g.data, descricao: g.descricao, categoria: g.categoria, valor, parcela: n > 1 ? `${k + 1}/${n}` : "" });
+    });
+    for (let i = -2; i <= 0; i++) {
+      const mesConta = somaMes(comp, i);
+      contasDoMes(mesConta).filter((x) => x.cartao_id === c.id).forEach((x) => {
+        const data = dataNoMes(mesConta, x.dia_vencimento);
+        if (competenciaFatura(c, data) === comp) itens.push({ tipo: "conta", id: x.id, data, descricao: x.nome, categoria: x.categoria, valor: x.valorMes, parcela: "", estimado: x.estimado });
+      });
+    }
+    return itens.sort((a, b) => b.data.localeCompare(a.data));
+  }
+
+  const faturaPaga = (c, comp) => estado.faturas_pagas.find((f) => f.cartao_id === c.id && f.competencia === comp);
+
+  function statusFatura(c, comp) {
+    const pg = faturaPaga(c, comp);
+    const { fechamento, vencimento } = datasFatura(c, comp);
+    const hoje = hojeISO();
+    if (pg) return { chave: "paga", texto: "✓ Paga", cls: "paga" };
+    if (hoje <= fechamento) { const d = diasEntre(hoje, fechamento); return { chave: "aberta", texto: d === 0 ? "Aberta · fecha hoje" : `Aberta · fecha em ${d} dia${d > 1 ? "s" : ""}`, cls: "futura", dias: d }; }
+    if (hoje <= vencimento) { const d = diasEntre(hoje, vencimento); return { chave: "fechada", texto: d === 0 ? "● Vence hoje" : `● Fechada · vence em ${d} dia${d > 1 ? "s" : ""}`, cls: d <= DIAS_ALERTA ? "breve" : "futura", dias: d }; }
+    return { chave: "vencida", texto: "! Vencida", cls: "atrasada" };
+  }
+
+  function faturasDoMes(comp) {
+    if (!estado.migracao3) return [];
+    return estado.cartoes.filter((c) => c.ativo).map((c) => {
+      const itens = itensFatura(c, comp);
+      return { cartao: c, comp, itens, total: soma(itens, (i) => i.valor), status: statusFatura(c, comp), ...datasFatura(c, comp) };
+    });
+  }
+
+  /** Quanto do limite está comprometido: faturas não pagas a partir da atual (inclui parcelas futuras). */
+  function limiteUsado(c) {
+    const atual = competenciaFatura(c, hojeISO());
+    let total = 0;
+    for (let i = -1; i < 48; i++) { const comp = somaMes(atual, i); if (!faturaPaga(c, comp)) total += soma(itensFatura(c, comp).filter((x) => x.tipo === "gasto"), (x) => x.valor); }
+    return total;
+  }
+
+  const fmtData = (d, opts = { day: "numeric", month: "short" }) => new Date(d + "T12:00").toLocaleDateString("pt-BR", opts).replace(".", "");
+
+  function renderFaturas() {
+    const el = $("#faturas");
+    if (!estado.migracao3) { el.innerHTML = avisoMigracao3(); return; }
+    const fats = faturasDoMes(estado.mes);
+    el.innerHTML = fats.length ? fats.map((f) => {
+      const usado = f.cartao.limite ? limiteUsado(f.cartao) : 0;
+      const pctLim = f.cartao.limite ? Math.min(100, (usado / f.cartao.limite) * 100) : 0;
+      return `
+      <button class="card fatura-card" data-abrir-fatura="${f.cartao.id}">
+        <div class="fc-topo">
+          <span class="bola-cat">${svg("cartao")}</span>
+          <div class="fc-nome"><strong>${esc(f.cartao.nome)}</strong><small>Fatura de ${esc(nomeMes(f.comp, "mes"))} · ${esc(f.cartao.responsavel)}</small></div>
+          <span class="seta">›</span>
+        </div>
+        <div class="fc-valor">${fmt(f.total)}</div>
+        <div class="fc-linha"><span class="badge ${f.status.cls}">${f.status.texto}</span><span>Fecha ${esc(fmtData(f.fechamento))} · vence ${esc(fmtData(f.vencimento))}</span></div>
+        ${f.cartao.limite ? `<div class="meter-orc ${pctLim > 90 ? "crit" : pctLim > 70 ? "warn" : "ok"}"><span style="width:${pctLim}%"></span></div>
+        <div class="fc-linha neutro"><span>Limite usado ${fmt(usado)}</span><span>disponível ${fmt(Math.max(0, f.cartao.limite - usado))}</span></div>` : ""}
+      </button>`;
+    }).join("") : `<article class="card card-lista"><ul class="lista-cadastro">${vazio("cartao", "Nenhum cartão cadastrado", "Cadastre o cartão (dia de fechamento e vencimento) e escolha ele ao lançar gastos: a fatura é montada sozinha, com parcelas.", ["novo-cartao", "Cadastrar cartão"])}</ul></article>`;
+  }
+
+  let faturaAberta = null;
+  function abrirFatura(cartaoId) {
+    const c = estado.cartoes.find((x) => x.id === cartaoId); if (!c) return;
+    faturaAberta = { cartao: c, comp: estado.mes };
+    desenharFatura();
+    $("#modal-fatura").showModal();
+  }
+  function desenharFatura() {
+    const { cartao: c, comp } = faturaAberta;
+    const itens = itensFatura(c, comp), total = soma(itens, (i) => i.valor), st = statusFatura(c, comp), dt = datasFatura(c, comp);
+    const pg = faturaPaga(c, comp);
+    $("#fatura-detalhe").innerHTML = `
+      <div class="fd-topo"><span class="bola-cat">${svg("cartao")}</span><div><h2>${esc(c.nome)}</h2><small class="muted">Fatura de ${esc(nomeMes(comp))}</small></div></div>
+      <div class="fd-total">${fmt(total)}</div>
+      <div class="fc-linha"><span class="badge ${st.cls}">${st.texto}</span><span>Fecha ${esc(fmtData(dt.fechamento))} · vence ${esc(fmtData(dt.vencimento))}</span></div>
+      ${pg ? `<p class="muted pequeno">Paga em ${esc(fmtData(pg.pago_em, { day: "numeric", month: "long" }))}${pg.pago_por ? " por " + esc(pg.pago_por) : ""} · ${fmt(Number(pg.valor_pago) || total)}</p>` : ""}
+      <ul class="lista-cadastro fd-lista">${itens.length ? itens.map((i) => `
+        <li><button class="item" ${i.tipo === "gasto" ? `data-editar-gasto="${i.id}"` : `data-editar-conta="${i.id}"`}>
+          <span class="bola-cat">${svg(iconeDe(i.categoria, i.descricao))}</span>
+          <div><div class="nome">${esc(i.descricao)}${i.parcela ? ` <span class="badge futura">${i.parcela}</span>` : ""}${i.tipo === "conta" ? ' <span class="badge futura">fixa</span>' : ""}</div><div class="meta">${esc(fmtData(i.data))} · ${esc(i.categoria)}</div></div>
+          <span class="valor">${i.estimado && !ocultar ? "~" : ""}${fmt(i.valor)}</span><span class="seta">›</span>
+        </button></li>`).join("") : vazio("cartao", "Nada nesta fatura", "Ao lançar um gasto, escolha este cartão em “Pagamento”.")}</ul>`;
+    $("#btn-pagar-fatura").textContent = pg ? "Desmarcar pagamento" : "Marcar fatura como paga";
+    $("#btn-pagar-fatura").classList.toggle("btn-primary", !pg);
+    $("#btn-pagar-fatura").classList.toggle("btn-ghost", !!pg);
+    $("#btn-pagar-fatura").disabled = !pg && !total;
+  }
+  async function alternarFatura() {
+    const { cartao: c, comp } = faturaAberta;
+    const pg = faturaPaga(c, comp);
+    try {
+      if (pg) { await db.remover("faturas_pagas", pg.id); estado.faturas_pagas = estado.faturas_pagas.filter((x) => x.id !== pg.id); toast("Pagamento da fatura desmarcado"); }
+      else {
+        const total = soma(itensFatura(c, comp), (i) => i.valor);
+        estado.faturas_pagas.push(await db.inserir("faturas_pagas", { cartao_id: c.id, competencia: comp, valor_pago: total, pago_em: hojeISO(), pago_por: estado.usuario.nome.replace(" (demo)", "") }));
+        toast(`Fatura ${c.nome} paga · ${fmt(total)}`);
+      }
+      render(); desenharFatura();
+    } catch (e) { erro(e); }
+  }
+
+  function renderCadastroCartoes() {
+    const el = $("#cad-cartoes");
+    if (!estado.migracao3) { el.innerHTML = `<li>${avisoMigracao3()}</li>`; return; }
+    const cs = [...estado.cartoes].sort((a, b) => (b.ativo - a.ativo) || a.nome.localeCompare(b.nome));
+    el.innerHTML = cs.length ? cs.map((c) => `
+      <li class="${c.ativo ? "" : "inativa"}">
+        <button class="item" data-editar-cartao="${c.id}">
+          <span class="bola-cat">${svg("cartao")}</span>
+          <div><div class="nome">${esc(c.nome)}${c.ativo ? "" : ' <span class="badge inativa">Inativo</span>'}</div><div class="meta">Fecha dia ${c.dia_fechamento} · vence dia ${c.dia_vencimento} · ${esc(c.responsavel)}</div></div>
+          <span class="valor">${c.limite ? fmt(c.limite) : ""}</span><span class="seta">›</span>
+        </button>
+      </li>`).join("") : vazio("cartao", "Nenhum cartão", "Cadastre os cartões para acompanhar as faturas.", ["novo-cartao", "Novo cartão"]);
+  }
+
+  const avisoMigracao3 = () => `<div class="aviso-inline"><strong>Falta um passo no banco de dados</strong><span>Rode <code>supabase/migracao-03-metas-cartoes.sql</code> no SQL Editor do Supabase e recarregue o app.</span></div>`;
+
+  // ---------- Metas ----------
+  const guardadoEm = (meta) => soma(estado.aportes.filter((a) => a.meta_id === meta.id), (a) => a.valor);
+  const mesesAte = (prazo) => { const [a1, m1] = compDe(new Date()).split("-").map(Number); const [a2, m2] = prazo.split("-").map(Number); return (a2 - a1) * 12 + (m2 - m1) + 1; };
+
+  function infoMeta(meta) {
+    const guardado = guardadoEm(meta), alvo = Number(meta.valor_alvo);
+    const falta = Math.max(0, alvo - guardado), pct = Math.min(100, (guardado / alvo) * 100);
+    const ultimos3 = [0, 1, 2].map((i) => somaMes(compDe(new Date()), -i - 1));
+    const ritmo = soma(estado.aportes.filter((a) => a.meta_id === meta.id && ultimos3.includes(a.data.slice(0, 8) + "01")), (a) => a.valor) / 3;
+    let plano = "", alerta = "";
+    if (!falta) plano = "Meta alcançada! 🎉";
+    else if (meta.prazo) {
+      const meses = mesesAte(meta.prazo);
+      if (meses <= 0) { plano = `Prazo passou (${nomeMes(meta.prazo, "curto")} ${meta.prazo.slice(0, 4)})`; alerta = "crit"; }
+      else {
+        const porMes = falta / meses;
+        plano = `${fmt(porMes)}/mês até ${nomeMes(meta.prazo, "curto").toLowerCase()} ${meta.prazo.slice(0, 4)}`;
+        if (ritmo > 0 && ritmo < porMes * 0.9) alerta = "warn";
+      }
+    } else if (ritmo > 0) {
+      const meses = Math.ceil(falta / ritmo);
+      const chega = somaMes(compDe(new Date()), meses);
+      plano = `No ritmo atual, chegam lá em ${nomeMes(chega, "curto").toLowerCase()} ${chega.slice(0, 4)}`;
+    } else plano = "Defina um prazo para saber quanto guardar por mês";
+    return { guardado, alvo, falta, pct, ritmo, plano, alerta };
+  }
+
+  function renderMetas() {
+    $("#aviso-migracao3").hidden = estado.migracao3;
+    $("#aviso-migracao3").innerHTML = avisoMigracao3();
+    if (!estado.migracao3) { $("#resumo-metas").innerHTML = ""; $("#lista-metas").innerHTML = ""; return; }
+    const ativas = estado.metas.filter((m) => m.ativa);
+    const total = soma(estado.metas, (m) => guardadoEm(m));
+    const doMes = soma(estado.aportes.filter((a) => a.data.slice(0, 7) === estado.mes.slice(0, 7)), (a) => a.valor);
+    const renda = soma(estado.rendas.filter((r) => r.ativa), (r) => r.valor);
+    const sobra = renda - soma(contasDoMes(estado.mes), (c) => c.valorMes) - soma(gastosDoMes(estado.mes), (g) => g.valor);
+    $("#resumo-metas").innerHTML = estado.metas.length ? `
+      <div class="hero hero-metas">
+        <div class="rotulo">Total guardado nas metas</div>
+        <div class="grande">${fmt(total)}</div>
+        <div class="duas">
+          <div><small>Guardado em ${esc(nomeMes(estado.mes, "mes"))}</small><b>${doMes < 0 ? "−" : ""}${fmt(Math.abs(doMes))}</b></div>
+          <div><small>${renda ? "Do que sobrou no mês" : "Metas ativas"}</small><b>${renda ? (sobra > 0 ? Math.round((doMes / sobra) * 100) + "%" : "—") : ativas.length}</b></div>
+        </div>
+        ${renda && sobra > 0 ? `<div class="renda-linha"><span>Sobra do mês, depois de contas e gastos</span><span>${fmt(sobra)}</span></div>` : ""}
+      </div>` : "";
+    const metas = [...estado.metas].sort((a, b) => (b.ativa - a.ativa) || infoMeta(b).pct - infoMeta(a).pct);
+    $("#lista-metas").innerHTML = metas.length ? metas.map((m) => {
+      const i = infoMeta(m);
+      return `
+      <button class="card meta-card ${m.ativa ? "" : "inativa"} ${i.falta ? "" : "completa"}" data-abrir-meta="${m.id}">
+        <div class="mc-topo">
+          <span class="bola-cat">${svg(iconeMeta(m))}</span>
+          <div class="mc-nome"><strong>${esc(m.nome)}</strong><small>${esc(m.onde || (m.prazo ? "Até " + nomeMes(m.prazo) : "Sem prazo"))}${m.ativa ? "" : " · inativa"}</small></div>
+          <span class="mc-pct">${Math.floor(i.pct)}%</span>
+        </div>
+        <div class="mc-valores"><b>${fmt(i.guardado)}</b><span>de ${fmt(i.alvo)}</span></div>
+        <div class="meter-orc ${i.falta ? "ok" : "bom"}"><span style="width:${i.pct}%"></span></div>
+        <div class="mc-plano ${i.alerta}">${i.falta ? `Faltam ${fmt(i.falta)} · ` : ""}${esc(i.plano)}${i.alerta === "warn" ? " · ritmo abaixo do necessário" : ""}</div>
+      </button>`;
+    }).join("") : `<article class="card card-lista"><ul class="lista-cadastro">${vazio("alvo", "Nenhuma meta ainda", "Reserva de emergência, viagem, casa própria… defina quanto e até quando, e o app calcula quanto guardar por mês.", ["nova-meta", "Criar primeira meta"])}</ul></article>`;
+  }
+
+  let metaAberta = null;
+  function abrirMetaDetalhe(id) {
+    metaAberta = estado.metas.find((m) => m.id === id); if (!metaAberta) return;
+    desenharMetaDetalhe();
+    $("#modal-meta-detalhe").showModal();
+  }
+  function desenharMetaDetalhe() {
+    const m = metaAberta, i = infoMeta(m);
+    const R = 34, C = 2 * Math.PI * R;
+    const hist = estado.aportes.filter((a) => a.meta_id === m.id).sort((a, b) => b.data.localeCompare(a.data));
+    $("#meta-detalhe").innerHTML = `
+      <div class="md-topo">
+        <div class="rosca rosca-meta" role="img" aria-label="${Math.floor(i.pct)}% da meta">
+          <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="${R}" class="trilho-r"/><circle cx="40" cy="40" r="${R}" class="arco-r" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - i.pct / 100)}"/></svg>
+          <span>${Math.floor(i.pct)}%</span>
+        </div>
+        <div><h2>${esc(m.nome)}</h2><small class="muted">${esc(m.onde || "")}${m.onde && m.prazo ? " · " : ""}${m.prazo ? "até " + esc(nomeMes(m.prazo)) : ""}</small>
+          <div class="md-valor">${fmt(i.guardado)} <span>de ${fmt(i.alvo)}</span></div></div>
+      </div>
+      <div class="md-plano ${i.alerta}">${i.falta ? `Faltam ${fmt(i.falta)} · ` : ""}${esc(i.plano)}</div>
+      <h3 class="md-h">Histórico</h3>
+      <ul class="lista-cadastro">${hist.length ? hist.map((a) => `
+        <li><button class="item" data-editar-aporte="${a.id}">
+          <span class="bola-cat ${a.valor < 0 ? "retirada" : ""}">${svg(a.valor < 0 ? "sacola" : "porquinho")}</span>
+          <div><div class="nome">${a.valor < 0 ? "Retirada" : "Guardou"}${a.observacao ? " · " + esc(a.observacao) : ""}</div><div class="meta">${esc(fmtData(a.data, { day: "numeric", month: "short", year: "numeric" }))} · ${esc(a.responsavel)}</div></div>
+          <span class="valor ${a.valor < 0 ? "crit" : "bom-txt"}">${a.valor < 0 ? "−" : "+"}${fmt(Math.abs(a.valor))}</span><span class="seta">›</span>
+        </button></li>`).join("") : vazio("porquinho", "Nenhum aporte ainda", "Toque em Guardar para registrar o primeiro.")}</ul>`;
   }
 
   // ================================================================
@@ -684,6 +952,10 @@
     f.elements.valor.value = paraCampo(c.valor);
     f.elements.variavel.checked = !!c.variavel;
     $("#lbl-variavel").hidden = !estado.migracao2;
+    const cartoesC = estado.migracao3 ? estado.cartoes.filter((x) => x.ativo || x.id === c.cartao_id) : [];
+    $("#lbl-cartao-conta").hidden = !cartoesC.length;
+    $("#sel-cartao-conta").innerHTML = `<option value="">Não</option>` + cartoesC.map((x) => `<option value="${x.id}">💳 ${esc(x.nome)}</option>`).join("");
+    $("#sel-cartao-conta").value = c.cartao_id || "";
     if (!editandoConta) f.elements.responsavel.value = "Casal";
     f.elements.inicio.value = (c.inicio || estado.mes).slice(0, 7);
     f.elements.ativa.checked = !!c.ativa;
@@ -700,6 +972,11 @@
       inicio: f.inicio.value + "-01", ativa: f.ativa.checked
     };
     if (estado.migracao2) dados.variavel = f.variavel.checked;
+    if (estado.migracao3) {
+      dados.cartao_id = f.cartao_id.value || null;
+      const ct = estado.cartoes.find((x) => x.id === dados.cartao_id);
+      if (ct && (!dados.forma_pagamento || /cart/i.test(dados.forma_pagamento))) dados.forma_pagamento = "Cartão " + ct.nome;
+    }
     if (Number.isNaN(dados.valor)) return toast("Valor inválido");
     try {
       if (editandoConta) Object.assign(editandoConta, await db.atualizar("contas", editandoConta.id, dados));
@@ -707,6 +984,7 @@
       $("#modal-conta").close();
       toast("Conta salva");
       render();
+      if ($("#modal-fatura").open) desenharFatura();
     } catch (e) { erro(e); }
   }
 
@@ -784,20 +1062,36 @@
     f.elements.descricao.value = g.descricao || "";
     f.elements.data.value = g.data;
     f.elements.responsavel.value = RESPONSAVEIS.includes(g.responsavel) ? g.responsavel : PESSOAS[0];
-    f.elements.forma_pagamento.value = g.forma_pagamento || "";
+    preencherFormas(g);
     f.elements.categoria.value = g.categoria || "";
     chipsCategorias(g.categoria);
     $("#modal-gasto").showModal();
     if (!editandoGasto) setTimeout(() => f.elements.valor.focus(), 250);
   }
 
+  const FORMAS = ["Pix", "Débito", "Dinheiro", "Boleto", "Cartão de crédito"];
+  function preencherFormas(g) {
+    const cartoes = estado.migracao3 ? estado.cartoes.filter((c) => c.ativo || c.id === g.cartao_id) : [];
+    const formas = FORMAS.filter((x) => !(cartoes.length && x === "Cartão de crédito"));
+    if (g.forma_pagamento && !g.cartao_id && !formas.includes(g.forma_pagamento)) formas.push(g.forma_pagamento);
+    $("#sel-forma-gasto").innerHTML = `<option value="">—</option>` + formas.map((x) => `<option>${esc(x)}</option>`).join("") +
+      (cartoes.length ? `<optgroup label="Cartão de crédito">${cartoes.map((c) => `<option value="cartao:${c.id}">💳 ${esc(c.nome)}</option>`).join("")}</optgroup>` : "");
+    $("#sel-forma-gasto").value = g.cartao_id ? "cartao:" + g.cartao_id : g.forma_pagamento || "";
+    $("#sel-parcelas").innerHTML = Array.from({ length: 24 }, (_, i) => `<option value="${i + 1}">${i ? i + 1 + "x" : "À vista"}</option>`).join("");
+    $("#sel-parcelas").value = String(g.parcelas || 1);
+    $("#lbl-parcelas").hidden = !String($("#sel-forma-gasto").value).startsWith("cartao:");
+  }
+
   async function salvarGasto(ev) {
     ev.preventDefault();
     const f = ev.target.elements;
+    const forma = f.forma.value;
+    const cartao = forma.startsWith("cartao:") ? estado.cartoes.find((c) => c.id === forma.slice(7)) : null;
     const dados = {
       valor: parseValor(f.valor.value), descricao: f.descricao.value.trim(), categoria: f.categoria.value,
-      data: f.data.value, responsavel: f.responsavel.value, forma_pagamento: f.forma_pagamento.value.trim() || null
+      data: f.data.value, responsavel: f.responsavel.value, forma_pagamento: cartao ? "Cartão " + cartao.nome : forma || null
     };
+    if (estado.migracao3) { dados.cartao_id = cartao ? cartao.id : null; dados.parcelas = cartao ? Number(f.parcelas.value) || 1 : 1; }
     if (Number.isNaN(dados.valor) || !dados.valor) return toast("Informe o valor");
     if (!dados.categoria) return toast("Escolha uma categoria");
     try {
@@ -808,7 +1102,8 @@
       const l = linhasOrcamento().find((x) => x.categoria === dados.categoria);
       if (l && l.limite && l.gasto > l.limite) toast(`⚠ ${dados.categoria} passou do limite em ${fmt(l.gasto - l.limite)}`);
       else if (l && l.limite && l.gasto >= l.limite * 0.8) toast(`${dados.categoria}: restam ${fmt(l.limite - l.gasto)} no mês`);
-      else toast("Gasto salvo");
+      else toast(dados.parcelas > 1 ? `Gasto salvo · ${dados.parcelas}x de ${fmt(dados.valor / dados.parcelas)}` : "Gasto salvo");
+      if ($("#modal-fatura").open) desenharFatura();
     } catch (e) { erro(e); }
   }
 
@@ -873,6 +1168,143 @@
     } catch (e) { erro(e); }
   }
 
+  // ----- Modal meta -----
+  let editandoMeta = null;
+  function abrirMeta(id) {
+    if (!estado.migracao3) { irPara("metas"); return toast("Rode a migração 03 no Supabase primeiro"); }
+    const f = $("#form-meta"); f.reset();
+    editandoMeta = id ? estado.metas.find((m) => m.id === id) : null;
+    $("#titulo-modal-meta").textContent = editandoMeta ? "Editar meta" : "Nova meta";
+    $("#btn-excluir-meta").hidden = !editandoMeta;
+    const m = editandoMeta || { ativa: true };
+    f.elements.nome.value = m.nome || "";
+    f.elements.valor_alvo.value = paraCampo(m.valor_alvo);
+    f.elements.prazo.value = m.prazo ? m.prazo.slice(0, 7) : "";
+    f.elements.onde.value = m.onde || "";
+    f.elements.ativa.checked = !!m.ativa;
+    $("#modal-meta").showModal();
+  }
+  async function salvarMeta(ev) {
+    ev.preventDefault();
+    const f = ev.target.elements;
+    const dados = { nome: f.nome.value.trim(), valor_alvo: parseValor(f.valor_alvo.value), prazo: f.prazo.value ? f.prazo.value + "-01" : null, onde: f.onde.value.trim() || null, ativa: f.ativa.checked };
+    if (Number.isNaN(dados.valor_alvo) || !dados.valor_alvo) return toast("Informe quanto querem juntar");
+    try {
+      if (editandoMeta) Object.assign(editandoMeta, await db.atualizar("metas", editandoMeta.id, dados));
+      else estado.metas.push(await db.inserir("metas", dados));
+      $("#modal-meta").close();
+      toast("Meta salva"); render();
+      if (metaAberta && $("#modal-meta-detalhe").open) desenharMetaDetalhe();
+    } catch (e) { erro(e); }
+  }
+  async function excluirMeta() {
+    if (!editandoMeta || !confirm(`Excluir a meta “${editandoMeta.nome}” e todo o histórico de aportes dela?`)) return;
+    try {
+      await db.remover("metas", editandoMeta.id);
+      estado.metas = estado.metas.filter((m) => m.id !== editandoMeta.id);
+      estado.aportes = estado.aportes.filter((a) => a.meta_id !== editandoMeta.id);
+      if (DEMO) { demoDB().aportes = demoDB().aportes.filter((a) => a.meta_id !== editandoMeta.id); demoStore.gravar(demoDB()); }
+      $("#modal-meta").close(); $("#modal-meta-detalhe").close();
+      toast("Meta excluída"); render();
+    } catch (e) { erro(e); }
+  }
+
+  // ----- Modal aporte -----
+  let editandoAporte = null, tipoAporte = "guardar";
+  function definirTipoAporte(t) {
+    tipoAporte = t;
+    $$("#seg-tipo-aporte button").forEach((x) => x.classList.toggle("ativo", x.dataset.t === t));
+    $("#titulo-modal-aporte").textContent = (editandoAporte ? "Editar " : "") + (t === "retirar" ? "retirada" : editandoAporte ? "aporte" : "Guardar dinheiro");
+  }
+  function abrirAporte(opcoes = {}) {
+    if (!estado.migracao3) { irPara("metas"); return toast("Rode a migração 03 no Supabase primeiro"); }
+    const ativas = estado.metas.filter((m) => m.ativa);
+    if (!opcoes.id && !ativas.length) { toast("Crie uma meta primeiro"); return abrirMeta(); }
+    const f = $("#form-aporte"); f.reset();
+    editandoAporte = opcoes.id ? estado.aportes.find((a) => a.id === opcoes.id) : null;
+    $("#btn-excluir-aporte").hidden = !editandoAporte;
+    const a = editandoAporte || { data: hojeISO(), responsavel: estado.usuario.nome.replace(" (demo)", ""), meta_id: opcoes.metaId || (ativas.length === 1 ? ativas[0].id : "") };
+    f.elements.valor.value = a.valor ? paraCampo(Math.abs(a.valor)) : "";
+    f.elements.data.value = a.data;
+    f.elements.responsavel.value = RESPONSAVEIS.includes(a.responsavel) ? a.responsavel : PESSOAS[0];
+    f.elements.observacao.value = a.observacao || "";
+    f.elements.meta_id.value = a.meta_id || "";
+    const metasChips = [...ativas]; if (a.meta_id && !metasChips.some((m) => m.id === a.meta_id)) { const x = estado.metas.find((m) => m.id === a.meta_id); if (x) metasChips.push(x); }
+    $("#chips-meta").innerHTML = metasChips.map((m) => `<button type="button" class="chip-cat ${m.id === a.meta_id ? "ativo" : ""}" data-meta="${m.id}">${svg(iconeMeta(m))}<span>${esc(m.nome)}</span></button>`).join("");
+    definirTipoAporte(opcoes.tipo || (a.valor < 0 ? "retirar" : "guardar"));
+    $("#modal-aporte").showModal();
+    if (!editandoAporte) setTimeout(() => f.elements.valor.focus(), 250);
+  }
+  async function salvarAporte(ev) {
+    ev.preventDefault();
+    const f = ev.target.elements;
+    const v = parseValor(f.valor.value);
+    if (Number.isNaN(v) || !v) return toast("Informe o valor");
+    if (!f.meta_id.value) return toast("Escolha a meta");
+    const dados = { meta_id: f.meta_id.value, valor: tipoAporte === "retirar" ? -v : v, data: f.data.value, responsavel: f.responsavel.value, observacao: f.observacao.value.trim() || null };
+    try {
+      if (editandoAporte) Object.assign(editandoAporte, await db.atualizar("aportes", editandoAporte.id, dados));
+      else estado.aportes.push(await db.inserir("aportes", dados));
+      $("#modal-aporte").close();
+      render();
+      if ($("#modal-meta-detalhe").open) desenharMetaDetalhe();
+      const meta = estado.metas.find((m) => m.id === dados.meta_id);
+      const i = meta && infoMeta(meta);
+      toast(i && !i.falta ? `🎉 ${meta.nome}: meta alcançada!` : tipoAporte === "retirar" ? "Retirada registrada" : `Guardado! ${meta ? meta.nome + " em " + Math.floor(i.pct) + "%" : ""}`);
+    } catch (e) { erro(e); }
+  }
+  async function excluirAporte() {
+    if (!editandoAporte || !confirm("Excluir este lançamento?")) return;
+    try {
+      await db.remover("aportes", editandoAporte.id);
+      estado.aportes = estado.aportes.filter((a) => a.id !== editandoAporte.id);
+      $("#modal-aporte").close(); render();
+      if ($("#modal-meta-detalhe").open) desenharMetaDetalhe();
+    } catch (e) { erro(e); }
+  }
+
+  // ----- Modal cartão -----
+  let editandoCartao = null;
+  function abrirCartao(id) {
+    if (!estado.migracao3) return toast("Rode a migração 03 no Supabase primeiro");
+    const f = $("#form-cartao"); f.reset();
+    editandoCartao = id ? estado.cartoes.find((c) => c.id === id) : null;
+    $("#titulo-modal-cartao").textContent = editandoCartao ? "Editar cartão" : "Novo cartão";
+    $("#btn-excluir-cartao").hidden = !editandoCartao;
+    const c = editandoCartao || { ativo: true, responsavel: "Casal" };
+    f.elements.nome.value = c.nome || "";
+    f.elements.dia_fechamento.value = c.dia_fechamento || "";
+    f.elements.dia_vencimento.value = c.dia_vencimento || "";
+    f.elements.limite.value = paraCampo(c.limite);
+    f.elements.responsavel.value = c.responsavel;
+    f.elements.ativo.checked = !!c.ativo;
+    $("#modal-cartao").showModal();
+  }
+  async function salvarCartao(ev) {
+    ev.preventDefault();
+    const f = ev.target.elements;
+    const lim = f.limite.value.trim() ? parseValor(f.limite.value) : null;
+    if (Number.isNaN(lim)) return toast("Limite inválido");
+    const dados = { nome: f.nome.value.trim(), dia_fechamento: Number(f.dia_fechamento.value), dia_vencimento: Number(f.dia_vencimento.value), limite: lim, responsavel: f.responsavel.value, ativo: f.ativo.checked };
+    try {
+      if (editandoCartao) Object.assign(editandoCartao, await db.atualizar("cartoes", editandoCartao.id, dados));
+      else estado.cartoes.push(await db.inserir("cartoes", dados));
+      $("#modal-cartao").close(); toast("Cartão salvo"); render();
+    } catch (e) { erro(e); }
+  }
+  async function excluirCartao() {
+    if (!editandoCartao || !confirm(`Excluir o cartão “${editandoCartao.nome}”?\n\nOs gastos lançados nele continuam, mas deixam de aparecer na fatura. Para manter o histórico, desmarque “Cartão ativo”.`)) return;
+    try {
+      const id = editandoCartao.id;
+      await db.remover("cartoes", id);
+      estado.cartoes = estado.cartoes.filter((c) => c.id !== id);
+      estado.gastos.forEach((g) => { if (g.cartao_id === id) g.cartao_id = null; });
+      estado.contas.forEach((c) => { if (c.cartao_id === id) c.cartao_id = null; });
+      if (DEMO) { demoDB().gastos.forEach((g) => { if (g.cartao_id === id) g.cartao_id = null; }); demoDB().contas.forEach((c) => { if (c.cartao_id === id) c.cartao_id = null; }); demoStore.gravar(demoDB()); }
+      $("#modal-cartao").close(); render();
+    } catch (e) { erro(e); }
+  }
+
   // ----- Exportar -----
   function exportarCSV() {
     const linhas = [["conta", "categoria", "responsavel", "dia_vencimento", "valor_cadastrado", "competencia", "valor_pago", "pago_em", "pago_por"]];
@@ -907,6 +1339,8 @@
     $("#sel-responsavel-conta").innerHTML = ops(RESPONSAVEIS);
     $("#sel-responsavel-renda").innerHTML = ops(RESPONSAVEIS);
     $("#sel-responsavel-gasto").innerHTML = ops(RESPONSAVEIS);
+    $("#sel-responsavel-aporte").innerHTML = ops(RESPONSAVEIS);
+    $("#sel-responsavel-cartao").innerHTML = ops(RESPONSAVEIS);
     $("#lista-categorias").innerHTML = (CFG.CATEGORIAS || []).map((c) => `<option value="${esc(c)}"></option>`).join("");
   }
 
@@ -953,7 +1387,7 @@
     segmento("#seg-analise", "a", (a) => $$(".painel-analise").forEach((p) => (p.hidden = p.dataset.painel !== a)));
     segmento("#seg-cadastro", "c", (c) => { cadastroAtual = c; $$(".painel-cadastro").forEach((p) => (p.hidden = p.dataset.painel !== c)); });
 
-    $("#btn-add-cadastro").addEventListener("click", () => (cadastroAtual === "rendas" ? abrirRenda() : cadastroAtual === "orcamentos" ? abrirOrcamento() : abrirConta()));
+    $("#btn-add-cadastro").addEventListener("click", () => (cadastroAtual === "rendas" ? abrirRenda() : cadastroAtual === "orcamentos" ? abrirOrcamento() : cadastroAtual === "cartoes" ? abrirCartao() : abrirConta()));
     segmento("#seg-gastos", "g", (g) => $$(".painel-gastos").forEach((p) => (p.hidden = p.dataset.painel !== g)));
     const mostrarExtrato = () => { $$("#seg-gastos button").forEach((x) => x.classList.toggle("ativo", x.dataset.g === "extrato")); $$(".painel-gastos").forEach((p) => (p.hidden = p.dataset.painel !== "extrato")); };
     $("#chips-cat").addEventListener("click", (ev) => {
@@ -968,14 +1402,21 @@
     });
 
     document.addEventListener("click", (ev) => {
-      const t = ev.target.closest("[data-pagar],[data-editar-conta],[data-editar-renda],[data-editar-gasto],[data-editar-orcamento],[data-fechar],[data-ir],[data-acao]");
+      const t = ev.target.closest("[data-pagar],[data-editar-conta],[data-editar-renda],[data-editar-gasto],[data-editar-orcamento],[data-editar-cartao],[data-editar-aporte],[data-abrir-meta],[data-abrir-fatura],[data-fechar],[data-ir],[data-acao]");
       if (!t) return;
       if (t.dataset.pagar) alternarPagamento(t.dataset.pagar);
       else if (t.dataset.editarConta) abrirConta(t.dataset.editarConta);
       else if (t.dataset.editarRenda) abrirRenda(t.dataset.editarRenda);
       else if (t.dataset.editarGasto) abrirGasto(t.dataset.editarGasto);
       else if (t.dataset.editarOrcamento) abrirOrcamento(t.dataset.editarOrcamento);
+      else if (t.dataset.editarCartao) abrirCartao(t.dataset.editarCartao);
+      else if (t.dataset.editarAporte) abrirAporte({ id: t.dataset.editarAporte });
+      else if (t.dataset.abrirMeta) abrirMetaDetalhe(t.dataset.abrirMeta);
+      else if (t.dataset.abrirFatura) abrirFatura(t.dataset.abrirFatura);
       else if (t.dataset.acao === "novo-gasto") abrirGasto();
+      else if (t.dataset.acao === "nova-meta") abrirMeta();
+      else if (t.dataset.acao === "novo-aporte") abrirAporte();
+      else if (t.dataset.acao === "novo-cartao") abrirCartao();
       else if (t.dataset.acao === "novo-orcamento") abrirOrcamento();
       else if (t.dataset.ir) irPara(t.dataset.ir);
       else if (t.dataset.acao === "nova-conta") abrirConta();
@@ -1018,6 +1459,23 @@
     $("#form-orcamento").addEventListener("submit", salvarOrcamento);
     $("#form-pagar").addEventListener("submit", confirmarPagar);
     $("#btn-excluir-gasto").addEventListener("click", excluirGasto);
+    $("#form-meta").addEventListener("submit", salvarMeta);
+    $("#form-aporte").addEventListener("submit", salvarAporte);
+    $("#form-cartao").addEventListener("submit", salvarCartao);
+    $("#btn-excluir-meta").addEventListener("click", excluirMeta);
+    $("#btn-excluir-aporte").addEventListener("click", excluirAporte);
+    $("#btn-excluir-cartao").addEventListener("click", excluirCartao);
+    $("#btn-pagar-fatura").addEventListener("click", alternarFatura);
+    $("#btn-editar-meta").addEventListener("click", () => abrirMeta(metaAberta.id));
+    $("#btn-guardar-meta").addEventListener("click", () => abrirAporte({ metaId: metaAberta.id, tipo: "guardar" }));
+    $("#btn-retirar-meta").addEventListener("click", () => abrirAporte({ metaId: metaAberta.id, tipo: "retirar" }));
+    $("#seg-tipo-aporte").addEventListener("click", (ev) => { const b = ev.target.closest("[data-t]"); if (b) definirTipoAporte(b.dataset.t); });
+    $("#chips-meta").addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-meta]"); if (!b) return;
+      $("#form-aporte").elements.meta_id.value = b.dataset.meta;
+      $$("#chips-meta .chip-cat").forEach((x) => x.classList.toggle("ativo", x === b));
+    });
+    $("#sel-forma-gasto").addEventListener("change", (ev) => { $("#lbl-parcelas").hidden = !ev.target.value.startsWith("cartao:"); });
     $("#btn-excluir-orcamento").addEventListener("click", excluirOrcamento);
     $("#resumo-gastos").addEventListener("keydown", (ev) => { if (ev.key === "Enter") irPara("gastos"); });
     $("#btn-excluir-conta").addEventListener("click", excluirConta);
@@ -1077,6 +1535,10 @@
       });
     }
     contas.forEach((c) => (c.variavel = c.categoria === "Energia" || c.categoria === "Água"));
+    const nubank = { id: uid(), nome: "Nubank", dia_fechamento: 3, dia_vencimento: 10, limite: 8000, responsavel: "Casal", ativo: true };
+    const inter = { id: uid(), nome: "Inter", dia_fechamento: 25, dia_vencimento: 5, limite: 4000, responsavel: p2, ativo: true };
+    const cartoes = [nubank, inter];
+    contas.forEach((c) => { if (c.forma_pagamento === "Cartão de crédito") { c.cartao_id = nubank.id; c.forma_pagamento = "Cartão Nubank"; } });
     const orcamentos = [["Mercado", 1200], ["Restaurantes e delivery", 400], ["Lazer", 300], ["Farmácia", 150], ["Transporte", 300], ["Compras", 300]]
       .map(([categoria, limite]) => ({ id: uid(), categoria, limite, ativa: true }));
     const modelos = [["Mercado do mês", "Mercado", 420], ["Hortifruti", "Mercado", 85], ["Padaria", "Mercado", 32], ["iFood", "Restaurantes e delivery", 68],
@@ -1092,11 +1554,36 @@
           responsavel: k % 3 ? p1 : p2, forma_pagamento: k % 2 ? "Cartão de crédito" : "Pix", created_at: m + "T1" + (k % 10) + ":00:00" });
       });
     }
+    gastos.forEach((g, k) => {
+      if (g.forma_pagamento === "Cartão de crédito") { const c = k % 4 ? nubank : inter; g.cartao_id = c.id; g.forma_pagamento = "Cartão " + c.nome; }
+      g.parcelas = 1;
+    });
+    gastos.push({ id: uid(), data: somaMes(hoje, -1).slice(0, 8) + "18", descricao: "Air fryer", categoria: "Casa", valor: 540, responsavel: p1, forma_pagamento: "Cartão Nubank", cartao_id: nubank.id, parcelas: 6, created_at: "" });
+    orcamentos.push({ id: uid(), categoria: "Casa", limite: 200, ativa: true });
+    const faturas_pagas = [];
+    cartoes.forEach((c) => { for (let i = -4; i <= 0; i++) {
+      const comp = somaMes(hoje, i), venc = comp.slice(0, 8) + pad(Math.min(c.dia_vencimento, 28));
+      if (venc < hojeISO()) faturas_pagas.push({ id: uid(), cartao_id: c.id, competencia: comp, valor_pago: 0, pago_em: comp.slice(0, 8) + pad(Math.max(1, Math.min(c.dia_vencimento, 28) - 1)), pago_por: c === inter ? p2 : p1 });
+    } });
+    const prazo = (meses) => somaMes(hoje, meses);
+    const metas = [
+      { id: uid(), nome: "Reserva de emergência", valor_alvo: 30000, prazo: prazo(14), onde: "Tesouro Selic", ativa: true },
+      { id: uid(), nome: "Viagem para o Japão", valor_alvo: 25000, prazo: prazo(20), onde: "CDB 100% CDI", ativa: true },
+      { id: uid(), nome: "Entrada do apartamento", valor_alvo: 80000, prazo: null, onde: "Fundo de investimento", ativa: true }
+    ];
+    const aportes = [];
+    for (let i = -6; i <= 0; i++) {
+      const m = somaMes(hoje, i);
+      aportes.push({ id: uid(), meta_id: metas[0].id, data: m.slice(0, 8) + "06", valor: 1200 + (i % 2) * 200, responsavel: p1, observacao: null });
+      if (i > -5) aportes.push({ id: uid(), meta_id: metas[1].id, data: m.slice(0, 8) + "12", valor: 700, responsavel: p2, observacao: null });
+      if (i % 2 === 0) aportes.push({ id: uid(), meta_id: metas[2].id, data: m.slice(0, 8) + "20", valor: 1500, responsavel: i % 4 ? p1 : p2, observacao: null });
+    }
+    aportes.push({ id: uid(), meta_id: metas[0].id, data: somaMes(hoje, -6).slice(0, 8) + "01", valor: 2500, responsavel: p1, observacao: "Saldo inicial" });
     const rendas = [
       { id: uid(), descricao: "Salário", valor: 7500, responsavel: p1, ativa: true },
       { id: uid(), descricao: "Salário", valor: 6000, responsavel: p2, ativa: true }
     ];
-    return { contas, pagamentos, rendas, gastos, orcamentos };
+    return { contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas };
   }
 
   iniciar();

@@ -536,3 +536,55 @@ dialog form { padding: 8px 20px calc(20px + var(--safe-b)); display: grid; gap: 
   .alertas { margin-bottom: 10px; }
   .lista-contas li { padding: 10px 0; }
 }
+
+/* ================================================================
+   PACOTE 3 — metas, investimentos e cartões
+   ================================================================ */
+.sheet-corpo { padding: 8px 20px calc(20px + var(--safe-b)); display: grid; gap: 12px; }
+@media (min-width: 900px) { .sheet-corpo { padding: 22px; } }
+.aviso-inline { display: grid; gap: 4px; padding: 14px 0; font-size: 14px; }
+.aviso-inline span { color: var(--text-2); font-size: 13px; }
+.meter-orc.bom > span { background: var(--good); }
+.bom-txt { color: var(--good); }
+.bola-cat.retirada { background: var(--crit-bg); color: var(--crit); }
+
+/* Cartões / faturas */
+.fatura-card, .meta-card {
+  display: grid; gap: 10px; width: 100%; text-align: left; border: 0; font: inherit; color: var(--text); cursor: pointer;
+}
+.fatura-card:active, .meta-card:active { transform: scale(.99); opacity: .85; }
+.fc-topo, .mc-topo { display: flex; align-items: center; gap: 12px; }
+.fc-nome, .mc-nome { flex: 1; min-width: 0; display: grid; }
+.fc-nome small, .mc-nome small { color: var(--text-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-topo .seta { color: var(--text-3); font-size: 20px; }
+.fc-valor { font-size: 26px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fc-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--text-3); font-weight: 600; }
+.fd-topo { display: flex; align-items: center; gap: 12px; }
+.fd-topo h2 { font-size: 18px; }
+.fd-total { font-size: 32px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fd-lista { max-height: 44dvh; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+
+/* Metas */
+.hero-metas { background: linear-gradient(135deg, #0f6b3a, #1f8a52); box-shadow: 0 8px 24px rgba(15,107,58,.25); }
+@media (prefers-color-scheme: dark) { .hero-metas { background: linear-gradient(135deg, #0d4a2a, #146b3e); } }
+.lista-metas { display: grid; gap: 0; }
+.mc-pct { font-weight: 750; font-size: 15px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.meta-card.completa .mc-pct { color: var(--good); }
+.meta-card.inativa { opacity: .6; }
+.mc-valores b { font-size: 22px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin-right: 6px; }
+.mc-valores span { color: var(--text-3); font-size: 13px; }
+.mc-plano, .md-plano { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.mc-plano.warn, .md-plano.warn { color: var(--warn); }
+.mc-plano.crit, .md-plano.crit { color: var(--crit); }
+.md-topo { display: flex; align-items: center; gap: 16px; }
+.md-topo h2 { font-size: 18px; }
+.md-valor { font-size: 22px; font-weight: 750; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.md-valor span { font-size: 13px; color: var(--text-3); font-weight: 500; }
+.md-h { font-size: 14px; margin: 6px 0 0; color: var(--text-2); }
+.rosca-meta { width: 84px; height: 84px; }
+.rosca-meta .trilho-r { stroke: var(--neutral-bg); }
+.rosca-meta .arco-r { stroke: var(--accent); }
+.rosca-meta span { color: var(--text); font-size: 18px; }
+#modal-meta-detalhe .lista-cadastro { max-height: 40dvh; overflow-y: auto; }
+#seg-cadastro button { font-size: 12px; padding: 8px 2px; }
+.md-valor span { display: block; margin-top: 2px; }
