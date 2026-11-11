@@ -13,8 +13,64 @@
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-  const fmt = (v) => brl.format(Number(v) || 0);
-  const brlCurto = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+  const brlCurtoFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+  const lerPref = (k, padrao) => { try { const v = localStorage.getItem("fc-" + k); return v === null ? padrao : JSON.parse(v); } catch { return padrao; } };
+  const gravarPref = (k, v) => { try { localStorage.setItem("fc-" + k, JSON.stringify(v)); } catch {} };
+  let ocultar = lerPref("ocultar", false);
+  const OCULTO = "R$ •••••";
+  const fmt = (v) => (ocultar ? OCULTO : brl.format(Number(v) || 0));
+  const brlCurto = { format: (v) => (ocultar ? "•••" : brlCurtoFmt.format(v)) };
+
+  // ---------- Ícones por categoria ----------
+  const ICONES = {
+    casa: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    predio: '<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/>',
+    raio: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+    gota: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+    chama: '<path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z"/>',
+    wifi: '<path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/>',
+    carro: '<path d="M3 17v-4l2-5h14l2 5v4zM3 13h18M7 17v2M17 17v2"/><circle cx="7.5" cy="15" r=".5"/><circle cx="16.5" cy="15" r=".5"/>',
+    coracao: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+    escudo: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/>',
+    play: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',
+    livro: '<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/>',
+    pata: '<circle cx="8" cy="9" r="1.6"/><circle cx="16" cy="9" r="1.6"/><circle cx="5" cy="13" r="1.4"/><circle cx="19" cy="13" r="1.4"/><path d="M12 13c-3 0-5 3-5 5 0 1.5 1.5 2 5 2s5-.5 5-2c0-2-2-5-5-5z"/>',
+    grafico: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
+    carrinho: '<path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/>',
+    telefone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+    cartao: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+    etiqueta: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1"/>',
+    olho: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    olhoFechado: '<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+    lista: '<path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 0 1 1-1zm3 5h6M9 12h6M9 16h4"/>',
+    festa: '<path d="m4 20 4.5-12.5L16.5 15.5zM14 4l1 2M19 5l-2 2M20 10h-2M12 8c1-1 1.5-2.5 1-4"/>',
+    moeda: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6.5v11"/>'
+  };
+  const svg = (nome, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONES[nome] || ICONES.etiqueta}</svg>`;
+  const semAcento = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const REGRAS_ICONE = [
+    [/aluguel|moradia|casa|financiamento|iptu/, "casa"], [/condominio/, "predio"],
+    [/energia|luz|eletric/, "raio"], [/agua|saneamento|sabesp/, "gota"], [/gas\b|gas$|comgas/, "chama"],
+    [/celular|telefone|vivo|claro|tim\b/, "telefone"], [/internet|wifi|fibra/, "wifi"],
+    [/transporte|carro|combust|gasolina|uber|onibus|estacion|ipva/, "carro"],
+    [/saude|academia|farmacia|plano|medic|dentista|terapia/, "coracao"], [/seguro/, "escudo"],
+    [/assinatura|streaming|netflix|spotify|disney|prime|youtube|hbo|max\b/, "play"],
+    [/educa|curso|escola|faculdade|livro/, "livro"], [/pet|cachorro|gato|veterin|racao/, "pata"],
+    [/invest|poupanca|reserva|aporte|tesouro/, "grafico"], [/mercado|aliment|feira|padaria/, "carrinho"],
+    [/cartao|fatura|nubank/, "cartao"]
+  ];
+  const iconeDe = (...textos) => {
+    for (const t of textos) { const n = semAcento(t); for (const [re, ic] of REGRAS_ICONE) if (re.test(n)) return ic; }
+    return "etiqueta";
+  };
+  const bolaIcone = (conta) => `<span class="bola-cat" aria-hidden="true">${svg(iconeDe(conta.categoria, conta.nome))}</span>`;
+  const vazio = (icone, titulo, texto, acao) => `
+    <li class="estado-vazio">
+      <span class="ev-ic">${svg(icone)}</span>
+      <strong>${titulo}</strong>
+      ${texto ? `<span>${texto}</span>` : ""}
+      ${acao ? `<button class="btn btn-primary" data-acao="${acao[0]}">${acao[1]}</button>` : ""}
+    </li>`;
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   // ---------- Datas (competência = "AAAA-MM-01") ----------
@@ -115,6 +171,7 @@
   }
 
   function mostrarLogin() {
+    esconderSplash();
     $("#app").hidden = true;
     $("#tela-login").hidden = false;
   }
@@ -129,6 +186,11 @@
     }
     estado.usuario = { nome: data.nome };
     entrarNoApp();
+  }
+
+  function esconderSplash() {
+    const s = $("#splash"); if (!s || s.classList.contains("sai")) return;
+    s.classList.add("sai"); setTimeout(() => s.remove(), 400);
   }
 
   async function entrarNoApp() {
@@ -154,7 +216,9 @@
       const [contas, pagamentos, rendas] = await Promise.all([db.listar("contas"), db.listar("pagamentos"), db.listar("rendas")]);
       Object.assign(estado, { contas, pagamentos, rendas });
       render();
+      esconderSplash();
     } catch (e) {
+      esconderSplash();
       console.error(e);
       toast("Não foi possível carregar os dados: " + (e.message || e));
     }
@@ -205,23 +269,51 @@
     renderCadastroRendas();
   }
 
+  let totalAnterior = null;
   function renderHero(lista) {
     const total = soma(lista, (c) => c.valorMes);
     const pago = soma(lista.filter((c) => c.pagamento), (c) => c.valorMes);
     const pct = total ? Math.round((pago / total) * 100) : 0;
     const renda = soma(estado.rendas.filter((r) => r.ativa), (r) => r.valor);
     const pctRenda = renda ? Math.round((total / renda) * 100) : null;
+    const R = 26, C = 2 * Math.PI * R;
     $("#hero").innerHTML = `
-      <div class="rotulo">Contas fixas de ${esc(nomeMes(estado.mes, "mes"))}</div>
-      <div class="grande">${fmt(total)}</div>
-      <div class="meter" role="img" aria-label="${pct}% pago"><span style="width:${pct}%"></span></div>
+      <div class="hero-topo">
+        <div>
+          <div class="rotulo">Contas fixas de ${esc(nomeMes(estado.mes, "mes"))}
+            <button class="olho" id="btn-olho" aria-label="${ocultar ? "Mostrar valores" : "Esconder valores"}" aria-pressed="${ocultar}">${svg(ocultar ? "olhoFechado" : "olho")}</button>
+          </div>
+          <div class="grande" id="hero-total">${fmt(total)}</div>
+        </div>
+        <div class="rosca" role="img" aria-label="${pct}% pago">
+          <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="${R}" class="trilho-r"/>
+            <circle cx="32" cy="32" r="${R}" class="arco-r" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-alvo="${C * (1 - pct / 100)}"/></svg>
+          <span>${pct}%<small>pago</small></span>
+        </div>
+      </div>
       <div class="duas">
-        <div><small>Já pago · ${pct}%</small><b>${fmt(pago)}</b></div>
+        <div><small>Já pago</small><b>${fmt(pago)}</b></div>
         <div><small>Falta pagar</small><b>${fmt(total - pago)}</b></div>
       </div>
       <div class="renda-linha">${renda
         ? `<span><b>${pctRenda}%</b> da renda do casal</span><span>Sobram ${fmt(renda - total)}</span>`
         : `<span>Cadastre as rendas em Mais → Rendas para ver quanto sobra</span>`}</div>`;
+    // anima o arco e o número
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const arco = $("#hero .arco-r"); if (arco) arco.style.strokeDashoffset = arco.dataset.alvo;
+    }));
+    if (!ocultar && totalAnterior !== null && totalAnterior !== total) contarAte($("#hero-total"), totalAnterior, total);
+    totalAnterior = total;
+  }
+
+  function contarAte(el, de, ate) {
+    const ini = performance.now(), dur = 450;
+    const passo = (t) => {
+      const k = Math.min((t - ini) / dur, 1), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = brl.format(de + (ate - de) * e);
+      if (k < 1) requestAnimationFrame(passo);
+    };
+    requestAnimationFrame(passo);
   }
 
   function renderAlertas(lista) {
@@ -246,7 +338,8 @@
       : "Marcar como paga";
     return `
       <li class="${c.pagamento ? "paga" : ""}">
-        <button class="pagar ${c.pagamento ? "on" : ""}" data-pagar="${c.id}" aria-label="${c.pagamento ? "Desmarcar pagamento de" : "Marcar como paga:"} ${esc(c.nome)}" title="${esc(titulo)}">${c.pagamento ? "✓" : ""}</button>
+        <button class="pagar ${c.pagamento ? "on" : ""}" data-pagar="${c.id}" aria-label="${c.pagamento ? "Desmarcar pagamento de" : "Marcar como paga:"} ${esc(c.nome)}" title="${esc(titulo)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7"/></svg></button>
+        ${bolaIcone(c)}
         <div class="info" data-editar-conta="${c.id}">
           <div class="nome">${esc(c.nome)}</div>
           <div class="meta">Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}</div>
@@ -262,7 +355,9 @@
     const pend = lista.filter((c) => !c.pagamento).slice(0, 3);
     $("#lista-proximas").innerHTML = pend.length
       ? pend.map(itemConta).join("")
-      : `<li class="vazio">${estado.contas.length ? "Nenhuma conta pendente neste mês 🎉" : "Toque em + para cadastrar a primeira conta."}</li>`;
+      : estado.contas.length
+        ? vazio("festa", "Tudo em dia!", "Nenhuma conta pendente neste mês.")
+        : vazio("lista", "Comece cadastrando suas contas", "Aluguel, luz, internet… cadastre uma vez e acompanhe todo mês.", ["nova-conta", "Cadastrar primeira conta"]);
   }
 
   function renderListaMes(lista) {
@@ -270,7 +365,10 @@
     const itens = lista.filter((c) => f === "todas" || (f === "pagas" ? c.pagamento : !c.pagamento));
     $("#lista-mes").innerHTML = itens.length
       ? itens.map(itemConta).join("")
-      : `<li class="vazio">${!estado.contas.length ? "Nenhuma conta cadastrada. Toque em + para começar." : f === "pendentes" ? "Nada a pagar neste mês 🎉" : "Nenhuma conta aqui."}</li>`;
+      : !estado.contas.length
+        ? vazio("lista", "Nenhuma conta cadastrada", "Cadastre as contas fixas e elas aparecem aqui todo mês.", ["nova-conta", "Nova conta"])
+        : f === "pendentes" ? vazio("festa", "Nada a pagar neste mês", "Todas as contas já foram pagas.")
+        : vazio("lista", "Nenhuma conta paga ainda", "Toque no quadrado de uma conta para marcar como paga.");
   }
 
   function renderCategorias(lista) {
@@ -290,7 +388,7 @@
           <span class="v">${fmt(v)}</span>
           <div class="trilho"><div class="barra" style="width:${(v / max) * 100}%"></div></div>
         </div>`).join("")
-      : `<p class="vazio">Sem contas neste mês.</p>`;
+      : `<ul class="lista-contas">${vazio("grafico", "Sem dados neste mês", "Cadastre contas para ver para onde vai o dinheiro.")}</ul>`;
   }
 
   function renderDivisao(lista) {
@@ -328,12 +426,13 @@
       ? contas.map((c) => `
         <li class="${c.ativa ? "" : "inativa"}">
           <button class="item" data-editar-conta="${c.id}">
+            ${bolaIcone(c)}
             <div><div class="nome">${esc(c.nome)}${c.ativa ? "" : ' <span class="badge inativa">Inativa</span>'}</div>
             <div class="meta">Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}${c.forma_pagamento ? " · " + esc(c.forma_pagamento) : ""}</div></div>
             <span class="valor">${fmt(c.valor)}</span><span class="seta">›</span>
           </button>
         </li>`).join("") + `<li class="total"><span>Total mensal (ativas)</span><span>${fmt(soma(ativas, (c) => c.valor))}</span></li>`
-      : `<li class="vazio">Nenhuma conta ainda. Toque em + para cadastrar.</li>`;
+      : vazio("lista", "Nenhuma conta fixa", "Toque em + para cadastrar a primeira.", ["nova-conta", "Nova conta"]);
   }
 
   function renderCadastroRendas() {
@@ -342,11 +441,12 @@
       ? rendas.map((r) => `
         <li class="${r.ativa ? "" : "inativa"}">
           <button class="item" data-editar-renda="${r.id}">
+            <span class="bola-cat" aria-hidden="true">${svg("moeda")}</span>
             <div><div class="nome">${esc(r.descricao)}${r.ativa ? "" : ' <span class="badge inativa">Inativa</span>'}</div><div class="meta">${esc(r.responsavel)}</div></div>
             <span class="valor">${fmt(r.valor)}</span><span class="seta">›</span>
           </button>
         </li>`).join("") + `<li class="total"><span>Total mensal (ativas)</span><span>${fmt(soma(rendas.filter((r) => r.ativa), (r) => r.valor))}</span></li>`
-      : `<li class="vazio">Nenhuma renda ainda. Toque em + para cadastrar.</li>`;
+      : vazio("moeda", "Nenhuma renda cadastrada", "Com as rendas, o painel mostra quanto sobra depois das contas.", ["nova-renda", "Nova renda"]);
   }
 
   // ================================================================
@@ -359,17 +459,40 @@
       if (pg) {
         await db.remover("pagamentos", pg.id);
         estado.pagamentos = estado.pagamentos.filter((p) => p.id !== pg.id);
-        toast(`${conta.nome}: pagamento desmarcado`);
+        render();
+        toast(`${conta.nome}: pagamento desmarcado`, { rotulo: "Desfazer", acao: () => restaurarPagamento(pg) });
       } else {
         const novo = await db.inserir("pagamentos", {
           conta_id: contaId, competencia: estado.mes, valor_pago: conta.valor,
           pago_em: hojeISO(), pago_por: estado.usuario.nome.replace(" (demo)", "")
         });
         estado.pagamentos.push(novo);
-        toast(`${conta.nome} marcada como paga ✓`);
+        render();
+        animarPago(contaId);
+        toast(`${conta.nome} marcada como paga`, { rotulo: "Desfazer", acao: () => removerPagamento(novo) });
       }
-      render();
     } catch (e) { erro(e); }
+  }
+
+  async function removerPagamento(pg) {
+    try {
+      await db.remover("pagamentos", pg.id);
+      estado.pagamentos = estado.pagamentos.filter((p) => p.id !== pg.id);
+      render(); toast("Desfeito");
+    } catch (e) { erro(e); }
+  }
+
+  async function restaurarPagamento(pg) {
+    try {
+      const { conta_id, competencia, valor_pago, pago_em, pago_por } = pg;
+      estado.pagamentos.push(await db.inserir("pagamentos", { conta_id, competencia, valor_pago, pago_em, pago_por }));
+      render(); toast("Desfeito");
+    } catch (e) { erro(e); }
+  }
+
+  function animarPago(contaId) {
+    $$(`[data-pagar="${contaId}"]`).forEach((b) => { b.classList.add("pop"); b.closest("li")?.classList.add("brilho"); });
+    if (navigator.vibrate) try { navigator.vibrate(12); } catch {}
   }
 
   // ----- Modal conta -----
@@ -543,6 +666,32 @@
       else if (t.hasAttribute("data-fechar")) t.closest("dialog").close();
     });
 
+    // Olho: esconder/mostrar valores
+    document.addEventListener("click", (ev) => {
+      if (!ev.target.closest("#btn-olho")) return;
+      ocultar = !ocultar; gravarPref("ocultar", ocultar); totalAnterior = null; render();
+    });
+
+    // Arrastar o painel para baixo para fechar (celular)
+    $$("dialog.sheet").forEach((d) => {
+      let y0 = null, dy = 0;
+      d.addEventListener("touchstart", (ev) => {
+        if (d.scrollTop > 0 || ev.target.closest("input,select,textarea")) { y0 = null; return; }
+        y0 = ev.touches[0].clientY; dy = 0; d.style.transition = "none";
+      }, { passive: true });
+      d.addEventListener("touchmove", (ev) => {
+        if (y0 === null) return;
+        dy = Math.max(0, ev.touches[0].clientY - y0);
+        d.style.transform = `translateY(${dy}px)`;
+      }, { passive: true });
+      d.addEventListener("touchend", () => {
+        if (y0 === null) return;
+        d.style.transition = "transform .2s ease"; y0 = null;
+        if (dy > 110) { d.style.transform = "translateY(100%)"; setTimeout(() => { d.close(); d.style.transform = ""; }, 180); }
+        else d.style.transform = "";
+      });
+    });
+
     // Fechar o painel tocando fora dele
     $$("dialog").forEach((d) => d.addEventListener("click", (ev) => { if (ev.target === d) d.close(); }));
 
@@ -565,11 +714,14 @@
   }
 
   let toastTimer;
-  function toast(msg) {
+  function toast(msg, opcoes) {
     const t = $("#toast");
-    t.textContent = msg; t.hidden = false;
+    t.innerHTML = `<span>${esc(msg)}</span>${opcoes ? `<button type="button">${esc(opcoes.rotulo)}</button>` : ""}`;
+    if (opcoes) t.querySelector("button").onclick = () => { t.hidden = true; clearTimeout(toastTimer); opcoes.acao(); };
+    t.hidden = false;
+    t.classList.remove("entra"); void t.offsetWidth; t.classList.add("entra");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => (t.hidden = true), 2800);
+    toastTimer = setTimeout(() => (t.hidden = true), opcoes ? 5000 : 2600);
   }
   function erro(e) { console.error(e); toast("Erro: " + (e.message || e)); }
 

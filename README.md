@@ -8,12 +8,12 @@ Dashboard online de contas fixas do Vinícius e da Marcela.
 
 ## O que o painel faz
 
-Funciona como um app de banco: abas fixas na parte de baixo (no computador viram um menu lateral), cada tela curta e focada, e formulários que sobem de baixo.
+Funciona como um app de banco: abas fixas na parte de baixo (no computador viram um menu lateral), cada tela curta e focada, e formulários que sobem de baixo (arraste para baixo para fechar).
 
 | Aba | O que tem |
 |---|---|
-| **Início** | Cartão com o total do mês, quanto já foi pago, quanto falta e quanto da renda está comprometido; atalhos (nova conta, pagar, nova renda, análises); alertas de contas atrasadas ou vencendo; as 3 próximas contas a pagar. |
-| **Contas** | Contas do mês com filtro *A pagar / Pagas / Todas*. Toque no quadrado para marcar como paga (registra quem pagou e quando); toque na conta para editar. O número vermelho na aba mostra quantas estão atrasadas ou vencem hoje. |
+| **Início** | Cartão com o total do mês, rosca de quanto já foi pago, quanto falta e quanto da renda está comprometido (o 👁 esconde os valores); atalhos (nova conta, pagar, nova renda, análises); alertas de contas atrasadas ou vencendo; as 3 próximas contas a pagar. |
+| **Contas** | Contas do mês com filtro *A pagar / Pagas / Todas*. Toque no quadrado para marcar como paga (registra quem pagou e quando; aparece “Desfazer” por 5 s); toque na conta para editar. Cada conta ganha um ícone automático pela categoria ou nome. O número vermelho na aba mostra quantas estão atrasadas ou vencem hoje. |
 | **Análises** | *Categorias* (para onde vai o dinheiro), *Quem paga* (contas do Casal divididas meio a meio) e *6 meses* (histórico). |
 | **Mais** | Cadastro de contas fixas e rendas, exportar tudo em CSV (abre no Excel/Google Sheets) e sair. |
 

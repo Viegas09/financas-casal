@@ -367,3 +367,84 @@ dialog form { padding: 8px 20px calc(20px + var(--safe-b)); display: grid; gap: 
   .linha { grid-template-columns: 1fr; }
   .hero .grande { font-size: 30px; }
 }
+
+
+/* ================================================================
+   PACOTE 1 — visual e microinterações
+   ================================================================ */
+.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Splash */
+.splash {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-content: center; justify-items: center; gap: 14px;
+  background: linear-gradient(160deg, var(--hero-1), var(--hero-2)); color: #fff; font-weight: 700; font-size: 17px;
+  transition: opacity .35s ease, visibility .35s;
+}
+.splash img { width: 84px; height: 84px; border-radius: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.25); animation: pulsa 1.2s ease-in-out infinite; }
+.splash.sai { opacity: 0; visibility: hidden; }
+@keyframes pulsa { 50% { transform: scale(.94); } }
+
+/* Hero com rosca e olho */
+.hero-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.hero .rotulo { display: flex; align-items: center; gap: 6px; }
+.olho { background: rgba(255,255,255,.16); border: 0; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.olho .ic { width: 16px; height: 16px; }
+.olho:active { transform: scale(.9); }
+.hero .grande { margin-bottom: 0; }
+.rosca { position: relative; width: 72px; height: 72px; flex: none; }
+.rosca svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.rosca circle { fill: none; stroke-width: 7; }
+.rosca .trilho-r { stroke: rgba(255,255,255,.22); }
+.rosca .arco-r { stroke: #fff; stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1); }
+.rosca span { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font-weight: 750; font-size: 16px; line-height: 1; }
+.rosca small { display: block; font-size: 10px; font-weight: 600; opacity: .85; margin-top: 2px; }
+
+/* Ícone da categoria */
+.bola-cat {
+  width: 38px; height: 38px; border-radius: 12px; flex: none; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+}
+.lista-contas li { grid-template-columns: auto auto 1fr auto; }
+.lista-contas li.paga .bola-cat { background: var(--neutral-bg); color: var(--text-3); }
+.lista-cadastro button.item { grid-template-columns: auto 1fr auto auto; }
+.lista-cadastro li.inativa .bola-cat { background: var(--neutral-bg); color: var(--text-3); }
+
+/* Check de pago */
+.pagar svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(.5); transition: opacity .15s, transform .15s; }
+.pagar.on svg { opacity: 1; transform: none; }
+.pagar { transition: background .18s, border-color .18s, transform .12s; }
+.pagar:active { transform: scale(.88); }
+.pagar.pop { animation: pop .35s cubic-bezier(.3,1.6,.5,1); }
+@keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.lista-contas li.brilho { animation: brilho .8s ease-out; }
+@keyframes brilho { from { background: var(--good-bg); } to { background: transparent; } }
+
+/* Toque com retorno */
+.lista-contas .info, .lista-cadastro button.item, .menu-item, .alerta, .atalhos button, .btn, .tabbar button, .segmento button { transition: transform .12s, opacity .12s, background .15s; }
+.lista-contas .info:active, .lista-cadastro button.item:active, .menu-item:active { opacity: .6; }
+.btn:active, .alerta:active, .btn-add:active { transform: scale(.97); }
+.tabbar button:active svg { transform: scale(.88); }
+.tabbar svg { transition: transform .12s; }
+.segmento button { transition: background .2s, color .2s, box-shadow .2s; }
+
+/* Estado vazio */
+.estado-vazio { list-style: none; display: grid; justify-items: center; text-align: center; gap: 6px; padding: 26px 12px 22px; color: var(--text-3); font-size: 14px; }
+.estado-vazio strong { color: var(--text); font-size: 15px; }
+.estado-vazio .ev-ic { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-bottom: 6px; }
+.estado-vazio .ev-ic .ic { width: 28px; height: 28px; }
+.estado-vazio .btn { margin-top: 10px; }
+
+/* Toast com botão Desfazer */
+.toast { display: flex; align-items: center; gap: 14px; padding: 10px 10px 10px 16px; }
+.toast button { background: none; border: 0; color: #8fbaf0; font: inherit; font-weight: 700; cursor: pointer; padding: 4px 6px; }
+@media (prefers-color-scheme: dark) { .toast button { color: var(--accent-forte); } }
+.toast.entra { animation: toastEntra .25s cubic-bezier(.2,.8,.2,1); }
+@keyframes toastEntra { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* Lista entrando */
+.aba .lista-contas li, .aba .lista-cadastro li { animation: entra .25s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+.lista-contas li.estado-vazio, .lista-cadastro li.estado-vazio { display: grid; grid-template-columns: 1fr; border-top: 0; }
