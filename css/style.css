@@ -138,7 +138,7 @@ main {
 /* ---------- Barra de abas inferior ---------- */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   height: calc(var(--tabbar-h) + var(--safe-b)); padding-bottom: var(--safe-b);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: saturate(1.4) blur(14px);
@@ -448,3 +448,91 @@ dialog form { padding: 8px 20px calc(20px + var(--safe-b)); display: grid; gap: 
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 .lista-contas li.estado-vazio, .lista-cadastro li.estado-vazio { display: grid; grid-template-columns: 1fr; border-top: 0; }
+
+
+/* ================================================================
+   PACOTE 2 — gastos variáveis e orçamentos
+   ================================================================ */
+.meter-orc { height: 8px; background: var(--neutral-bg); border-radius: 4px; overflow: hidden; }
+.meter-orc.grande { height: 10px; }
+.meter-orc > span { display: block; height: 100%; border-radius: 4px; background: var(--accent); transition: width .6s cubic-bezier(.2,.8,.2,1); }
+.meter-orc.warn > span { background: var(--warn); }
+.meter-orc.crit > span { background: var(--crit); }
+.ok { color: var(--text-2); }
+.warn { color: var(--warn); }
+.crit { color: var(--crit); }
+.neutro { color: var(--text-3); }
+
+/* Resumo na tela inicial */
+.card-gastos-resumo { cursor: pointer; display: grid; gap: 10px; padding: 14px 16px; }
+.card-gastos-resumo:active { opacity: .75; }
+.rg-topo { display: flex; align-items: center; gap: 12px; }
+.rg-txt { flex: 1; min-width: 0; }
+.rg-txt small { display: block; font-size: 12px; color: var(--text-3); font-weight: 600; }
+.rg-txt b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.rg-txt span { font-size: 13px; color: var(--text-3); }
+.rg-topo .seta { color: var(--text-3); font-size: 20px; }
+.rg-rodape { font-size: 12px; font-weight: 600; color: var(--text-3); }
+.rg-rodape.ok { color: var(--text-2); }
+
+/* Aba Gastos */
+.resumo-orc { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; display: grid; gap: 10px; }
+.resumo-orc:empty { display: none; }
+.ro-num small { display: block; font-size: 13px; color: var(--text-3); font-weight: 600; }
+.ro-num b { font-size: 28px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin-right: 6px; }
+.ro-num span { color: var(--text-3); font-size: 13px; }
+.ro-rodape { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; font-weight: 600; color: var(--text-3); }
+
+.lista-orc { list-style: none; margin: 0; padding: 0; }
+.lista-orc li { border-top: 1px solid var(--grid); }
+.lista-orc li:first-child { border-top: 0; }
+.orc-item { width: 100%; display: flex; gap: 12px; align-items: center; background: none; border: 0; font: inherit; color: var(--text); text-align: left; padding: 13px 0; cursor: pointer; }
+.orc-item:active { opacity: .6; }
+.orc-meio { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.orc-linha { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.orc-linha .nome { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.orc-linha .valor { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.orc-linha small { color: var(--text-3); font-weight: 500; }
+.orc-st { font-size: 12px; font-weight: 600; }
+
+.dia-extrato { display: flex; justify-content: space-between; font-size: 13px; font-weight: 650; color: var(--text-3); padding: 4px 4px 8px; }
+.lista-cadastro .valor { white-space: nowrap; }
+.filtro-ativo { display: flex; align-items: center; gap: 8px; background: var(--accent-soft); color: var(--accent); border-radius: 12px; padding: 8px 8px 8px 14px; font-size: 13px; margin-bottom: 12px; }
+.filtro-ativo button { margin-left: auto; background: none; border: 0; color: inherit; font-size: 15px; cursor: pointer; padding: 4px 8px; }
+.aviso { border-left: 4px solid var(--warn); }
+.painel-gastos.desativado { display: none; }
+
+/* Formulário de gasto */
+.valor-grande { font-size: 13px; }
+.campo-rs { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 4px 14px; }
+.campo-rs span { font-size: 22px; font-weight: 700; color: var(--text-3); }
+.campo-rs input { border: 0; background: transparent; font-size: 30px; font-weight: 750; padding: 8px 0; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.campo-rs input:focus-visible { outline: none; }
+.campo-rs:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.chips-cat { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-cat {
+  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 600;
+  padding: 7px 12px 7px 9px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer;
+}
+.chip-cat .ic { width: 16px; height: 16px; }
+.chip-cat.ativo { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip-cat:active { transform: scale(.96); }
+
+@media (max-width: 380px) {
+  .tabbar button { font-size: 10px; }
+}
+
+.orc-linha .nome { flex: 1; min-width: 0; }
+.orc-st { font-size: 12px; font-weight: 600; }
+.card-gastos-resumo { gap: 8px; padding: 12px 16px; margin-bottom: 12px; }
+.rg-txt small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* tela inicial mais compacta no celular */
+@media (max-width: 899px) {
+  .hero { padding: 16px; margin-bottom: 12px; }
+  .hero .duas { margin-top: 10px; }
+  .hero .renda-linha { margin-top: 10px; padding-top: 10px; }
+  .atalhos { margin-bottom: 12px; }
+  .atalhos .bola { width: 48px; height: 48px; }
+  .alertas { margin-bottom: 10px; }
+  .lista-contas li { padding: 10px 0; }
+}

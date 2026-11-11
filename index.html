@@ -63,10 +63,12 @@
         <div class="atalhos">
           <button data-acao="nova-conta"><span class="bola"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Nova conta</button>
           <button data-ir="contas"><span class="bola"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg></span>Pagar</button>
-          <button data-acao="nova-renda"><span class="bola"><svg viewBox="0 0 24 24"><path d="M12 19V5m0 0-5 5m5-5 5 5"/></svg></span>Nova renda</button>
+          <button data-acao="novo-gasto"><span class="bola"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></span>Novo gasto</button>
           <button data-ir="analises"><span class="bola"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7"/></svg></span>Análises</button>
         </div>
         <div id="alertas" class="alertas"></div>
+
+        <article class="card card-gastos-resumo" data-ir="gastos" id="resumo-gastos" role="button" tabindex="0"></article>
 
         <div class="grade-inicio">
           <article class="card">
@@ -94,6 +96,25 @@
           <ul class="lista-contas" id="lista-mes"></ul>
         </article>
         <p class="dica">Toque no quadrado para marcar como paga. Toque na conta para editar.</p>
+      </section>
+
+      <!-- ---------- GASTOS VARIÁVEIS ---------- -->
+      <section id="aba-gastos" class="aba" hidden>
+        <div class="titulo-aba">
+          <div class="titulo-linha"><h1>Gastos do mês</h1><button class="btn-add" data-acao="novo-gasto" aria-label="Novo gasto">+</button></div>
+          <div class="segmento" id="seg-gastos" role="group" aria-label="Visualizar">
+            <button data-g="orcamento" class="ativo">Orçamento</button>
+            <button data-g="extrato">Extrato</button>
+          </div>
+        </div>
+        <div id="aviso-migracao" class="card aviso" hidden></div>
+        <div class="painel-gastos" data-painel="orcamento">
+          <div class="resumo-orc" id="resumo-orc"></div>
+          <article class="card card-lista"><ul class="lista-orc" id="lista-orc"></ul></article>
+        </div>
+        <div class="painel-gastos" data-painel="extrato" hidden>
+          <div id="extrato"></div>
+        </div>
       </section>
 
       <!-- ---------- ANÁLISES ---------- -->
@@ -130,6 +151,7 @@
           <div class="segmento" id="seg-cadastro" role="group" aria-label="Escolher cadastro">
             <button data-c="contas" class="ativo">Contas fixas</button>
             <button data-c="rendas">Rendas</button>
+            <button data-c="orcamentos">Orçamentos</button>
           </div>
         </div>
 
@@ -138,6 +160,9 @@
         </article>
         <article class="card card-lista painel-cadastro" data-painel="rendas" hidden>
           <ul class="lista-cadastro" id="cad-rendas"></ul>
+        </article>
+        <article class="card card-lista painel-cadastro" data-painel="orcamentos" hidden>
+          <ul class="lista-cadastro" id="cad-orcamentos"></ul>
         </article>
 
         <article class="card card-lista menu">
@@ -158,6 +183,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 0 1 1-1zm3 5h6M9 12h6M9 16h4"/></svg>
         <span>Contas</span>
         <i class="contador" id="contador-pendentes" hidden></i>
+      </button>
+      <button role="tab" data-aba="gastos" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+        <span>Gastos</span>
       </button>
       <button role="tab" data-aba="analises" aria-selected="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></svg>
@@ -180,7 +209,7 @@
       </label>
       <div class="linha">
         <label>Valor (R$)
-          <input name="valor" type="number" step="0.01" min="0" required inputmode="decimal" />
+          <input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
         </label>
         <label>Vence todo dia
           <input name="dia_vencimento" type="number" min="1" max="31" required inputmode="numeric" />
@@ -205,6 +234,7 @@
       <label>Observação
         <input name="observacao" maxlength="200" />
       </label>
+      <label class="check" id="lbl-variavel"><input type="checkbox" name="variavel" /> Valor muda todo mês (luz, água, gás…)</label>
       <label class="check"><input type="checkbox" name="ativa" checked /> Conta ativa</label>
       <div class="modal-acoes">
         <button type="button" class="btn btn-perigo" id="btn-excluir-conta" hidden>Excluir</button>
@@ -225,7 +255,7 @@
       </label>
       <div class="linha">
         <label>Valor mensal (R$)
-          <input name="valor" type="number" step="0.01" min="0" required inputmode="decimal" />
+          <input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
         </label>
         <label>De quem
           <select name="responsavel" id="sel-responsavel-renda"></select>
@@ -237,6 +267,80 @@
         <span class="espaco"></span>
         <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
         <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL GASTO ============ -->
+  <dialog id="modal-gasto" class="sheet">
+    <form id="form-gasto" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-gasto">Novo gasto</h2>
+      <label class="valor-grande">Valor
+        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
+      </label>
+      <label>Descrição
+        <input name="descricao" required maxlength="80" placeholder="Ex.: Mercado do mês, iFood, cinema" />
+      </label>
+      <div class="chips-cat" id="chips-cat" role="group" aria-label="Categoria"></div>
+      <input type="hidden" name="categoria" required />
+      <div class="linha">
+        <label>Data
+          <input name="data" type="date" required />
+        </label>
+        <label>Quem pagou
+          <select name="responsavel" id="sel-responsavel-gasto"></select>
+        </label>
+      </div>
+      <label>Forma de pagamento
+        <input name="forma_pagamento" list="lista-pagamentos" maxlength="40" />
+      </label>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-perigo" id="btn-excluir-gasto" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL ORÇAMENTO ============ -->
+  <dialog id="modal-orcamento" class="sheet">
+    <form id="form-orcamento" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-orcamento">Nova categoria de gasto</h2>
+      <label>Categoria
+        <input name="categoria" required maxlength="40" placeholder="Ex.: Mercado, Lazer, Farmácia" />
+      </label>
+      <label>Limite por mês (R$)
+        <input name="limite" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
+      </label>
+      <label class="check"><input type="checkbox" name="ativa" checked /> Categoria ativa</label>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-perigo" id="btn-excluir-orcamento" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL VALOR REAL ============ -->
+  <dialog id="modal-pagar" class="sheet">
+    <form id="form-pagar" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-pagar">Quanto veio a conta?</h2>
+      <p class="muted pequeno" id="dica-pagar"></p>
+      <label class="valor-grande">Valor pago
+        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" autocomplete="off" /></span>
+      </label>
+      <label>Pago em
+        <input name="pago_em" type="date" required />
+      </label>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Marcar como paga</button>
       </div>
     </form>
   </dialog>
