@@ -19,7 +19,7 @@ begin
     update public.contas set created_by = null where created_by in (select user_id from _sair);
     delete from auth.users where id in (select user_id from _sair);
   end if;
-  foreach t in array array['contas', 'pagamentos', 'rendas', 'gastos', 'orcamentos', 'metas', 'aportes', 'cartoes', 'faturas_pagas'] loop
+  foreach t in array array['contas', 'pagamentos', 'rendas', 'gastos', 'orcamentos', 'metas', 'aportes', 'cartoes', 'faturas_pagas', 'valores_mes'] loop
     if to_regclass('public.' || t) is not null then
       for pol in select policyname from pg_policies where schemaname = 'public' and tablename = t loop
         execute format('drop policy %I on public.%I', pol, t);

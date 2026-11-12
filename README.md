@@ -85,7 +85,7 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
 - **Conta que acabou** (ex.: cancelou um streaming): edite e desmarque **Conta ativa**. Ela some dos próximos meses mas o histórico fica. Só use **Excluir** para contas cadastradas por engano.
 - **Valor mudou** (ex.: aluguel reajustado): edite o valor. Os meses já pagos mantêm o valor antigo, porque o pagamento guarda o valor do mês.
 - **Tipo de conta:** no cadastro escolham *Mesmo valor todo mês* (aluguel), *Valor muda todo mês* (luz, água) ou *Só neste mês* (uma fatura, IPVA — aparece só no mês aberto no app e não se repete). Digitar “1.000” é lido como mil reais.
-- **Conta variável** (luz, água, gás): escolha “Valor muda todo mês” no cadastro. Ao marcar como paga, o app pergunta quanto veio a fatura (já sugere a média dos últimos 3 meses). Enquanto não paga, aparece com “~” na frente: é a estimativa.
+- **Conta variável** (luz, água, gás): escolha “Valor muda todo mês” no cadastro. Para informar o valor de um mês antes de pagar (ex.: a fatura de dezembro), toque no valor da conta (✎) e digite. Ao marcar como paga, o app pergunta quanto veio a fatura (já sugere a média dos últimos 3 meses). Enquanto não paga, aparece com “~” na frente: é a estimativa.
 - **Cartão de crédito:** cadastre em *Mais → Cartões* com o dia de fechamento e de vencimento. Ao lançar um gasto, escolha o cartão em *Pagamento* (e as parcelas, se for parcelado). Contas fixas cobradas no cartão (streaming, internet) entram na fatura marcando o cartão no cadastro da conta. O gasto conta no orçamento do mês da compra pelo valor total; na fatura, entra parcela por parcela.
 - **Backup:** de vez em quando, *Contas fixas → Exportar CSV*.
 - **Supabase gratuito pausa** o projeto depois de uns 7 dias sem nenhum acesso. Usando toda semana isso não acontece; se pausar, é só entrar no painel do Supabase e clicar em *Restore*.
@@ -100,6 +100,7 @@ Quando uma versão nova precisar de tabelas novas, vem um arquivo `supabase/migr
 | `migracao-03-metas-cartoes.sql` | Metas e aportes, cartões de crédito, faturas e compras parceladas |
 | `migracao-04-conta-unica.sql` | Contas “só neste mês” (uma fatura, IPVA) que não se repetem |
 | `migracao-05-familias.sql` | Várias famílias, convites e cadastro só por convite (desfazer: `migracao-05-desfazer.sql`) |
+| `migracao-06-valor-do-mes.sql` | Informar o valor de uma conta variável num mês, antes de pagar (desfazer: `migracao-06-desfazer.sql`) |
 
 ## Como as mudanças chegam no app (link de teste)
 

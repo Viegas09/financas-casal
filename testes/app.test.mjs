@@ -58,10 +58,19 @@ const aba = (p, a) => p.click(`.tabbar [data-aba=${a}]`);
   const valor = async (n) => { const l = p.locator("#lista-mes li", { hasText: n }); return (await l.count()) ? (await l.locator(".valor").innerText()).replace(/\s/g, " ") : "—"; };
   ok(await valor("Fixa T") === "R$ 1.000,00", "“1.000” é lido como mil reais");
   await p.click("#mes-proximo"); await p.waitForTimeout(250);
-  ok(await valor("Fixa T") === "R$ 1.000,00" && await valor("Variavel T") === "a definir" && await valor("Unica T") === "—",
+  ok(await valor("Fixa T") === "R$ 1.000,00" && (await valor("Variavel T")).startsWith("a definir") && await valor("Unica T") === "—",
     "mês seguinte: fixa repete, variável fica “a definir”, “só neste mês” some");
+  // informar o valor do mês numa conta variável “a definir”
+  const totalAntes = await p.innerText("#resumo-contas .rc-topo b");
+  await p.click('#lista-mes li:has-text("Variavel T") [data-informar]'); await p.waitForTimeout(300);
+  await p.fill("#form-valor-mes [name=valor]", "750"); await p.click("#form-valor-mes button[type=submit]"); await p.waitForTimeout(400);
+  const totalDepois = await p.innerText("#resumo-contas .rc-topo b");
+  ok((await valor("Variavel T")).startsWith("R$ 750,00") && totalAntes !== totalDepois, "informar valor do mês: “a definir” vira R$ 750,00 e entra no total");
+  await p.click("#mes-proximo"); await p.waitForTimeout(250);
+  ok(await valor("Variavel T") === "a definir✎" || (await valor("Variavel T")).startsWith("a definir"), "o valor informado vale só para aquele mês");
+  await p.click("#mes-anterior"); await p.waitForTimeout(250);
   await novaConta("Variavel Futura", "500,00", "variavel");
-  ok(await valor("Variavel Futura") === "R$ 500,00", "variável criada para um mês futuro mostra o valor cadastrado nesse mês");
+  ok((await valor("Variavel Futura")).startsWith("R$ 500,00"), "variável criada para um mês futuro mostra o valor cadastrado nesse mês");
   await p.click("#mes-anterior"); await p.waitForTimeout(250);
 
   // gasto: categoria obrigatória e trava contra duplicar
