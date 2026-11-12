@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="css/style.css?v=202611121420" />
+  <link rel="stylesheet" href="css/style.css?v=202611121433" />
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -24,17 +24,24 @@
   <section id="tela-login" class="login" hidden>
     <form id="form-login" class="login-card">
       <img src="icons/icon-192.png" alt="" class="login-logo" />
-      <h1>Finanças do Casal</h1>
-      <p class="muted">Entre com o seu e-mail e senha.</p>
+      <h1 id="login-titulo">Finanças do Casal</h1>
+      <p class="muted" id="login-sub">Entre com o seu e-mail e senha.</p>
       <label>E-mail
         <input type="email" name="email" autocomplete="email" required />
       </label>
       <label>Senha
-        <input type="password" name="senha" autocomplete="current-password" required />
+        <input type="password" name="senha" autocomplete="current-password" required minlength="6" />
       </label>
-      <button type="submit" class="btn btn-primary btn-bloco">Entrar</button>
+      <label id="lbl-senha2" hidden>Repita a senha
+        <input type="password" name="senha2" autocomplete="new-password" minlength="6" />
+      </label>
+      <button type="submit" class="btn btn-primary btn-bloco" id="btn-login">Entrar</button>
       <button type="button" id="btn-esqueci" class="btn-link">Esqueci minha senha</button>
       <p id="login-erro" class="erro" role="alert"></p>
+      <div class="login-convite">
+        <span id="login-pergunta">Recebeu um convite?</span>
+        <button type="button" id="btn-modo-cadastro" class="btn-link">Criar minha conta</button>
+      </div>
     </form>
   </section>
 
@@ -196,6 +203,8 @@
         <article class="card card-lista painel-cadastro" data-painel="cartoes" hidden>
           <ul class="lista-cadastro" id="cad-cartoes"></ul>
         </article>
+
+        <article class="card card-familia" id="card-familia" hidden></article>
 
         <article class="card card-lista menu">
           <button class="menu-item" data-acao="tutorial"><span>Tutorial do app</span><span class="seta">›</span></button>
@@ -532,6 +541,32 @@
     </div>
   </dialog>
 
+  <!-- ============ CONVIDAR ============ -->
+  <dialog id="modal-convite" class="sheet">
+    <form id="form-convite" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-convite">Convidar para a família</h2>
+      <p class="explica" id="explica-convite"></p>
+      <div id="convite-campos">
+        <label>Nome (como vai aparecer no app)
+          <input name="nome" required maxlength="40" autocomplete="off" placeholder="Ex.: Carlos" />
+        </label>
+        <label>E-mail da pessoa
+          <input name="email" type="email" required autocomplete="off" placeholder="email@exemplo.com" />
+        </label>
+        <label id="lbl-familia-nome" hidden>Nome da família
+          <input name="familia_nome" maxlength="50" autocomplete="off" placeholder="Ex.: Ana & Carlos" />
+        </label>
+      </div>
+      <div id="convite-pronto" hidden></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar id="convite-fechar">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="convite-enviar">Criar convite</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- ============ IMPORTAR EXTRATO ============ -->
   <dialog id="modal-importar" class="sheet sheet-alta">
     <div class="sheet-corpo">
@@ -610,7 +645,7 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=202611121420"></script>
-  <script src="js/app.js?v=202611121420"></script>
+  <script src="js/config.js?v=202611121433"></script>
+  <script src="js/app.js?v=202611121433"></script>
 </body>
 </html>

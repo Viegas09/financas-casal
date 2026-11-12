@@ -6,8 +6,14 @@
 
   const CFG = window.CONFIG || {};
   const DEMO = !CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY;
-  const PESSOAS = CFG.PESSOAS || ["Pessoa 1", "Pessoa 2"];
-  const RESPONSAVEIS = [...PESSOAS, "Casal"];
+  // Pessoas da família (vêm do banco depois do login; o config.js é só o padrão / modo demonstração)
+  let PESSOAS = CFG.PESSOAS || ["Pessoa 1", "Pessoa 2"];
+  let RESPONSAVEIS = [...PESSOAS, "Casal"];
+  function definirPessoas(lista) {
+    PESSOAS = lista && lista.length ? [...lista] : CFG.PESSOAS || ["Pessoa 1"];
+    RESPONSAVEIS = PESSOAS.length >= 2 ? [...PESSOAS, "Casal"] : [...PESSOAS];
+  }
+  const RESP_PADRAO = () => (RESPONSAVEIS.includes("Casal") ? "Casal" : RESPONSAVEIS[0]);
   const DIAS_ALERTA = CFG.DIAS_ALERTA ?? 5;
 
   const $ = (s, el = document) => el.querySelector(s);
@@ -206,6 +212,7 @@
     ligarTutorial();
     ligarArraste();
     ligarImportar();
+    ligarFamilia();
 
     if (DEMO) {
       $("#banner-demo").hidden = false;
@@ -230,13 +237,22 @@
 
   async function validarMembro() {
     const { data: { user } } = await sb.auth.getUser();
-    const { data, error } = await sb.from("membros").select("nome").eq("user_id", user.id).maybeSingle();
+    const { data, error } = await sb.from("membros").select("*").eq("user_id", user.id).maybeSingle();
     if (error || !data) {
       await sb.auth.signOut();
-      $("#login-erro").textContent = "Este usuário não tem acesso ao painel. Peça para ser adicionado na tabela “membros”.";
+      $("#login-erro").textContent = "Este usuário não tem acesso ao painel. Peça um convite para quem já usa o app.";
       return mostrarLogin();
     }
-    estado.usuario = { nome: data.nome };
+    estado.usuario = { nome: data.nome, id: user.id };
+    estado.membro = data;
+    estado.familia = null;
+    if (data.familia_id) {
+      const { data: fam } = await sb.from("familias").select("*").eq("id", data.familia_id).maybeSingle();
+      estado.familia = fam || null;
+    }
+    definirPessoas(estado.familia?.pessoas);
+    preencherSelects();
+    if (pessoa !== "todos" && !PESSOAS.includes(pessoa)) pessoa = "todos";
     entrarNoApp();
   }
 
@@ -274,6 +290,10 @@
       ]);
       Object.assign(estado, { contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas });
       estado.migracao4 = DEMO ? true : contas.length ? "fim" in contas[0] : !(await sb.from("contas").select("fim").limit(1)).error;
+      if (!DEMO && estado.familia) {
+        const [mb, cv] = await Promise.all([db.listar("membros").catch(() => []), db.listar("convites").catch(() => [])]);
+        estado.membrosFamilia = mb; estado.convites = cv;
+      }
       render();
       esconderSplash();
       if (!lerPref("tutorial-visto", false)) setTimeout(() => abrirTutorial(0), 500);
@@ -347,6 +367,7 @@
     renderFaturas();
     renderCadastroCartoes();
     renderMetas();
+    renderFamilia();
   }
 
   let totalAnterior = null;
@@ -1047,12 +1068,13 @@
     editandoConta = id ? estado.contas.find((c) => c.id === id) : null;
     $("#titulo-modal-conta").textContent = editandoConta ? "Editar conta" : "Nova conta";
     $("#explica-conta").hidden = !!editandoConta || !estado.migracao2;
-    const c = editandoConta || { ativa: true, responsavel: "Casal", inicio: estado.mes, ...prefill };
+    const c = editandoConta || { ativa: true, responsavel: RESP_PADRAO(), inicio: estado.mes, ...prefill };
     f.elements.nome.value = c.nome || "";
     f.elements.dia_vencimento.value = c.dia_vencimento || "";
     f.elements.observacao.value = c.observacao || "";
     f.elements.valor.value = paraCampo(c.valor);
-    f.elements.responsavel.value = RESPONSAVEIS.includes(c.responsavel) ? c.responsavel : "Casal";
+    if (c.responsavel && !RESPONSAVEIS.includes(c.responsavel)) $("#sel-responsavel-conta").insertAdjacentHTML("beforeend", `<option>${esc(c.responsavel)}</option>`);
+    f.elements.responsavel.value = c.responsavel || RESP_PADRAO();
     f.elements.inicio.value = (c.inicio || estado.mes).slice(0, 7);
     f.elements.ativa.checked = c.ativa !== false;
     // valor muda?
@@ -1452,7 +1474,7 @@
     editandoCartao = id ? estado.cartoes.find((c) => c.id === id) : null;
     $("#titulo-modal-cartao").textContent = editandoCartao ? "Editar cartão" : "Novo cartão";
 
-    const c = editandoCartao || { ativo: true, responsavel: "Casal" };
+    const c = editandoCartao || { ativo: true, responsavel: RESP_PADRAO() };
     f.elements.nome.value = c.nome || "";
     f.elements.dia_fechamento.value = c.dia_fechamento || "";
     f.elements.dia_vencimento.value = c.dia_vencimento || "";
@@ -1546,14 +1568,48 @@
   }
 
   function ligarEventos() {
-    $("#form-login").addEventListener("submit", async (ev) => {
-      ev.preventDefault();
+    let modoCadastro = false;
+    const definirModo = (cad) => {
+      modoCadastro = cad;
+      $("#login-titulo").textContent = cad ? "Criar minha conta" : "Finanças do Casal";
+      $("#login-sub").textContent = cad ? "Use o mesmo e-mail que recebeu o convite e escolha uma senha." : "Entre com o seu e-mail e senha.";
+      $("#lbl-senha2").hidden = !cad; $("#form-login").elements.senha2.required = cad;
+      $("#form-login").elements.senha.autocomplete = cad ? "new-password" : "current-password";
+      $("#btn-login").textContent = cad ? "Criar conta" : "Entrar";
+      $("#btn-esqueci").hidden = cad;
+      $("#login-pergunta").textContent = cad ? "Já tem conta?" : "Recebeu um convite?";
+      $("#btn-modo-cadastro").textContent = cad ? "Entrar" : "Criar minha conta";
+      $("#login-erro").textContent = "";
+    };
+    $("#btn-modo-cadastro").addEventListener("click", () => definirModo(!modoCadastro));
+    if (new URLSearchParams(location.search).get("convite") !== null) definirModo(true);
+    $("#form-login").addEventListener("submit", travar(async (ev) => {
       const f = ev.target.elements;
       $("#login-erro").textContent = "";
-      const { error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.senha.value });
-      if (error) { $("#login-erro").textContent = "E-mail ou senha incorretos."; return; }
+      const email = f.email.value.trim();
+      if (modoCadastro) {
+        if (f.senha.value !== f.senha2.value) { $("#login-erro").textContent = "As senhas não são iguais."; return; }
+        const { data, error } = await sb.auth.signUp({ email, password: f.senha.value, options: { emailRedirectTo: location.origin + location.pathname } });
+        if (error) {
+          const m = error.message || "";
+          $("#login-erro").textContent = /already|registered|exists/i.test(m) ? "Já existe uma conta com este e-mail. Toque em “Entrar”."
+            : /database|convite|saving/i.test(m) ? "Não encontramos convite para este e-mail. Confira com quem te convidou se o e-mail está certo."
+            : /signup.*disabled|not allowed/i.test(m) ? "O cadastro está desligado no Supabase (Allow new users to sign up). Avise quem administra o app."
+            : /password/i.test(m) ? "Senha fraca: use pelo menos 6 caracteres." : "Não foi possível criar a conta: " + m;
+          return;
+        }
+        if (!data.session) {
+          definirModo(false);
+          $("#login-erro").textContent = "Conta criada! Enviamos um e-mail de confirmação: abra o link e depois entre aqui.";
+          return;
+        }
+        await validarMembro();
+        return;
+      }
+      const { error } = await sb.auth.signInWithPassword({ email, password: f.senha.value });
+      if (error) { $("#login-erro").textContent = /confirm/i.test(error.message) ? "Confirme o seu e-mail primeiro (veja a caixa de entrada)." : "E-mail ou senha incorretos."; return; }
       await validarMembro();
-    });
+    }));
     $("#btn-esqueci").addEventListener("click", async () => {
       const email = $("#form-login").elements.email.value.trim();
       if (!email) { $("#login-erro").textContent = "Digite seu e-mail acima primeiro."; return; }
@@ -1721,7 +1777,7 @@
       itens: ["Toque no quadrado para marcar como paga — só isso, não precisa mexer no cadastro", "No mês seguinte ela volta sozinha como “a pagar”", "Conta de um mês só (uma fatura, IPVA)? Escolha “Só neste mês” no cadastro", "Errou? Aparece “Desfazer” por 5 segundos", "Contas que mudam de valor (luz, água) perguntam quanto veio; antes de pagar aparecem com “~” (estimativa)", "Cancelou algo (ex.: Netflix)? Abra a conta e toque em “Encerrar conta”"] },
     { ic: "carrinho", cor: "azul", titulo: "Gastos: o dia a dia com limite", ir: "gastos",
       texto: "Mercado, delivery, lazer, farmácia… lance cada gasto e acompanhe o limite de cada categoria.",
-      itens: ["Para o que foi pago na hora, uma vez só", "Toque em + : digite o valor, escolha a categoria e salve", "Orçamento: quanto já foi gasto, quanto resta e quanto dá por dia", "Barra amarela a partir de 80%, vermelha quando passa", "Extrato: os lançamentos dia a dia, como no banco", "Lançou errado ou duplicado? Arraste para a esquerda para excluir", "Botão Importar: puxa as compras do extrato do banco (OFX ou CSV)", "Todos / Vinícius / Marcela filtra por pessoa"] },
+      itens: ["Para o que foi pago na hora, uma vez só", "Toque em + : digite o valor, escolha a categoria e salve", "Orçamento: quanto já foi gasto, quanto resta e quanto dá por dia", "Barra amarela a partir de 80%, vermelha quando passa", "Extrato: os lançamentos dia a dia, como no banco", "Lançou errado ou duplicado? Arraste para a esquerda para excluir", "Botão Importar: puxa as compras do extrato do banco (OFX ou CSV)", "{PESSOAS} filtra por pessoa"] },
     { ic: "cartao", cor: "azul", titulo: "Cartões (só se usarem crédito)", ir: "gastos", sub: "cartoes",
       texto: "Quem paga tudo no Pix ou débito pode pular esta parte. Se usarem cartão de crédito, cadastre com os dias de fechamento e vencimento e escolha o cartão em “Pagamento” ao lançar um gasto.",
       itens: ["Compras parceladas: cada parcela cai na fatura certa", "Contas fixas no cartão (streaming, internet) entram na fatura", "Status: aberta, fechada, vencida ou paga", "Toque na fatura para ver os itens e marcar como paga"] },
@@ -1755,7 +1811,7 @@
         <div class="tut-ilustra ${t.cor}"><span>${svg(t.ic)}</span></div>
         <h2>${esc(t.titulo)}</h2>
         <p>${esc(t.texto)}</p>
-        ${t.itens ? `<ul class="tut-itens">${t.itens.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        ${t.itens ? `<ul class="tut-itens">${t.itens.filter((x) => !x.includes("{PESSOAS}") || PESSOAS.length > 1).map((x) => `<li>${esc(x.replace("{PESSOAS}", ["Todos", ...PESSOAS].join(" / ")))}</li>`).join("")}</ul>` : ""}
         ${t.checklist ? `<ul class="tut-check">${passos.map((x, k) => `
           <li class="${x.ok ? "feito" : ""}">
             <span class="tc-bola">${x.ok ? "✓" : k + 1}</span>
@@ -1819,6 +1875,134 @@
     });
     $("#modal-tutorial").addEventListener("close", () => gravarPref("tutorial-visto", true));
     addEventListener("resize", () => { if ($("#modal-tutorial").open) irSlide(tutIndice, false); });
+  }
+
+  // ================================================================
+  // FAMÍLIA E CONVITES
+  // ================================================================
+  function renderFamilia() {
+    const el = $("#card-familia");
+    if (DEMO) { el.hidden = true; return; }
+    el.hidden = false;
+    if (!estado.familia) {
+      el.innerHTML = `<h2>Família</h2><div class="aviso-inline"><strong>Falta um passo no banco de dados</strong><span>Para convidar outras pessoas e famílias, rode <code>supabase/migracao-05-familias.sql</code> no SQL Editor do Supabase.</span></div>`;
+      return;
+    }
+    const souDono = estado.membro?.papel === "dono", souAdmin = !!estado.membro?.admin;
+    const membros = (estado.membrosFamilia || []).slice().sort((a, b) => (a.papel === "dono" ? -1 : 1) - (b.papel === "dono" ? -1 : 1) || a.nome.localeCompare(b.nome));
+    const pend = (estado.convites || []).filter((c) => !c.aceito_em);
+    const daFam = pend.filter((c) => c.familia_id), novas = pend.filter((c) => !c.familia_id);
+    el.innerHTML = `
+      <div class="cf-topo">
+        <span class="bola-cat">${svg("casa")}</span>
+        <div><small>Sua família</small><h2>${esc(estado.familia.nome)}</h2></div>
+        ${souDono ? `<button type="button" class="btn-link" id="btn-renomear-familia">Renomear</button>` : ""}
+      </div>
+      <ul class="cf-lista">
+        ${membros.map((m) => `
+          <li><span class="mini-avatar">${esc(m.nome.charAt(0))}</span>
+            <div><b>${esc(m.nome)}${m.user_id === estado.usuario.id ? " (você)" : ""}</b><small>${esc(m.email || "")}${m.papel === "dono" ? " · dono" : ""}</small></div>
+            ${souDono && m.user_id !== estado.usuario.id && m.papel !== "dono" ? `<button type="button" class="btn-link perigo" data-remover-membro="${m.user_id}">Remover</button>` : ""}
+          </li>`).join("")}
+        ${daFam.map((c) => `
+          <li class="pendente"><span class="mini-avatar">${esc(c.nome.charAt(0))}</span>
+            <div><b>${esc(c.nome)}</b><small>${esc(c.email)} · convite pendente</small></div>
+            <button type="button" class="btn-link" data-reenviar-convite="${c.id}">Enviar</button>
+            <button type="button" class="btn-link perigo" data-cancelar-convite="${c.id}">Cancelar</button>
+          </li>`).join("")}
+      </ul>
+      <button type="button" class="btn btn-ghost btn-bloco" data-acao="convidar-familia">+ Convidar para esta família</button>
+      ${souAdmin ? `
+        <div class="cf-admin">
+          <b>Outras famílias</b>
+          <p class="muted pequeno">Cada família tem os próprios dados; uma não vê a outra.</p>
+          ${novas.map((c) => `<div class="cf-conv"><div><b>${esc(c.familia_nome || "Nova família")}</b><small>${esc(c.nome)} · ${esc(c.email)} · pendente</small></div>
+            <button type="button" class="btn-link" data-reenviar-convite="${c.id}">Enviar</button><button type="button" class="btn-link perigo" data-cancelar-convite="${c.id}">Cancelar</button></div>`).join("")}
+          <button type="button" class="btn btn-ghost btn-bloco" data-acao="convidar-nova">+ Convidar uma nova família</button>
+        </div>` : ""}`;
+  }
+
+  let modoConvite = "familia";
+  function abrirConvite(modo) {
+    modoConvite = modo;
+    const f = $("#form-convite"); f.reset();
+    $("#titulo-convite").textContent = modo === "nova" ? "Convidar uma nova família" : "Convidar para a família";
+    $("#explica-convite").innerHTML = modo === "nova"
+      ? "A pessoa cria uma <b>família separada</b>, com os próprios dados. Depois ela mesma convida o cônjuge."
+      : `A pessoa vai ver e lançar tudo junto com vocês em <b>${esc(estado.familia.nome)}</b>.`;
+    $("#lbl-familia-nome").hidden = modo !== "nova";
+    $("#convite-campos").hidden = false; $("#convite-pronto").hidden = true;
+    $("#convite-enviar").hidden = false; $("#convite-fechar").textContent = "Cancelar";
+    $("#modal-convite").showModal();
+  }
+
+  const linkApp = () => location.origin + location.pathname + "?convite";
+  const msgConvite = (c) => `Oi, ${c.nome}! Te convidei para o app Finanças${c.familia_id ? ` (${estado.familia.nome})` : ""}.\n\n1. Abra: ${linkApp()}\n2. Toque em “Criar minha conta”\n3. Use este e-mail: ${c.email}\n4. Escolha uma senha e confirme pelo e-mail que vai chegar.`;
+
+  function mostrarConvitePronto(c) {
+    $("#convite-campos").hidden = true; $("#convite-pronto").hidden = false;
+    $("#convite-enviar").hidden = true; $("#convite-fechar").textContent = "Fechar";
+    $("#titulo-convite").textContent = "Convite criado ✓";
+    $("#explica-convite").innerHTML = `Agora mande o link para <b>${esc(c.nome)}</b>. A conta precisa ser criada com <b>${esc(c.email)}</b>.`;
+    $("#convite-pronto").innerHTML = `<pre class="msg-convite">${esc(msgConvite(c))}</pre>
+      <div class="linha"><button type="button" class="btn btn-primary" id="btn-compartilhar-convite">Compartilhar</button><button type="button" class="btn btn-ghost" id="btn-copiar-convite">Copiar mensagem</button></div>`;
+    $("#btn-compartilhar-convite").onclick = async () => {
+      try { if (navigator.share) await navigator.share({ title: "Convite", text: msgConvite(c) }); else throw 0; }
+      catch { copiarTexto(msgConvite(c)); }
+    };
+    $("#btn-copiar-convite").onclick = () => copiarTexto(msgConvite(c));
+  }
+  function copiarTexto(t) {
+    (navigator.clipboard?.writeText(t) || Promise.reject()).then(() => toast("Mensagem copiada"), () => toast("Não deu para copiar: selecione o texto"));
+  }
+
+  async function enviarConvite(ev) {
+    const f = ev.target.elements;
+    const email = f.email.value.trim().toLowerCase(), nome = f.nome.value.trim();
+    if (!email || !nome) return;
+    if ((estado.membrosFamilia || []).some((m) => (m.email || "").toLowerCase() === email)) return toast("Essa pessoa já está na família");
+    if ((estado.convites || []).some((c) => !c.aceito_em && c.email.toLowerCase() === email)) return toast("Já existe um convite pendente para esse e-mail");
+    const linha = modoConvite === "nova" ? { email, nome, familia_id: null, familia_nome: f.familia_nome.value.trim() || `Família de ${nome}` } : { email, nome, familia_id: estado.familia.id };
+    try {
+      const c = await db.inserir("convites", linha);
+      (estado.convites ||= []).push(c);
+      renderFamilia();
+      mostrarConvitePronto(c);
+    } catch (e) { erro(e); }
+  }
+
+  function ligarFamilia() {
+    $("#form-convite").addEventListener("submit", travar(enviarConvite));
+    document.addEventListener("click", async (ev) => {
+      const t = ev.target.closest("[data-acao='convidar-familia'],[data-acao='convidar-nova'],[data-cancelar-convite],[data-reenviar-convite],[data-remover-membro],#btn-renomear-familia");
+      if (!t) return;
+      if (t.dataset.acao === "convidar-familia") return abrirConvite("familia");
+      if (t.dataset.acao === "convidar-nova") return abrirConvite("nova");
+      if (t.dataset.reenviarConvite) {
+        const c = estado.convites.find((x) => x.id === t.dataset.reenviarConvite);
+        abrirConvite(c.familia_id ? "familia" : "nova"); return mostrarConvitePronto(c);
+      }
+      try {
+        if (t.dataset.cancelarConvite) {
+          if (!confirm("Cancelar este convite?")) return;
+          await db.remover("convites", t.dataset.cancelarConvite);
+          estado.convites = estado.convites.filter((x) => x.id !== t.dataset.cancelarConvite);
+          renderFamilia(); toast("Convite cancelado");
+        } else if (t.dataset.removerMembro) {
+          const m = estado.membrosFamilia.find((x) => x.user_id === t.dataset.removerMembro);
+          if (!confirm(`Remover ${m.nome} da família?\n\nEla perde o acesso aos dados. Os lançamentos feitos por ela continuam.`)) return;
+          const { error } = await sb.from("membros").delete().eq("user_id", m.user_id);
+          if (error) throw error;
+          estado.membrosFamilia = estado.membrosFamilia.filter((x) => x.user_id !== m.user_id);
+          renderFamilia(); toast(`${m.nome} foi removida da família`);
+        } else if (t.id === "btn-renomear-familia") {
+          const nome = prompt("Nome da família:", estado.familia.nome);
+          if (!nome || !nome.trim() || nome.trim() === estado.familia.nome) return;
+          estado.familia = await db.atualizar("familias", estado.familia.id, { nome: nome.trim() });
+          renderFamilia(); toast("Família renomeada");
+        }
+      } catch (e) { erro(e); }
+    });
   }
 
   // ================================================================
@@ -2173,7 +2357,7 @@
     if (btn?.disabled) return;
     const txt = btn?.textContent;
     if (btn) { btn.disabled = true; btn.textContent = "Salvando…"; }
-    try { await fn(ev); } finally { if (btn) { btn.disabled = false; btn.textContent = txt; } }
+    try { await fn(ev); } finally { if (btn) { btn.disabled = false; if (btn.textContent === "Salvando…") btn.textContent = txt; } }
   };
 
   let toastTimer;

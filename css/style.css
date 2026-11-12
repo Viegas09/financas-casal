@@ -781,3 +781,26 @@ dialog.sheet-alta .sheet-corpo { min-height: 100%; align-content: start; }
 .imp-valor { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 14px; }
 .imp-acoes { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 calc(6px + var(--safe-b)); margin-top: 4px; border-top: 1px solid var(--grid); }
 .btn:disabled { opacity: .5; cursor: default; }
+
+/* ================================================================
+   FAMÍLIA E CONVITES
+   ================================================================ */
+.login-convite { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 14px; color: var(--text-2); border-top: 1px solid var(--grid); padding-top: 12px; }
+.card-familia { display: grid; gap: 12px; }
+.cf-topo { display: flex; align-items: center; gap: 12px; }
+.cf-topo > div { flex: 1; min-width: 0; }
+.cf-topo small { font-size: 12px; color: var(--text-3); font-weight: 600; }
+.cf-topo h2 { font-size: 17px; margin: 0; }
+.cf-lista { list-style: none; margin: 0; padding: 0; }
+.cf-lista li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--grid); }
+.cf-lista li:first-child { border-top: 0; }
+.cf-lista li > div { flex: 1; min-width: 0; display: grid; }
+.cf-lista small, .cf-conv small { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cf-lista li.pendente { opacity: .75; }
+.cf-lista .mini-avatar { width: 30px; height: 30px; font-size: 13px; flex: none; }
+.btn-link.perigo { color: var(--crit); }
+.cf-admin { border-top: 1px solid var(--grid); padding-top: 12px; display: grid; gap: 8px; }
+.cf-admin .pequeno { margin: 0; }
+.cf-conv { display: flex; align-items: center; gap: 10px; }
+.cf-conv > div { flex: 1; min-width: 0; display: grid; }
+.msg-convite { white-space: pre-wrap; font: inherit; font-size: 13px; background: var(--bg); border-radius: 12px; padding: 12px; margin: 0 0 10px; color: var(--text-2); }
