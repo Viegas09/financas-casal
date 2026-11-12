@@ -52,6 +52,7 @@
     aviao: '<path d="M10.5 19.5 12 21l1.5-1.5-.5-4.5 7.5 3V16l-7.5-5V5a1.5 1.5 0 0 0-3 0v6L2.5 16v2l7.5-3z"/>',
     porquinho: '<path d="M19 9c-1-3-4-4-7-4-4.5 0-8 2.5-8 6.5 0 2 1 3.5 2.5 4.5V20h3v-2h5v2h3v-3.5c1-.7 1.8-1.6 2.2-2.5H21v-4h-1.5c-.2-.4-.3-.7-.5-1zM15 9.5h.01"/>',
     anel: '<circle cx="12" cy="15" r="6"/><path d="m9 4 3 4 3-4-1.5-1h-3z"/>',
+    lixeira: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     moeda: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6.5v11"/>'
   };
   const svg = (nome, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONES[nome] || ICONES.etiqueta}</svg>`;
@@ -85,6 +86,7 @@
     if (/aposent|invest|acoes|patrimonio/.test(n)) return "grafico";
     return "alvo";
   };
+  const ACAO_EXCLUIR = () => `<button type="button" class="swipe-acao" data-excluir-swipe tabindex="-1" aria-hidden="true">${svg("lixeira")}<span>Excluir</span></button>`;
   const bolaIcone = (conta) => `<span class="bola-cat" aria-hidden="true">${svg(iconeDe(conta.categoria, conta.nome))}</span>`;
   const vazio = (icone, titulo, texto, acao) => `
     <li class="estado-vazio">
@@ -193,6 +195,7 @@
     preencherSelects();
     ligarEventos();
     ligarTutorial();
+    ligarArraste();
 
     if (DEMO) {
       $("#banner-demo").hidden = false;
@@ -497,7 +500,7 @@
     const ativas = contas.filter((c) => c.ativa);
     $("#cad-contas").innerHTML = contas.length
       ? contas.map((c) => `
-        <li class="${c.ativa ? "" : "inativa"}">
+        <li class="swipe ${c.ativa ? "" : "inativa"}" data-swipe="conta" data-id="${c.id}">${ACAO_EXCLUIR()}
           <button class="item" data-editar-conta="${c.id}">
             ${bolaIcone(c)}
             <div><div class="nome">${esc(c.nome)}${c.ativa ? "" : ' <span class="badge inativa">Encerrada</span>'}</div>
@@ -512,7 +515,7 @@
     const rendas = [...estado.rendas].sort((a, b) => b.ativa - a.ativa);
     $("#cad-rendas").innerHTML = rendas.length
       ? rendas.map((r) => `
-        <li class="${r.ativa ? "" : "inativa"}">
+        <li class="swipe ${r.ativa ? "" : "inativa"}" data-swipe="renda" data-id="${r.id}">${ACAO_EXCLUIR()}
           <button class="item" data-editar-renda="${r.id}">
             <span class="bola-cat" aria-hidden="true">${svg("moeda")}</span>
             <div><div class="nome">${esc(r.descricao)}${r.ativa ? "" : ' <span class="badge inativa">Encerrada</span>'}</div><div class="meta">${esc(r.responsavel)}</div></div>
@@ -654,11 +657,11 @@
     $("#extrato").innerHTML = filtro + (grupos.length ? grupos.map((gr) => `
       <div class="dia-extrato"><span>${esc(rotuloDia(gr.dia))}</span><span>${fmt(soma(gr.itens, (g) => g.valor))}</span></div>
       <article class="card card-lista"><ul class="lista-cadastro">${gr.itens.map((g) => `
-        <li><button class="item" data-editar-gasto="${g.id}">
+        <li class="swipe" data-swipe="gasto" data-id="${g.id}">${ACAO_EXCLUIR()}<button class="item" data-editar-gasto="${g.id}">
           <span class="bola-cat">${svg(iconeDe(g.categoria, g.descricao))}</span>
           <div><div class="nome">${esc(g.descricao)}</div><div class="meta">${esc(g.categoria)} · ${esc(g.responsavel)}${g.forma_pagamento ? " · " + esc(g.forma_pagamento) : ""}${g.parcelas > 1 ? ` · ${g.parcelas}x` : ""}</div></div>
           <span class="valor">−${fmt(g.valor)}</span><span class="seta">›</span>
-        </button></li>`).join("")}</ul></article>`).join("")
+        </button></li>`).join("")}</ul></article>`).join("") + `<p class="dica">Arraste um gasto para a esquerda para excluir.</p>`
       : `<article class="card card-lista"><ul class="lista-cadastro">${vazio("carrinho", "Nenhum gasto neste mês", "Registre mercado, delivery, lazer… e acompanhe o limite de cada categoria.", ["novo-gasto", "Registrar gasto"])}</ul></article>`);
   }
 
@@ -924,7 +927,7 @@
       <div class="md-plano ${i.alerta}">${i.falta ? `Faltam ${fmt(i.falta)} · ` : ""}${esc(i.plano)}</div>
       <h3 class="md-h">Histórico${pessoa !== "todos" ? ` de ${esc(pessoa)}` : ""}</h3>
       <ul class="lista-cadastro">${hist.length ? hist.map((a) => `
-        <li><button class="item" data-editar-aporte="${a.id}">
+        <li class="swipe" data-swipe="aporte" data-id="${a.id}">${ACAO_EXCLUIR()}<button class="item" data-editar-aporte="${a.id}">
           <span class="bola-cat ${a.valor < 0 ? "retirada" : ""}">${svg(a.valor < 0 ? "sacola" : "porquinho")}</span>
           <div><div class="nome">${a.valor < 0 ? "Retirada" : "Guardou"}${a.observacao ? " · " + esc(a.observacao) : ""}</div><div class="meta">${esc(fmtData(a.data, { day: "numeric", month: "short", year: "numeric" }))} · ${esc(a.responsavel)}</div></div>
           <span class="valor ${a.valor < 0 ? "crit" : "bom-txt"}">${a.valor < 0 ? "−" : "+"}${fmt(Math.abs(a.valor))}</span><span class="seta">›</span>
@@ -1211,7 +1214,11 @@
     };
     if (estado.migracao3) { dados.cartao_id = cartao ? cartao.id : null; dados.parcelas = cartao ? Number(f.parcelas.value) || 1 : 1; }
     if (Number.isNaN(dados.valor) || !dados.valor) return toast("Informe o valor");
-    if (!dados.categoria) return toast("Escolha uma categoria");
+    if (!dados.categoria) {
+      const ch = $("#chips-cat"); ch.classList.remove("erro"); void ch.offsetWidth; ch.classList.add("erro");
+      ch.scrollIntoView({ block: "center", behavior: "smooth" });
+      return toast("Escolha uma categoria (toque numa das opções)");
+    }
     try {
       if (editandoGasto) Object.assign(editandoGasto, await db.atualizar("gastos", editandoGasto.id, dados));
       else estado.gastos.push(await db.inserir("gastos", dados));
@@ -1227,11 +1234,13 @@
 
   async function excluirGasto() {
     if (!editandoGasto || !confirm(`Excluir o gasto “${editandoGasto.descricao}”?`)) return;
-    const g = editandoGasto;
+    $("#modal-gasto").close();
+    await apagarGasto(editandoGasto);
+  }
+  async function apagarGasto(g) {
     try {
       await db.remover("gastos", g.id);
       estado.gastos = estado.gastos.filter((x) => x.id !== g.id);
-      $("#modal-gasto").close();
       render();
       toast("Gasto excluído", { rotulo: "Desfazer", acao: async () => {
         const { id, created_at, created_by, ...resto } = g;
@@ -1520,6 +1529,7 @@
     $("#chips-cat").addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-cat]"); if (!b) return;
       $("#form-gasto").elements.categoria.value = b.dataset.cat;
+      $("#chips-cat").classList.remove("erro");
       $$("#chips-cat .chip-cat").forEach((x) => x.classList.toggle("ativo", x === b));
     });
     document.addEventListener("click", (ev) => {
@@ -1597,15 +1607,15 @@
     // Fechar o painel tocando fora dele
     $$("dialog").forEach((d) => d.addEventListener("click", (ev) => { if (ev.target === d) d.close(); }));
 
-    $("#form-conta").addEventListener("submit", salvarConta);
-    $("#form-renda").addEventListener("submit", salvarRenda);
-    $("#form-gasto").addEventListener("submit", salvarGasto);
-    $("#form-orcamento").addEventListener("submit", salvarOrcamento);
-    $("#form-pagar").addEventListener("submit", confirmarPagar);
+    $("#form-conta").addEventListener("submit", travar(salvarConta));
+    $("#form-renda").addEventListener("submit", travar(salvarRenda));
+    $("#form-gasto").addEventListener("submit", travar(salvarGasto));
+    $("#form-orcamento").addEventListener("submit", travar(salvarOrcamento));
+    $("#form-pagar").addEventListener("submit", travar(confirmarPagar));
     $("#btn-excluir-gasto").addEventListener("click", excluirGasto);
-    $("#form-meta").addEventListener("submit", salvarMeta);
-    $("#form-aporte").addEventListener("submit", salvarAporte);
-    $("#form-cartao").addEventListener("submit", salvarCartao);
+    $("#form-meta").addEventListener("submit", travar(salvarMeta));
+    $("#form-aporte").addEventListener("submit", travar(salvarAporte));
+    $("#form-cartao").addEventListener("submit", travar(salvarCartao));
     $("#btn-excluir-meta").addEventListener("click", excluirMeta);
     $("#btn-excluir-aporte").addEventListener("click", excluirAporte);
     $("#btn-excluir-cartao").addEventListener("click", excluirCartao);
@@ -1661,7 +1671,7 @@
       itens: ["Toque no quadrado para marcar como paga — só isso, não precisa mexer no cadastro", "No mês seguinte ela volta sozinha como “a pagar”", "Errou? Aparece “Desfazer” por 5 segundos", "Contas que mudam de valor (luz, água) perguntam quanto veio; antes de pagar aparecem com “~” (estimativa)", "Cancelou algo (ex.: Netflix)? Abra a conta e toque em “Encerrar conta”"] },
     { ic: "carrinho", cor: "azul", titulo: "Gastos: o dia a dia com limite", ir: "gastos",
       texto: "Mercado, delivery, lazer, farmácia… lance cada gasto e acompanhe o limite de cada categoria.",
-      itens: ["Para o que foi pago na hora, uma vez só", "Toque em + : digite o valor, escolha a categoria e salve", "Orçamento: quanto já foi gasto, quanto resta e quanto dá por dia", "Barra amarela a partir de 80%, vermelha quando passa", "Extrato: os lançamentos dia a dia, como no banco", "Todos / Vinícius / Marcela filtra por pessoa"] },
+      itens: ["Para o que foi pago na hora, uma vez só", "Toque em + : digite o valor, escolha a categoria e salve", "Orçamento: quanto já foi gasto, quanto resta e quanto dá por dia", "Barra amarela a partir de 80%, vermelha quando passa", "Extrato: os lançamentos dia a dia, como no banco", "Lançou errado ou duplicado? Arraste para a esquerda para excluir", "Todos / Vinícius / Marcela filtra por pessoa"] },
     { ic: "cartao", cor: "azul", titulo: "Cartões (só se usarem crédito)", ir: "gastos", sub: "cartoes",
       texto: "Quem paga tudo no Pix ou débito pode pular esta parte. Se usarem cartão de crédito, cadastre com os dias de fechamento e vencimento e escolha o cartão em “Pagamento” ao lançar um gasto.",
       itens: ["Compras parceladas: cada parcela cai na fatura certa", "Contas fixas no cartão (streaming, internet) entram na fatura", "Status: aberta, fechada, vencida ou paga", "Toque na fatura para ver os itens e marcar como paga"] },
@@ -1760,6 +1770,103 @@
     $("#modal-tutorial").addEventListener("close", () => gravarPref("tutorial-visto", true));
     addEventListener("resize", () => { if ($("#modal-tutorial").open) irSlide(tutIndice, false); });
   }
+
+  // ================================================================
+  // ARRASTAR PARA EXCLUIR
+  // ================================================================
+  const LARG_ACAO = 88;
+  let arraste = null, suprimirClique = false;
+  const abrirSwipe = (li) => { li.classList.add("aberto"); li.querySelector(".item").style.transform = `translateX(-${LARG_ACAO}px)`; };
+  const fecharSwipe = (li) => { li.classList.remove("aberto"); const it = li.querySelector(".item"); if (it) it.style.transform = ""; };
+
+  async function excluirPorSwipe(li) {
+    const { swipe: tipo, id } = li.dataset;
+    const sumir = () => { li.style.height = li.offsetHeight + "px"; requestAnimationFrame(() => li.classList.add("saindo")); };
+    try {
+      if (tipo === "gasto") {
+        const g = estado.gastos.find((x) => x.id === id); if (!g) return;
+        sumir(); await new Promise((r) => setTimeout(r, 180)); await apagarGasto(g);
+      } else if (tipo === "aporte") {
+        const a = estado.aportes.find((x) => x.id === id); if (!a) return;
+        sumir(); await new Promise((r) => setTimeout(r, 180));
+        await db.remover("aportes", a.id);
+        estado.aportes = estado.aportes.filter((x) => x.id !== a.id);
+        render(); if ($("#modal-meta-detalhe").open) desenharMetaDetalhe();
+        toast("Lançamento excluído", { rotulo: "Desfazer", acao: async () => {
+          const { id: _i, created_at, created_by, ...resto } = a;
+          estado.aportes.push(await db.inserir("aportes", resto)); render(); if ($("#modal-meta-detalhe").open) desenharMetaDetalhe();
+        } });
+      } else if (tipo === "renda") {
+        const r = estado.rendas.find((x) => x.id === id); if (!r) return;
+        sumir(); await new Promise((ok) => setTimeout(ok, 180));
+        await db.remover("rendas", r.id);
+        estado.rendas = estado.rendas.filter((x) => x.id !== r.id);
+        render();
+        toast("Renda excluída", { rotulo: "Desfazer", acao: async () => {
+          const { id: _i, created_at, created_by, ...resto } = r;
+          estado.rendas.push(await db.inserir("rendas", resto)); render();
+        } });
+      } else if (tipo === "conta") {
+        const c = estado.contas.find((x) => x.id === id); if (!c) return;
+        const npg = estado.pagamentos.filter((p) => p.conta_id === c.id).length;
+        if (!confirm(`Excluir a conta “${c.nome}”${npg ? ` e os ${npg} pagamento${npg > 1 ? "s" : ""} registrados dela` : ""}?\n\nSe vocês só pararam de pagar, toque na conta e use “Encerrar conta” (o histórico fica guardado).`)) { fecharSwipe(li); return; }
+        sumir(); await new Promise((ok) => setTimeout(ok, 180));
+        await db.remover("contas", c.id);
+        estado.contas = estado.contas.filter((x) => x.id !== c.id);
+        estado.pagamentos = estado.pagamentos.filter((p) => p.conta_id !== c.id);
+        if (DEMO) { demoDB().pagamentos = demoDB().pagamentos.filter((p) => p.conta_id !== c.id); demoStore.gravar(demoDB()); }
+        render(); toast("Conta excluída");
+      }
+    } catch (e) { erro(e); render(); }
+  }
+
+  function ligarArraste() {
+    document.addEventListener("click", (ev) => {
+      if (suprimirClique) { ev.stopPropagation(); ev.preventDefault(); return; }
+      const acao = ev.target.closest("[data-excluir-swipe]");
+      if (acao) { ev.stopPropagation(); excluirPorSwipe(acao.closest(".swipe")); return; }
+      const aberto = ev.target.closest(".swipe.aberto");
+      if (aberto) { ev.stopPropagation(); ev.preventDefault(); fecharSwipe(aberto); }
+    }, true);
+    document.addEventListener("touchstart", (ev) => {
+      const item = ev.target.closest(".swipe > .item");
+      $$(".swipe.aberto").forEach((li) => { if (!item || li !== item.parentElement) fecharSwipe(li); });
+      if (!item) return;
+      const t = ev.touches[0];
+      arraste = { li: item.parentElement, item, x0: t.clientX, y0: t.clientY, dx: 0, base: item.parentElement.classList.contains("aberto") ? -LARG_ACAO : 0, dir: null };
+    }, { passive: true });
+    document.addEventListener("touchmove", (ev) => {
+      if (!arraste) return;
+      const t = ev.touches[0], dx = t.clientX - arraste.x0, dy = t.clientY - arraste.y0;
+      if (!arraste.dir) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; arraste.dir = Math.abs(dx) > Math.abs(dy) ? "h" : "v"; if (arraste.dir === "h") { arraste.item.style.transition = "none"; arraste.li.classList.add("arrastando"); } }
+      if (arraste.dir !== "h") return;
+      arraste.dx = dx;
+      arraste.item.style.transform = `translateX(${Math.min(0, Math.max(-LARG_ACAO * 2.2, arraste.base + dx))}px)`;
+    }, { passive: true });
+    document.addEventListener("touchend", () => {
+      if (!arraste) return;
+      const { li, item, dir, base, dx } = arraste;
+      arraste = null;
+      if (dir !== "h") return;
+      item.style.transition = "";
+      setTimeout(() => li.classList.remove("arrastando"), 250);
+      suprimirClique = true; setTimeout(() => (suprimirClique = false), 350);
+      const x = base + dx;
+      if (x < -LARG_ACAO * 1.8) { item.style.transform = `translateX(-100%)`; excluirPorSwipe(li); }
+      else if (x < -LARG_ACAO / 2) abrirSwipe(li);
+      else fecharSwipe(li);
+    });
+  }
+
+  /** Impede salvar duas vezes: trava o botão em "Salvando…" até terminar. */
+  const travar = (fn) => async (ev) => {
+    ev.preventDefault();
+    const btn = ev.target.querySelector('[type="submit"]');
+    if (btn?.disabled) return;
+    const txt = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = "Salvando…"; }
+    try { await fn(ev); } finally { if (btn) { btn.disabled = false; btn.textContent = txt; } }
+  };
 
   let toastTimer;
   function toast(msg, opcoes) {

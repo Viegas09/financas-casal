@@ -684,3 +684,23 @@ form > .btn-perigo[hidden] { display: none; }
 .aviso-contas ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; color: var(--text-2); }
 .aviso-contas .btn { justify-self: start; padding: 9px 16px; }
 .quad { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--text-3); border-radius: 4px; vertical-align: -2px; }
+
+/* Arrastar para excluir */
+.swipe { position: relative; overflow: hidden; transition: height .2s ease, opacity .2s ease; }
+.swipe > .item { position: relative; z-index: 1; background: var(--surface); transition: transform .22s cubic-bezier(.2,.8,.2,1); touch-action: pan-y; }
+.swipe-acao {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 88px; border: 0; cursor: pointer;
+  background: var(--crit); color: #fff; font: inherit; font-size: 12px; font-weight: 700;
+  display: grid; place-content: center; justify-items: center; gap: 3px;
+}
+.swipe-acao .ic { width: 20px; height: 20px; }
+.swipe.saindo { height: 0 !important; opacity: 0; border-top-color: transparent; }
+.dica { margin-top: 4px; }
+/* Botão salvando */
+button[type="submit"]:disabled { opacity: .65; cursor: progress; }
+/* Categoria faltando */
+.chips-cat.erro { animation: treme .35s; border-radius: 14px; box-shadow: 0 0 0 2px var(--crit); padding: 6px; }
+@keyframes treme { 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
+.lista-cadastro .swipe > button.item { background: var(--surface); }
+.swipe:not(.aberto) .swipe-acao { visibility: hidden; }
+.swipe.arrastando .swipe-acao, .swipe.aberto .swipe-acao { visibility: visible; }

@@ -64,6 +64,8 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
 
 ## Dicas de uso
 
+- **Excluir rápido:** arraste um gasto, conta fixa, renda ou aporte para a esquerda e toque em *Excluir* (ou arraste até o fim). Gastos, rendas e aportes podem ser desfeitos por 5 segundos; contas fixas pedem confirmação.
+
 - **Tutorial:** o botão **?** no topo (ou *Mais → Tutorial do app*) abre um passo a passo de cada tela e a lista de *Primeiros passos*, que se marca sozinha. Ele abre sozinho no primeiro acesso de cada aparelho.
 
 - **Filtro por pessoa:** nas abas *Gastos* e *Metas* há os botões *Todos / Vinícius / Marcela*. Com uma pessoa escolhida, aparecem só os gastos e aportes dela e quanto isso representa do total do casal. Os gastos lançados como “Casal” aparecem só em *Todos*. A escolha fica salva em cada celular; a tela inicial e as contas fixas sempre mostram o casal.
