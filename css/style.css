@@ -704,3 +704,25 @@ button[type="submit"]:disabled { opacity: .65; cursor: progress; }
 .lista-cadastro .swipe > button.item { background: var(--surface); }
 .swipe:not(.aberto) .swipe-acao { visibility: hidden; }
 .swipe.arrastando .swipe-acao, .swipe.aberto .swipe-acao { visibility: visible; }
+
+/* Cartão inicial: total = contas fixas + gastos */
+.hero .hero-sub { font-size: 12px; opacity: .8; margin-top: -2px; }
+.hero .rosca small { font-size: 9px; line-height: 1.1; }
+.hero .duas .hero-box { text-align: left; border: 0; color: #fff; font: inherit; cursor: pointer; background: rgba(255,255,255,.13); border-radius: 14px; padding: 10px 12px; }
+.hero .duas .hero-box:active { background: rgba(255,255,255,.22); }
+.hero .duas em { display: block; font-style: normal; font-size: 11px; opacity: .85; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Resumo na aba Contas */
+.resumo-contas { display: grid; gap: 10px; }
+.rc-topo { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; }
+.rc-topo small { display: block; font-size: 13px; color: var(--text-3); font-weight: 600; }
+.rc-topo b { font-size: 28px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.rc-pct { font-size: 20px; font-weight: 750; color: var(--accent); text-align: right; line-height: 1; }
+.rc-pct small { display: block; font-size: 11px; color: var(--text-3); font-weight: 600; }
+.rc-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rc-duas > div { background: var(--bg); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.rc-duas small { display: block; font-size: 12px; color: var(--text-3); font-weight: 600; }
+.rc-duas b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.rc-duas em { display: block; font-style: normal; font-size: 12px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-duas em.crit { color: var(--crit); font-weight: 600; }
+.hero .duas .hero-box { min-width: 0; }
+.hero .duas { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }

@@ -337,32 +337,43 @@
 
   let totalAnterior = null;
   function renderHero(lista) {
-    const total = soma(lista, (c) => c.valorMes);
+    const fixas = soma(lista, (c) => c.valorMes);
     const pago = soma(lista.filter((c) => c.pagamento), (c) => c.valorMes);
-    const pct = total ? Math.round((pago / total) * 100) : 0;
+    const pct = fixas ? Math.round((pago / fixas) * 100) : 0;
+    const comGastos = estado.migracao2;
+    const gastos = comGastos ? soma(gastosDoMes(estado.mes), (g) => g.valor) : 0;
+    const limite = comGastos ? soma(estado.orcamentos.filter((o) => o.ativa), (o) => o.limite) : 0;
+    const total = fixas + gastos;
     const renda = soma(estado.rendas.filter((r) => r.ativa), (r) => r.valor);
     const pctRenda = renda ? Math.round((total / renda) * 100) : null;
     const R = 26, C = 2 * Math.PI * R;
+    const mes = esc(nomeMes(estado.mes, "mes"));
     $("#hero").innerHTML = `
       <div class="hero-topo">
         <div>
-          <div class="rotulo">Contas fixas de ${esc(nomeMes(estado.mes, "mes"))}
+          <div class="rotulo">${comGastos ? `Total de ${mes}` : `Contas fixas de ${mes}`}
             <button class="olho" id="btn-olho" aria-label="${ocultar ? "Mostrar valores" : "Esconder valores"}" aria-pressed="${ocultar}">${svg(ocultar ? "olhoFechado" : "olho")}</button>
           </div>
           <div class="grande" id="hero-total">${fmt(total)}</div>
+          ${comGastos ? `<div class="hero-sub">contas fixas + gastos</div>` : ""}
         </div>
-        <div class="rosca" role="img" aria-label="${pct}% pago">
+        <div class="rosca" role="img" aria-label="${pct}% das contas fixas pagas">
           <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="${R}" class="trilho-r"/>
             <circle cx="32" cy="32" r="${R}" class="arco-r" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-alvo="${C * (1 - pct / 100)}"/></svg>
-          <span>${pct}%<small>pago</small></span>
+          <span>${pct}%<small>${comGastos ? "contas<br>pagas" : "pago"}</small></span>
         </div>
       </div>
+      ${comGastos ? `
+      <div class="duas">
+        <button type="button" class="hero-box" data-ir="contas"><small>Contas fixas ›</small><b>${fmt(fixas)}</b><em>${pago >= fixas && fixas ? "tudo pago ✓" : `falta pagar ${fmt(fixas - pago)}`}</em></button>
+        <button type="button" class="hero-box" data-ir="gastos"><small>Gastos ›</small><b>${fmt(gastos)}</b><em>${limite ? (gastos <= limite ? `restam ${fmt(limite - gastos)}` : `⚠ passou ${fmt(gastos - limite)}`) : "lançados no mês"}</em></button>
+      </div>` : `
       <div class="duas">
         <div><small>Já pago</small><b>${fmt(pago)}</b></div>
-        <div><small>Falta pagar</small><b>${fmt(total - pago)}</b></div>
-      </div>
+        <div><small>Falta pagar</small><b>${fmt(fixas - pago)}</b></div>
+      </div>`}
       <div class="renda-linha">${renda
-        ? `<span><b>${pctRenda}%</b> da renda</span><span>Sobram ${fmt(renda - total - soma(gastosDoMes(estado.mes), (g) => g.valor))}</span>`
+        ? `<span><b>${pctRenda}%</b> da renda</span><span>Sobram ${fmt(renda - total)}</span>`
         : `<span>Cadastre as rendas em Mais → Rendas para ver quanto sobra</span>`}</div>`;
     // anima o arco e o número
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -422,7 +433,7 @@
   }
 
   function renderProximas(lista) {
-    const pend = lista.filter((c) => !c.pagamento).slice(0, estado.migracao2 ? 2 : 3);
+    const pend = lista.filter((c) => !c.pagamento).slice(0, 3);
     $("#lista-proximas").innerHTML = pend.length
       ? pend.map(itemConta).join("")
       : estado.contas.length
@@ -435,8 +446,25 @@
     el.hidden = lerPref("aviso-contas-ok", false) || !estado.contas.length;
   }
 
+  function renderResumoContas(lista) {
+    const total = soma(lista, (c) => c.valorMes);
+    const pago = soma(lista.filter((c) => c.pagamento), (c) => c.valorMes);
+    const pct = total ? Math.round((pago / total) * 100) : 0;
+    const atr = lista.filter((c) => c.status.chave === "atrasada");
+    const npag = lista.filter((c) => c.pagamento).length;
+    $("#resumo-contas").hidden = !lista.length;
+    $("#resumo-contas").innerHTML = `
+      <div class="rc-topo"><div><small>Contas fixas de ${esc(nomeMes(estado.mes, "mes"))}</small><b>${fmt(total)}</b></div><span class="rc-pct">${pct}%<small>pago</small></span></div>
+      <div class="meter-orc grande ${pct === 100 ? "bom" : "ok"}"><span style="width:${pct}%"></span></div>
+      <div class="rc-duas">
+        <div><small>Já pago</small><b class="bom-txt">${fmt(pago)}</b><em>${npag} de ${lista.length} conta${lista.length !== 1 ? "s" : ""}</em></div>
+        <div><small>Falta pagar</small><b>${fmt(total - pago)}</b><em class="${atr.length ? "crit" : ""}">${atr.length ? `! ${atr.length} atrasada${atr.length > 1 ? "s" : ""}` : lista.length - npag ? `${lista.length - npag} pendente${lista.length - npag > 1 ? "s" : ""}` : "tudo pago ✓"}</em></div>
+      </div>`;
+  }
+
   function renderListaMes(lista) {
     renderAvisoContas();
+    renderResumoContas(lista);
     const f = estado.filtro;
     const itens = lista.filter((c) => f === "todas" || (f === "pagas" ? c.pagamento : !c.pagamento));
     $("#lista-mes").innerHTML = itens.length
@@ -561,22 +589,8 @@
     const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() - d.getDate() + 1;
   }
 
-  function renderResumoGastos() {
-    const el = $("#resumo-gastos");
-    if (!estado.migracao2) { el.hidden = true; return; }
-    el.hidden = false;
-    const gasto = soma(gastosDoMes(estado.mes), (g) => g.valor);
-    const limite = soma(estado.orcamentos.filter((o) => o.ativa), (o) => o.limite);
-    const st = statusOrc(gasto, limite);
-    const dias = diasRestantesNoMes();
-    el.innerHTML = `
-      <div class="rg-topo">
-        <span class="bola-cat">${svg("carrinho")}</span>
-        <div class="rg-txt"><small>Gastos variáveis${limite ? ` · <span class="${st.cls}">${st.cls === "crit" ? "! " : ""}${st.txt.charAt(0).toLowerCase() + st.txt.slice(1)}</span>` : ""}</small><b>${fmt(gasto)}</b>${limite ? `<span> de ${fmt(limite)}</span>` : `<span> · defina limites em Mais</span>`}</div>
-        <span class="seta">›</span>
-      </div>
-      ${limite ? `<div class="meter-orc ${st.cls}"><span style="width:${st.pct}%"></span></div>` : ""}`;
-  }
+  /** O total de gastos agora aparece no cartão azul da tela inicial; o cartão separado fica escondido. */
+  function renderResumoGastos() { $("#resumo-gastos").hidden = true; }
 
   function renderGastos() {
     $("#aviso-migracao").hidden = estado.migracao2;
