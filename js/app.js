@@ -99,10 +99,11 @@
   const parseValor = (t) => {
     let v = String(t ?? "").replace(/[R$\s]/g, "");
     if (v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
+    else if (/^\d{1,3}(\.\d{3})+$/.test(v)) v = v.replace(/\./g, "");   // "1.000" = mil
     const n = Number(v);
     return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : NaN;
   };
-  const paraCampo = (n) => (n === null || n === undefined || n === "" ? "" : Number(n).toFixed(2).replace(".", ","));
+  const paraCampo = (n) => (n === null || n === undefined || n === "" ? "" : Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   // ---------- Datas (competência = "AAAA-MM-01") ----------
@@ -184,6 +185,7 @@
     cartoes: [],
     faturas_pagas: [],
     migracao3: true,        // tabelas de metas/cartões existem no banco?
+    migracao4: true,        // coluna contas.fim (conta "só neste mês") existe?
     mes: compDe(new Date()),
     filtro: "pendentes"
   };
@@ -263,6 +265,7 @@
         opcional("metas", "migracao3"), opcional("aportes", "migracao3"), opcional("cartoes", "migracao3"), opcional("faturas_pagas", "migracao3")
       ]);
       Object.assign(estado, { contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas });
+      estado.migracao4 = DEMO ? true : contas.length ? "fim" in contas[0] : !(await sb.from("contas").select("fim").limit(1)).error;
       render();
       esconderSplash();
       if (!lerPref("tutorial-visto", false)) setTimeout(() => abrirTutorial(0), 500);
@@ -278,7 +281,7 @@
   /** Contas que valem para a competência: ativas e iniciadas até o mês, ou que tenham pagamento registrado nele. */
   function contasDoMes(comp) {
     return estado.contas
-      .filter((c) => pagamentoDe(c.id, comp) || (c.ativa && (c.inicio || "0000-00-00") <= comp))
+      .filter((c) => pagamentoDe(c.id, comp) || (c.ativa && (c.inicio || "0000-00-00") <= comp && (!c.fim || comp <= c.fim)))
       .map((c) => {
         const pg = pagamentoDe(c.id, comp);
         // conta de valor variável em mês futuro: não projeta valor ("a definir") e não soma no total
@@ -426,7 +429,7 @@
         ${bolaIcone(c)}
         <div class="info" data-editar-conta="${c.id}">
           <div class="nome">${esc(c.nome)}</div>
-          <div class="meta">Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}</div>
+          <div class="meta">${c.fim ? "Só neste mês · " : ""}Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}</div>
         </div>
         <div class="dir">
           ${c.aDefinir ? `<span class="valor a-definir" title="O valor muda todo mês: informe quando pagar">a definir</span>`
@@ -529,14 +532,14 @@
 
   function renderCadastroContas() {
     const contas = [...estado.contas].sort((a, b) => (b.ativa - a.ativa) || a.dia_vencimento - b.dia_vencimento);
-    const ativas = contas.filter((c) => c.ativa);
+    const ativas = contas.filter((c) => c.ativa && !c.fim);
     $("#cad-contas").innerHTML = contas.length
       ? contas.map((c) => `
         <li class="swipe ${c.ativa ? "" : "inativa"}" data-swipe="conta" data-id="${c.id}">${ACAO_EXCLUIR()}
           <button class="item" data-editar-conta="${c.id}">
             ${bolaIcone(c)}
             <div><div class="nome">${esc(c.nome)}${c.ativa ? "" : ' <span class="badge inativa">Encerrada</span>'}</div>
-            <div class="meta">Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}${c.forma_pagamento ? " · " + esc(c.forma_pagamento) : ""}</div></div>
+            <div class="meta">${c.fim ? `Só ${esc(nomeMes(c.fim, "curto").toLowerCase())}/${c.fim.slice(2, 4)} · ` : c.variavel ? "Valor variável · " : ""}Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}${c.forma_pagamento ? " · " + esc(c.forma_pagamento) : ""}</div></div>
             <span class="valor">${fmt(c.valor)}</span><span class="seta">›</span>
           </button>
         </li>`).join("") + `<li class="total"><span>Total por mês</span><span>${fmt(soma(ativas, (c) => c.valor))}</span></li>`
@@ -1034,7 +1037,7 @@
     f.reset();
     f.querySelector(".mais-opcoes").open = false;
     editandoConta = id ? estado.contas.find((c) => c.id === id) : null;
-    $("#titulo-modal-conta").textContent = editandoConta ? "Editar conta fixa" : "Nova conta fixa";
+    $("#titulo-modal-conta").textContent = editandoConta ? "Editar conta" : "Nova conta";
     $("#explica-conta").hidden = !!editandoConta || !estado.migracao2;
     const c = editandoConta || { ativa: true, responsavel: "Casal", inicio: estado.mes, ...prefill };
     f.elements.nome.value = c.nome || "";
@@ -1045,8 +1048,8 @@
     f.elements.inicio.value = (c.inicio || estado.mes).slice(0, 7);
     f.elements.ativa.checked = c.ativa !== false;
     // valor muda?
-    $("#campo-variavel").hidden = !estado.migracao2;
-    definirVariavel(!!c.variavel);
+    definirTipoConta(editandoConta ? (c.fim ? "unico" : c.variavel ? "variavel" : "fixo") : prefill.tipo || "");
+    $('#tipos-conta [data-t="variavel"]').hidden = !estado.migracao2;
     // categoria
     const cats = [...new Set([...(CFG.CATEGORIAS || []), ...estado.contas.map((x) => x.categoria)].filter(Boolean))];
     if (c.categoria && !cats.includes(c.categoria)) cats.push(c.categoria);
@@ -1070,15 +1073,33 @@
     $("#modal-conta").showModal();
   }
 
-  function definirVariavel(sim) {
-    $("#form-conta").elements.variavel.checked = sim;
-    $$("#seg-variavel button").forEach((x) => x.classList.toggle("ativo", (x.dataset.v === "sim") === sim));
-    $("#dica-variavel").hidden = !sim;
+  const DICAS_TIPO = {
+    fixo: "Aparece todo mês com o mesmo valor, até vocês encerrarem a conta.",
+    variavel: "Aparece todo mês. Ao marcar como paga, o app pergunta quanto veio. Nos meses seguintes fica “a definir” e não entra no total até ser paga.",
+    unico: "Aparece só no mês que está aberto no app e não se repete."
+  };
+  function definirTipoConta(t) {
+    const f = $("#form-conta");
+    f.elements.tipo.value = t;
+    f.elements.variavel.checked = t === "variavel";
+    $$("#tipos-conta [data-t]").forEach((x) => { x.classList.toggle("ativo", x.dataset.t === t); x.setAttribute("aria-checked", x.dataset.t === t); });
+    $("#tipos-conta").classList.remove("erro");
+    let dica = DICAS_TIPO[t] || "";
+    if (t === "unico") dica = `Aparece só em ${nomeMes((f.elements.inicio.value || estado.mes.slice(0, 7)) + "-01")} e não se repete.` + (estado.migracao4 ? "" : " ⚠ Para usar, rode supabase/migracao-04-conta-unica.sql no Supabase.");
+    $("#dica-tipo").textContent = dica;
+    $("#dica-tipo").hidden = !dica;
   }
 
   async function salvarConta(ev) {
     ev.preventDefault();
     const f = ev.target.elements;
+    const tipo = f.tipo.value;
+    if (!tipo) {
+      const tc = $("#tipos-conta"); tc.classList.remove("erro"); void tc.offsetWidth; tc.classList.add("erro");
+      tc.scrollIntoView({ block: "center", behavior: "smooth" });
+      return toast("Escolha como é essa conta");
+    }
+    if (tipo === "unico" && !estado.migracao4) return toast("Para “Só neste mês”, rode a migração 04 no Supabase");
     const catSel = f.categoria_sel.value;
     const categoria = catSel === "__outra" ? f.categoria_outra.value.trim() : catSel;
     if (!categoria) return toast("Escolha uma categoria");
@@ -1090,7 +1111,8 @@
       forma_pagamento: cartao ? "Cartão " + cartao.nome : forma || null, observacao: f.observacao.value.trim() || null,
       inicio: (f.inicio.value || estado.mes.slice(0, 7)) + "-01", ativa: f.ativa.checked
     };
-    if (estado.migracao2) dados.variavel = f.variavel.checked;
+    if (estado.migracao2) dados.variavel = tipo === "variavel";
+    if (estado.migracao4) dados.fim = tipo === "unico" ? dados.inicio : null;
     if (estado.migracao3) dados.cartao_id = cartao ? cartao.id : null;
     if (Number.isNaN(dados.valor)) return toast("Valor inválido");
     try {
@@ -1648,7 +1670,8 @@
       $$("#chips-meta .chip-cat").forEach((x) => x.classList.toggle("ativo", x === b));
     });
     $("#btn-aviso-contas").addEventListener("click", () => { gravarPref("aviso-contas-ok", true); renderAvisoContas(); });
-    $("#seg-variavel").addEventListener("click", (ev) => { const b = ev.target.closest("[data-v]"); if (b) definirVariavel(b.dataset.v === "sim"); });
+    $("#tipos-conta").addEventListener("click", (ev) => { const b = ev.target.closest("[data-t]"); if (b) definirTipoConta(b.dataset.t); });
+    $("#form-conta").elements.inicio.addEventListener("change", () => { const t = $("#form-conta").elements.tipo.value; if (t) definirTipoConta(t); });
     $("#sel-cat-conta").addEventListener("change", (ev) => {
       const outra = ev.target.value === "__outra";
       $("#lbl-cat-outra").hidden = !outra;
@@ -1686,7 +1709,7 @@
       itens: ["A rosca mostra o % já pago", "O 👁 esconde os valores (bom para abrir em público)", "“Sobram” = renda − contas fixas − gastos", "Os alertas avisam contas atrasadas, vencendo e faturas", "Atalhos: novo gasto, pagar, guardar e análises"] },
     { ic: "lista", cor: "azul", titulo: "Contas: marque o que pagou", ir: "contas",
       texto: "Contas fixas são as que se repetem todo mês (aluguel, luz, internet). O que é pago uma vez só, como mercado ou cabeleireiro, vai em Gastos.",
-      itens: ["Toque no quadrado para marcar como paga — só isso, não precisa mexer no cadastro", "No mês seguinte ela volta sozinha como “a pagar”", "Errou? Aparece “Desfazer” por 5 segundos", "Contas que mudam de valor (luz, água) perguntam quanto veio; antes de pagar aparecem com “~” (estimativa)", "Cancelou algo (ex.: Netflix)? Abra a conta e toque em “Encerrar conta”"] },
+      itens: ["Toque no quadrado para marcar como paga — só isso, não precisa mexer no cadastro", "No mês seguinte ela volta sozinha como “a pagar”", "Conta de um mês só (uma fatura, IPVA)? Escolha “Só neste mês” no cadastro", "Errou? Aparece “Desfazer” por 5 segundos", "Contas que mudam de valor (luz, água) perguntam quanto veio; antes de pagar aparecem com “~” (estimativa)", "Cancelou algo (ex.: Netflix)? Abra a conta e toque em “Encerrar conta”"] },
     { ic: "carrinho", cor: "azul", titulo: "Gastos: o dia a dia com limite", ir: "gastos",
       texto: "Mercado, delivery, lazer, farmácia… lance cada gasto e acompanhe o limite de cada categoria.",
       itens: ["Para o que foi pago na hora, uma vez só", "Toque em + : digite o valor, escolha a categoria e salve", "Orçamento: quanto já foi gasto, quanto resta e quanto dá por dia", "Barra amarela a partir de 80%, vermelha quando passa", "Extrato: os lançamentos dia a dia, como no banco", "Lançou errado ou duplicado? Arraste para a esquerda para excluir", "Todos / Vinícius / Marcela filtra por pessoa"] },

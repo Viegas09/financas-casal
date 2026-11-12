@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="css/style.css?v=202611121045" />
+  <link rel="stylesheet" href="css/style.css?v=202611121133" />
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -237,9 +237,9 @@
   <dialog id="modal-conta" class="sheet">
     <form id="form-conta" method="dialog">
       <div class="puxador" aria-hidden="true"></div>
-      <h2 id="titulo-modal-conta">Nova conta fixa</h2>
-      <p class="explica" id="explica-conta">Conta fixa é o que <b>se repete todo mês</b>: aluguel, luz, internet, assinaturas.
-        Pagou algo <b>uma vez só</b> (cabeleireiro, mercado, farmácia)? <button type="button" class="btn-link" data-acao="trocar-para-gasto">Lançar como gasto →</button></p>
+      <h2 id="titulo-modal-conta">Nova conta</h2>
+      <p class="explica" id="explica-conta">Contas são o que tem <b>vencimento</b>: aluguel, luz, internet, uma fatura.
+        Compra feita na hora (mercado, cabeleireiro, farmácia)? <button type="button" class="btn-link" data-acao="trocar-para-gasto">Lançar como gasto →</button></p>
       <label>Nome
         <input name="nome" required maxlength="80" placeholder="Ex.: Aluguel, Luz, Internet" autocomplete="off" />
       </label>
@@ -251,14 +251,16 @@
           <input name="dia_vencimento" type="number" min="1" max="31" required inputmode="numeric" placeholder="Ex.: 10" />
         </label>
       </div>
-      <div class="campo" id="campo-variavel">
-        <span class="rotulo-campo">O valor muda de um mês para o outro?</span>
-        <div class="segmento" id="seg-variavel" role="group" aria-label="O valor muda?">
-          <button type="button" data-v="nao" class="ativo">Não, é sempre igual</button>
-          <button type="button" data-v="sim">Sim (luz, água, gás)</button>
+      <div class="campo" id="campo-tipo">
+        <span class="rotulo-campo">Como é essa conta?</span>
+        <div class="tipos-conta" id="tipos-conta" role="radiogroup" aria-label="Tipo de conta">
+          <button type="button" role="radio" data-t="fixo"><b>Mesmo valor todo mês</b><small>aluguel, internet, assinatura</small></button>
+          <button type="button" role="radio" data-t="variavel"><b>Valor muda todo mês</b><small>luz, água, gás</small></button>
+          <button type="button" role="radio" data-t="unico"><b>Só neste mês</b><small>uma fatura, IPVA, uma parcela avulsa</small></button>
         </div>
-        <small class="dica-campo" id="dica-variavel" hidden>Bom para fatura do cartão, luz, água. Ao marcar como paga, o app pergunta quanto veio. Nos meses seguintes ela aparece como “a definir” e não entra no total até ser paga.</small>
+        <small class="dica-campo" id="dica-tipo" hidden></small>
         <input type="checkbox" name="variavel" hidden />
+        <input type="hidden" name="tipo" />
       </div>
       <div class="linha">
         <label>Categoria
@@ -327,7 +329,7 @@
     <form id="form-gasto" method="dialog">
       <div class="puxador" aria-hidden="true"></div>
       <h2 id="titulo-modal-gasto">Novo gasto</h2>
-      <p class="explica" id="explica-gasto">Algo pago agora, uma vez só (mercado, cabeleireiro, delivery). Se repete todo mês? Cadastre como <button type="button" class="btn-link" data-acao="trocar-para-conta">conta fixa →</button></p>
+      <p class="explica" id="explica-gasto">Algo pago agora, uma vez só (mercado, cabeleireiro, delivery). Tem vencimento (aluguel, luz, fatura)? Cadastre como <button type="button" class="btn-link" data-acao="trocar-para-conta">conta →</button></p>
       <label class="valor-grande">Valor
         <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
       </label>
@@ -557,7 +559,7 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=202611121045"></script>
-  <script src="js/app.js?v=202611121045"></script>
+  <script src="js/config.js?v=202611121133"></script>
+  <script src="js/app.js?v=202611121133"></script>
 </body>
 </html>

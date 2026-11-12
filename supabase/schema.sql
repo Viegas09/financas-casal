@@ -212,6 +212,11 @@ create policy "membros gerenciam faturas" on public.faturas_pagas
   for all to authenticated using (public.is_membro()) with check (public.is_membro());
 
 -- =====================================================================
+-- CONTAS "SÓ NESTE MÊS" (migração 04, já incluída aqui)
+-- =====================================================================
+alter table public.contas add column if not exists fim date;
+
+-- =====================================================================
 -- DEPOIS de criar os dois usuários em Authentication → Users,
 -- rode as linhas abaixo trocando pelos e-mails de vocês:
 -- =====================================================================

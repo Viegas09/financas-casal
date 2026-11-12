@@ -728,3 +728,16 @@ button[type="submit"]:disabled { opacity: .65; cursor: progress; }
 .hero .duas { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
 .valor.a-definir { color: var(--text-3); font-weight: 600; font-style: italic; }
 .rc-def { display: block; font-style: normal; font-size: 12px; color: var(--text-3); font-weight: 600; }
+
+/* Tipo de conta */
+.tipos-conta { display: grid; gap: 6px; }
+.tipos-conta button {
+  display: grid; text-align: left; gap: 1px; padding: 10px 12px 10px 40px; position: relative; cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit;
+}
+.tipos-conta button::before { content: ""; position: absolute; left: 13px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; border: 2px solid var(--border); }
+.tipos-conta button.ativo { border-color: var(--accent); background: var(--accent-soft); }
+.tipos-conta button.ativo::before { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 50%); }
+.tipos-conta b { font-size: 14px; font-weight: 650; }
+.tipos-conta small { font-size: 12px; color: var(--text-3); }
+.tipos-conta.erro { animation: treme .35s; border-radius: 14px; box-shadow: 0 0 0 2px var(--crit); padding: 4px; }
