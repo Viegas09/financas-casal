@@ -1,1 +1,1 @@
-versão: fe1115a Fase 0: código organizado, testes automáticos, link de teste e backup
+versão: 5ea0c98 Fase 1.1: informar o valor do mês em contas variáveis

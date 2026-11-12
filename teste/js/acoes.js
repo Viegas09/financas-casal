@@ -36,14 +36,53 @@ let pagandoConta = null;
 function abrirPagar(conta) {
   pagandoConta = conta;
   const f = $("#form-pagar");
-  const prev = previsaoVariavel(conta, estado.mes);
+  const vm = valorInformado(conta.id, estado.mes);
+  const prev = vm ? Number(vm.valor) : previsaoVariavel(conta, estado.mes);
   $("#titulo-modal-pagar").textContent = `Quanto veio ${conta.nome}?`;
   const ult = estado.pagamentos.filter((p) => p.conta_id === conta.id && p.competencia < estado.mes).sort((a, b) => b.competencia.localeCompare(a.competencia))[0];
-  $("#dica-pagar").textContent = ult ? `Mês passado: ${brl.format(ult.valor_pago)} · média recente: ${brl.format(prev)}` : `Valor cadastrado: ${brl.format(conta.valor)}`;
+  $("#dica-pagar").textContent = vm ? `Valor informado para este mês: ${brl.format(vm.valor)}` : ult ? `Mês passado: ${brl.format(ult.valor_pago)} · média recente: ${brl.format(prev)}` : `Valor cadastrado: ${brl.format(conta.valor)}`;
   f.elements.valor.value = paraCampo(prev);
   f.elements.pago_em.value = hojeISO();
   $("#modal-pagar").showModal();
   setTimeout(() => { f.elements.valor.focus(); f.elements.valor.select(); }, 250);
+}
+
+// ----- Valor do mês (conta variável, antes de pagar) -----
+let valorMesConta = null;
+function abrirValorMes(contaId) {
+  const c = estado.contas.find((x) => x.id === contaId); if (!c) return;
+  valorMesConta = c;
+  const vm = valorInformado(c.id, estado.mes);
+  const f = $("#form-valor-mes"); f.reset();
+  $("#titulo-valor-mes").textContent = `${c.nome} · ${nomeMes(estado.mes)}`;
+  const prev = previsaoVariavel(c, estado.mes);
+  $("#dica-valor-mes").textContent = vm ? "Você já informou um valor para este mês. Pode corrigir ou remover."
+    : `Ainda não pagou? Digite o valor que veio (ou que vai vir) neste mês. ${prev ? `Média recente: ${brl.format(prev)}.` : ""}`;
+  f.elements.valor.value = vm ? paraCampo(vm.valor) : "";
+  $("#btn-remover-valor-mes").hidden = !vm;
+  $("#modal-valor-mes").showModal();
+  setTimeout(() => f.elements.valor.focus(), 250);
+}
+async function salvarValorMes(ev) {
+  const f = ev.target.elements;
+  const valor = parseValor(f.valor.value);
+  if (Number.isNaN(valor) || f.valor.value.trim() === "") return toast("Informe o valor");
+  const vm = valorInformado(valorMesConta.id, estado.mes);
+  try {
+    if (vm) Object.assign(vm, await db.atualizar("valores_mes", vm.id, { valor }));
+    else estado.valores_mes.push(await db.inserir("valores_mes", { conta_id: valorMesConta.id, competencia: estado.mes, valor }));
+    $("#modal-valor-mes").close();
+    render();
+    toast(`${valorMesConta.nome}: ${fmt(valor)} em ${nomeMes(estado.mes, "mes")}`);
+  } catch (e) { erro(e); }
+}
+async function removerValorMes() {
+  const vm = valorInformado(valorMesConta.id, estado.mes); if (!vm) return;
+  try {
+    await db.remover("valores_mes", vm.id);
+    estado.valores_mes = estado.valores_mes.filter((x) => x.id !== vm.id);
+    $("#modal-valor-mes").close(); render(); toast("Valor removido");
+  } catch (e) { erro(e); }
 }
 
 async function confirmarPagar(ev) {

@@ -117,7 +117,9 @@ function itemConta(c) {
         <div class="meta">${c.fim ? "Só neste mês · " : ""}Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}</div>
       </div>
       <div class="dir">
-        ${c.aDefinir ? `<span class="valor a-definir" title="O valor muda todo mês: informe quando pagar">a definir</span>`
+        ${c.variavel && !c.pagamento && estado.migracao6
+          ? `<button type="button" class="valor valor-btn ${c.aDefinir ? "a-definir" : ""}" data-informar="${c.id}" title="Informar o valor deste mês">${c.aDefinir ? "a definir" : (c.estimado && !ocultar ? "~" : "") + fmt(c.valorMes)}<span class="lapis" aria-hidden="true">✎</span></button>`
+          : c.aDefinir ? `<span class="valor a-definir" title="O valor muda todo mês: informe quando pagar">a definir</span>`
           : `<span class="valor" ${c.estimado ? 'title="Estimativa pela média dos últimos meses"' : ""}>${c.estimado && !ocultar ? "~" : ""}${fmt(c.valorMes)}</span>`}
         <span class="badge ${c.status.chave}">${c.status.texto}</span>
       </div>

@@ -804,3 +804,9 @@ dialog.sheet-alta .sheet-corpo { min-height: 100%; align-content: start; }
 .cf-conv { display: flex; align-items: center; gap: 10px; }
 .cf-conv > div { flex: 1; min-width: 0; display: grid; }
 .msg-convite { white-space: pre-wrap; font: inherit; font-size: 13px; background: var(--bg); border-radius: 12px; padding: 12px; margin: 0 0 10px; color: var(--text-2); }
+
+/* Valor do mês (conta variável) */
+.valor-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 650; color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.valor-btn .lapis { font-size: 12px; color: var(--accent); }
+.valor-btn.a-definir { color: var(--accent); font-style: normal; font-weight: 650; border-bottom: 1px dashed var(--accent); }
+.valor-btn:active { opacity: .6; }

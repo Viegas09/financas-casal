@@ -181,6 +181,9 @@ function ligarEventos() {
   $("#form-gasto").addEventListener("submit", travar(salvarGasto));
   $("#form-orcamento").addEventListener("submit", travar(salvarOrcamento));
   $("#form-pagar").addEventListener("submit", travar(confirmarPagar));
+  $("#form-valor-mes").addEventListener("submit", travar(salvarValorMes));
+  $("#btn-remover-valor-mes").addEventListener("click", removerValorMes);
+  document.addEventListener("click", (ev) => { const b = ev.target.closest("[data-informar]"); if (b) { ev.stopPropagation(); abrirValorMes(b.dataset.informar); } }, true);
   $("#btn-excluir-gasto").addEventListener("click", excluirGasto);
   $("#form-meta").addEventListener("submit", travar(salvarMeta));
   $("#form-aporte").addEventListener("submit", travar(salvarAporte));
