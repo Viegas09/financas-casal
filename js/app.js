@@ -313,8 +313,10 @@
       .map((c) => {
         const pg = pagamentoDe(c.id, comp);
         // conta de valor variável em mês futuro: não projeta valor ("a definir") e não soma no total
-        const aDefinir = !pg && !!c.variavel && comp > compDe(new Date());
-        const prev = !pg && c.variavel && !aDefinir ? previsaoVariavel(c, comp) : null;
+        // (no primeiro mês da conta vale o valor que a pessoa cadastrou: é o valor real daquele mês)
+        const primeiroMes = (c.inicio || "").slice(0, 7) === comp.slice(0, 7);
+        const aDefinir = !pg && !!c.variavel && comp > compDe(new Date()) && !primeiroMes;
+        const prev = !pg && c.variavel && !aDefinir && !primeiroMes ? previsaoVariavel(c, comp) : null;
         return { ...c, pagamento: pg || null, estimado: prev !== null, aDefinir,
           valorMes: pg ? Number(pg.valor_pago) : aDefinir ? 0 : prev ?? Number(c.valor), status: statusDe(c, comp, pg) };
       })
