@@ -741,3 +741,43 @@ button[type="submit"]:disabled { opacity: .65; cursor: progress; }
 .tipos-conta b { font-size: 14px; font-weight: 650; }
 .tipos-conta small { font-size: 12px; color: var(--text-3); }
 .tipos-conta.erro { animation: treme .35s; border-radius: 14px; box-shadow: 0 0 0 2px var(--crit); padding: 4px; }
+
+/* ================================================================
+   IMPORTAR EXTRATO
+   ================================================================ */
+.titulo-botoes { display: flex; align-items: center; gap: 8px; }
+.btn-importar { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; border: 0; cursor: pointer;
+  background: var(--accent-soft); color: var(--accent); font: inherit; font-size: 13px; font-weight: 650; }
+.btn-importar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.btn-importar:active { transform: scale(.96); }
+dialog.sheet-alta { height: calc(100dvh - var(--safe-t) - 12px); }
+dialog.sheet-alta .sheet-corpo { min-height: 100%; align-content: start; }
+.imp-topo { display: flex; justify-content: space-between; align-items: center; }
+#imp-passo1, #imp-passo2 { display: grid; gap: 12px; }
+#imp-passo1[hidden], #imp-passo2[hidden] { display: none; }
+.imp-arquivo { display: grid; justify-items: center; gap: 4px; padding: 28px 16px; border: 2px dashed var(--border); border-radius: 18px; cursor: pointer; text-align: center; color: var(--text); }
+.imp-arquivo:active { background: var(--accent-soft); }
+.imp-arquivo input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.imp-arquivo b { font-size: 16px; }
+.imp-arquivo small { color: var(--text-3); font-weight: 500; }
+.ia-ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-bottom: 6px; }
+.ia-ic svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.imp-ajuda ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; color: var(--text-2); }
+.imp-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.imp-resumo { background: var(--accent-soft); color: var(--text); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.imp-resumo small { display: block; color: var(--text-2); font-size: 12px; margin-top: 2px; }
+.imp-filtros { display: flex; gap: 14px; flex-wrap: wrap; }
+.imp-filtros .btn-link { font-size: 13px; padding: 0; }
+.imp-lista { list-style: none; margin: 0; padding: 0; }
+.imp-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--grid); }
+.imp-item:first-child { border-top: 0; }
+.imp-item:not(.on) .imp-desc, .imp-item:not(.on) .imp-valor { color: var(--text-3); }
+.imp-item.entrada { opacity: .7; }
+.imp-chk input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); }
+.imp-desc { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-meta { font-size: 12px; color: var(--text-3); margin: 2px 0 6px; }
+.imp-cat { font-size: 14px; padding: 6px 8px; border-radius: 9px; max-width: 100%; }
+.imp-item:not(.on) .imp-cat { opacity: .5; }
+.imp-valor { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 14px; }
+.imp-acoes { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 calc(6px + var(--safe-b)); margin-top: 4px; border-top: 1px solid var(--grid); }
+.btn:disabled { opacity: .5; cursor: default; }

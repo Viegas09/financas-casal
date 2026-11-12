@@ -64,6 +64,8 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
 
 ## Dicas de uso
 
+- **Importar extrato do banco:** em *Gastos → Importar* (ou *Mais → Importar extrato do banco*), escolha o arquivo **OFX** ou **CSV** exportado no app do banco (Nubank, Inter, Itaú, Bradesco, Santander, BB, C6, **Mercado Pago** e outros; também lê planilhas com colunas separadas de crédito e débito). O app lista as compras com a categoria sugerida (e aprende com o que vocês já classificaram), e já deixa **desmarcado** o que não deve entrar: gastos que já estão lançados (mesmo dia e valor), pagamentos de fatura, Pix/transferências recebidas e o que parece conta fixa (luz, aluguel). Revise, escolha se foi no cartão ou no Pix/débito e quem pagou, e toque em *Importar*. Dá para desfazer logo depois.
+
 - **Excluir rápido:** arraste um gasto, conta fixa, renda ou aporte para a esquerda e toque em *Excluir* (ou arraste até o fim). Gastos, rendas e aportes podem ser desfeitos por 5 segundos; contas fixas pedem confirmação.
 
 - **Tutorial:** o botão **?** no topo (ou *Mais → Tutorial do app*) abre um passo a passo de cada tela e a lista de *Primeiros passos*, que se marca sozinha. Ele abre sozinho no primeiro acesso de cada aparelho.

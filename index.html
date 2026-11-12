@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="css/style.css?v=202611121133" />
+  <link rel="stylesheet" href="css/style.css?v=202611121420" />
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -113,7 +113,7 @@
       <!-- ---------- GASTOS VARIÁVEIS ---------- -->
       <section id="aba-gastos" class="aba" hidden>
         <div class="titulo-aba">
-          <div class="titulo-linha"><h1>Gastos do mês</h1><button class="btn-add" data-acao="novo-gasto" aria-label="Novo gasto">+</button></div>
+          <div class="titulo-linha"><h1>Gastos do mês</h1><div class="titulo-botoes"><button class="btn-importar" data-acao="importar" aria-label="Importar extrato do banco" title="Importar extrato do banco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Importar</span></button><button class="btn-add" data-acao="novo-gasto" aria-label="Novo gasto">+</button></div></div>
           <div class="filtro-pessoa" data-filtro-pessoa role="group" aria-label="Filtrar por pessoa"></div>
           <div class="segmento" id="seg-gastos" role="group" aria-label="Visualizar">
             <button data-g="orcamento" class="ativo">Orçamento</button>
@@ -199,6 +199,7 @@
 
         <article class="card card-lista menu">
           <button class="menu-item" data-acao="tutorial"><span>Tutorial do app</span><span class="seta">›</span></button>
+          <button class="menu-item" data-acao="importar"><span>Importar extrato do banco</span><span class="seta">›</span></button>
           <button class="menu-item" data-ir="analises"><span>Análises e gráficos</span><span class="seta">›</span></button>
           <button class="menu-item" id="btn-exportar"><span>Exportar tudo em CSV</span><span class="seta">›</span></button>
           <button class="menu-item perigo" id="btn-sair"><span>Sair</span><span class="seta">›</span></button>
@@ -531,6 +532,56 @@
     </div>
   </dialog>
 
+  <!-- ============ IMPORTAR EXTRATO ============ -->
+  <dialog id="modal-importar" class="sheet sheet-alta">
+    <div class="sheet-corpo">
+      <div class="puxador" aria-hidden="true"></div>
+      <div class="imp-topo"><h2>Importar extrato do banco</h2><button type="button" class="btn-link" data-fechar>Fechar</button></div>
+
+      <div id="imp-passo1">
+        <p class="explica">Baixe o extrato ou a fatura no app do banco (formato <b>OFX</b> ou <b>CSV</b>) e escolha o arquivo aqui. O app mostra as compras para vocês revisarem antes de salvar.</p>
+        <label class="imp-arquivo">
+          <input type="file" id="imp-file" accept=".ofx,.csv,.txt,.qfx,application/x-ofx,text/csv" />
+          <span class="ia-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
+          <b>Escolher arquivo</b><small>.ofx ou .csv</small>
+        </label>
+        <details class="mais-opcoes imp-ajuda">
+          <summary>Como baixar o arquivo no meu banco</summary>
+          <ul>
+            <li><b>Nubank:</b> no app, abra a conta ou o cartão → <i>Extrato</i> / fatura → <i>Exportar</i>. O arquivo chega no e-mail (use o OFX ou CSV).</li>
+            <li><b>Mercado Pago:</b> no app ou no site, vá em <i>Seu dinheiro</i> / <i>Atividade</i> → <i>Extrato</i> (ou <i>Baixar extrato</i>), escolha o período e baixe em <b>CSV</b> (planilha).</li>
+            <li><b>Inter, Itaú, Bradesco, Santander, BB, C6:</b> procure <i>Extrato</i> → <i>Exportar</i> ou <i>Salvar</i> e escolha OFX (ou CSV/Excel salvo como CSV). No computador, pelo internet banking, costuma ser mais fácil.</li>
+            <li>No iPhone, o arquivo baixado fica em <i>Arquivos</i>; se chegou por e-mail, toque nele → <i>Salvar em Arquivos</i>.</li>
+          </ul>
+        </details>
+        <p class="erro" id="imp-erro" role="alert"></p>
+      </div>
+
+      <div id="imp-passo2" hidden>
+        <div class="imp-opcoes">
+          <label>Esses gastos foram no
+            <select id="imp-forma"></select>
+          </label>
+          <label>Quem pagou
+            <select id="imp-quem"></select>
+          </label>
+        </div>
+        <div class="imp-resumo" id="imp-resumo"></div>
+        <div class="imp-filtros">
+          <button type="button" class="btn-link" id="imp-marcar">Marcar todos</button>
+          <button type="button" class="btn-link" id="imp-desmarcar">Desmarcar todos</button>
+          <button type="button" class="btn-link" id="imp-inverter" title="Use se as compras vieram como entradas">Valores trocados? Inverter</button>
+        </div>
+        <ul class="imp-lista" id="imp-lista"></ul>
+        <div class="modal-acoes imp-acoes">
+          <button type="button" class="btn btn-ghost" id="imp-voltar">Outro arquivo</button>
+          <span class="espaco"></span>
+          <button type="button" class="btn btn-primary" id="imp-confirmar">Importar</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <!-- ============ TUTORIAL ============ -->
   <dialog id="modal-tutorial" class="tutorial" aria-label="Tutorial do app">
     <div class="tut-topo">
@@ -559,7 +610,7 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=202611121133"></script>
-  <script src="js/app.js?v=202611121133"></script>
+  <script src="js/config.js?v=202611121420"></script>
+  <script src="js/app.js?v=202611121420"></script>
 </body>
 </html>
