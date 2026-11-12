@@ -7,13 +7,14 @@
 async function carregar() {
   try {
     const opcional = (t, flag) => db.listar(t).catch((e) => { console.warn(t, e); estado[flag] = false; return []; });
-    estado.migracao2 = true; estado.migracao3 = true;
-    const [contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas] = await Promise.all([
+    estado.migracao2 = true; estado.migracao3 = true; estado.migracao6 = true;
+    const [contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas, valores_mes] = await Promise.all([
       db.listar("contas"), db.listar("pagamentos"), db.listar("rendas"),
       opcional("gastos", "migracao2"), opcional("orcamentos", "migracao2"),
-      opcional("metas", "migracao3"), opcional("aportes", "migracao3"), opcional("cartoes", "migracao3"), opcional("faturas_pagas", "migracao3")
+      opcional("metas", "migracao3"), opcional("aportes", "migracao3"), opcional("cartoes", "migracao3"), opcional("faturas_pagas", "migracao3"),
+      opcional("valores_mes", "migracao6")
     ]);
-    Object.assign(estado, { contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas });
+    Object.assign(estado, { contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas, valores_mes });
     estado.migracao4 = DEMO ? true : contas.length ? "fim" in contas[0] : !(await sb.from("contas").select("fim").limit(1)).error;
     if (!DEMO && estado.familia) {
       const [mb, cv] = await Promise.all([db.listar("membros").catch(() => []), db.listar("convites").catch(() => [])]);
@@ -40,13 +41,17 @@ function contasDoMes(comp) {
       // conta de valor variável em mês futuro: não projeta valor ("a definir") e não soma no total
       // (no primeiro mês da conta vale o valor que a pessoa cadastrou: é o valor real daquele mês)
       const primeiroMes = (c.inicio || "").slice(0, 7) === comp.slice(0, 7);
-      const aDefinir = !pg && !!c.variavel && comp > compDe(new Date()) && !primeiroMes;
-      const prev = !pg && c.variavel && !aDefinir && !primeiroMes ? previsaoVariavel(c, comp) : null;
-      return { ...c, pagamento: pg || null, estimado: prev !== null, aDefinir,
-        valorMes: pg ? Number(pg.valor_pago) : aDefinir ? 0 : prev ?? Number(c.valor), status: statusDe(c, comp, pg) };
+      // valor informado para o mês (ex.: a fatura de dezembro) vale mais que qualquer estimativa
+      const vm = !pg && c.variavel ? valorInformado(c.id, comp) : null;
+      const aDefinir = !pg && !vm && !!c.variavel && comp > compDe(new Date()) && !primeiroMes;
+      const prev = !pg && !vm && c.variavel && !aDefinir && !primeiroMes ? previsaoVariavel(c, comp) : null;
+      return { ...c, pagamento: pg || null, estimado: prev !== null, aDefinir, informado: !!vm,
+        valorMes: pg ? Number(pg.valor_pago) : vm ? Number(vm.valor) : aDefinir ? 0 : prev ?? Number(c.valor), status: statusDe(c, comp, pg) };
     })
     .sort((a, b) => a.dia_vencimento - b.dia_vencimento || a.nome.localeCompare(b.nome));
 }
+
+const valorInformado = (contaId, comp) => estado.valores_mes.find((v) => v.conta_id === contaId && v.competencia === comp) || null;
 
 /** Média dos últimos 3 pagamentos antes do mês; sem histórico, o valor cadastrado. */
 function previsaoVariavel(conta, comp) {

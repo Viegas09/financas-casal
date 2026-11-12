@@ -125,6 +125,22 @@ await como(vini.id, async () => {
   const cv = await q(`select email from convites`);
   ok(cv.length === 1 && cv[0].email === "irma@x.com", "Vinícius vê só os convites que ele criou");
 });
+// ---- migração 06: valor do mês (depois da 05) ----
+await exec(fs.readFileSync(R + "migracao-06-valor-do-mes.sql", "utf8"));
+await exec(`grant all on all tables in schema public to authenticated;`);
+await como(vini.id, async () => {
+  const [v] = await q(`insert into valores_mes (conta_id, competencia, valor) values ($1, '2026-12-01', 1234.56) returning familia_id`, [conta1.id]);
+  ok(v.familia_id === fam[0].id, "06: valor do mês informado cai na família do casal");
+  ok((await q(`select count(*) n from valores_mes`))[0].n == 1, "06: casal vê o valor informado");
+});
+await como(ana.id, async () => {
+  ok((await q(`select count(*) n from valores_mes`))[0].n == 0, "06: Ana não vê os valores do casal");
+  const up = await q(`update valores_mes set valor = 0 returning id`);
+  ok(up.length === 0, "06: Ana não altera os valores do casal");
+});
+const dup06 = await tenta(() => exec(fs.readFileSync(R + "migracao-06-valor-do-mes.sql", "utf8")));
+ok(!dup06, "06: rodar de novo é seguro " + (dup06 || ""));
+
 // reconvite: e-mail que já usou o convite não reaproveita
 const dup = await tenta(() => q(`insert into auth.users (email) values ('irma@x.com')`));
 ok(!!dup, "convite usado não vale de novo");

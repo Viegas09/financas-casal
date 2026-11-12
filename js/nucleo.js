@@ -154,14 +154,14 @@ const db = {
     return data;
   },
   async inserir(tabela, linha) {
-    if (DEMO) { const r = { id: uid(), ...linha }; demoDB()[tabela].push(r); demoStore.gravar(demoDB()); return r; }
+    if (DEMO) { const r = { id: uid(), ...linha }; (demoDB()[tabela] ||= []).push(r); demoStore.gravar(demoDB()); return r; }
     const { data, error } = await sb.from(tabela).insert(linha).select().single();
     if (error) throw error;
     return data;
   },
   async inserirVarios(tabela, linhas) {
     if (!linhas.length) return [];
-    if (DEMO) { const rs = linhas.map((l) => ({ id: uid(), ...l })); demoDB()[tabela].push(...rs); demoStore.gravar(demoDB()); return rs; }
+    if (DEMO) { const rs = linhas.map((l) => ({ id: uid(), ...l })); (demoDB()[tabela] ||= []).push(...rs); demoStore.gravar(demoDB()); return rs; }
     const { data, error } = await sb.from(tabela).insert(linhas).select();
     if (error) throw error;
     return data;
@@ -196,6 +196,8 @@ const estado = {
   faturas_pagas: [],
   migracao3: true,        // tabelas de metas/cartões existem no banco?
   migracao4: true,        // coluna contas.fim (conta "só neste mês") existe?
+  valores_mes: [],
+  migracao6: true,        // tabela valores_mes (valor informado de conta variável) existe?
   mes: compDe(new Date()),
   filtro: "pendentes"
 };
