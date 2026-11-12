@@ -427,7 +427,13 @@
         : vazio("lista", "Comece cadastrando suas contas", "Aluguel, luz, internet… cadastre uma vez e acompanhe todo mês.", ["nova-conta", "Cadastrar primeira conta"]);
   }
 
+  function renderAvisoContas() {
+    const el = $("#aviso-contas");
+    el.hidden = lerPref("aviso-contas-ok", false) || !estado.contas.length;
+  }
+
   function renderListaMes(lista) {
+    renderAvisoContas();
     const f = estado.filtro;
     const itens = lista.filter((c) => f === "todas" || (f === "pagas" ? c.pagamento : !c.pagamento));
     $("#lista-mes").innerHTML = itens.length
@@ -494,11 +500,11 @@
         <li class="${c.ativa ? "" : "inativa"}">
           <button class="item" data-editar-conta="${c.id}">
             ${bolaIcone(c)}
-            <div><div class="nome">${esc(c.nome)}${c.ativa ? "" : ' <span class="badge inativa">Inativa</span>'}</div>
+            <div><div class="nome">${esc(c.nome)}${c.ativa ? "" : ' <span class="badge inativa">Encerrada</span>'}</div>
             <div class="meta">Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}${c.forma_pagamento ? " · " + esc(c.forma_pagamento) : ""}</div></div>
             <span class="valor">${fmt(c.valor)}</span><span class="seta">›</span>
           </button>
-        </li>`).join("") + `<li class="total"><span>Total mensal (ativas)</span><span>${fmt(soma(ativas, (c) => c.valor))}</span></li>`
+        </li>`).join("") + `<li class="total"><span>Total por mês</span><span>${fmt(soma(ativas, (c) => c.valor))}</span></li>`
       : vazio("lista", "Nenhuma conta fixa", "Toque em + para cadastrar a primeira.", ["nova-conta", "Nova conta"]);
   }
 
@@ -509,10 +515,10 @@
         <li class="${r.ativa ? "" : "inativa"}">
           <button class="item" data-editar-renda="${r.id}">
             <span class="bola-cat" aria-hidden="true">${svg("moeda")}</span>
-            <div><div class="nome">${esc(r.descricao)}${r.ativa ? "" : ' <span class="badge inativa">Inativa</span>'}</div><div class="meta">${esc(r.responsavel)}</div></div>
+            <div><div class="nome">${esc(r.descricao)}${r.ativa ? "" : ' <span class="badge inativa">Encerrada</span>'}</div><div class="meta">${esc(r.responsavel)}</div></div>
             <span class="valor">${fmt(r.valor)}</span><span class="seta">›</span>
           </button>
-        </li>`).join("") + `<li class="total"><span>Total mensal (ativas)</span><span>${fmt(soma(rendas.filter((r) => r.ativa), (r) => r.valor))}</span></li>`
+        </li>`).join("") + `<li class="total"><span>Total por mês</span><span>${fmt(soma(rendas.filter((r) => r.ativa), (r) => r.valor))}</span></li>`
       : vazio("moeda", "Nenhuma renda cadastrada", "Com as rendas, o painel mostra quanto sobra depois das contas.", ["nova-renda", "Nova renda"]);
   }
 
@@ -664,7 +670,7 @@
       <li class="${o.ativa ? "" : "inativa"}">
         <button class="item" data-editar-orcamento="${o.id}">
           <span class="bola-cat">${svg(iconeDe(o.categoria))}</span>
-          <div><div class="nome">${esc(o.categoria)}${o.ativa ? "" : ' <span class="badge inativa">Inativa</span>'}</div><div class="meta">Limite mensal</div></div>
+          <div><div class="nome">${esc(o.categoria)}${o.ativa ? "" : ' <span class="badge inativa">Arquivada</span>'}</div><div class="meta">Limite mensal</div></div>
           <span class="valor">${fmt(o.limite)}</span><span class="seta">›</span>
         </button>
       </li>`).join("") + `<li class="total"><span>Total planejado por mês</span><span>${fmt(soma(orcs.filter((o) => o.ativa), (o) => o.limite))}</span></li>`
@@ -741,6 +747,10 @@
 
   function renderFaturas() {
     const el = $("#faturas");
+    const usaCartao = estado.migracao3 && estado.cartoes.length > 0;
+    const segCartoes = $('#seg-gastos [data-g="cartoes"]');
+    segCartoes.hidden = !usaCartao;
+    if (!usaCartao && segCartoes.classList.contains("ativo")) { mostrarSubGastos("orcamento"); }
     if (!estado.migracao3) { el.innerHTML = avisoMigracao3(); return; }
     const fats = faturasDoMes(estado.mes);
     el.innerHTML = fats.length ? fats.map((f) => {
@@ -810,7 +820,7 @@
       <li class="${c.ativo ? "" : "inativa"}">
         <button class="item" data-editar-cartao="${c.id}">
           <span class="bola-cat">${svg("cartao")}</span>
-          <div><div class="nome">${esc(c.nome)}${c.ativo ? "" : ' <span class="badge inativa">Inativo</span>'}</div><div class="meta">Fecha dia ${c.dia_fechamento} · vence dia ${c.dia_vencimento} · ${esc(c.responsavel)}</div></div>
+          <div><div class="nome">${esc(c.nome)}${c.ativo ? "" : ' <span class="badge inativa">Arquivado</span>'}</div><div class="meta">Fecha dia ${c.dia_fechamento} · vence dia ${c.dia_vencimento} · ${esc(c.responsavel)}</div></div>
           <span class="valor">${c.limite ? fmt(c.limite) : ""}</span><span class="seta">›</span>
         </button>
       </li>`).join("") : vazio("cartao", "Nenhum cartão", "Cadastre os cartões para acompanhar as faturas.", ["novo-cartao", "Novo cartão"]);
@@ -881,7 +891,7 @@
       <button class="card meta-card ${m.ativa ? "" : "inativa"} ${i.falta ? "" : "completa"}" data-abrir-meta="${m.id}">
         <div class="mc-topo">
           <span class="bola-cat">${svg(iconeMeta(m))}</span>
-          <div class="mc-nome"><strong>${esc(m.nome)}</strong><small>${esc(m.onde || (m.prazo ? "Até " + nomeMes(m.prazo) : "Sem prazo"))}${m.ativa ? "" : " · inativa"}</small></div>
+          <div class="mc-nome"><strong>${esc(m.nome)}</strong><small>${esc(m.onde || (m.prazo ? "Até " + nomeMes(m.prazo) : "Sem prazo"))}${m.ativa ? "" : " · arquivada"}</small></div>
           <span class="mc-pct">${Math.floor(i.pct)}%</span>
         </div>
         <div class="mc-valores"><b>${fmt(i.guardado)}</b><span>de ${fmt(i.alvo)}</span></div>
@@ -997,56 +1007,104 @@
 
   // ----- Modal conta -----
   let editandoConta = null;
-  function abrirConta(id) {
+  const FORMAS_CONTA = ["Pix", "Boleto", "Débito automático", "Dinheiro", "Cartão de crédito"];
+  function abrirConta(id, prefill = {}) {
     const f = $("#form-conta");
     f.reset();
+    f.querySelector(".mais-opcoes").open = false;
     editandoConta = id ? estado.contas.find((c) => c.id === id) : null;
-    $("#titulo-modal-conta").textContent = editandoConta ? "Editar conta" : "Nova conta";
-    $("#btn-excluir-conta").hidden = !editandoConta;
-    const c = editandoConta || { ativa: true, responsavel: "Casal", inicio: estado.mes };
-    ["nome", "dia_vencimento", "categoria", "responsavel", "forma_pagamento", "observacao"].forEach((k) => (f.elements[k].value = c[k] ?? ""));
+    $("#titulo-modal-conta").textContent = editandoConta ? "Editar conta fixa" : "Nova conta fixa";
+    $("#explica-conta").hidden = !!editandoConta || !estado.migracao2;
+    const c = editandoConta || { ativa: true, responsavel: "Casal", inicio: estado.mes, ...prefill };
+    f.elements.nome.value = c.nome || "";
+    f.elements.dia_vencimento.value = c.dia_vencimento || "";
+    f.elements.observacao.value = c.observacao || "";
     f.elements.valor.value = paraCampo(c.valor);
-    f.elements.variavel.checked = !!c.variavel;
-    $("#lbl-variavel").hidden = !estado.migracao2;
-    const cartoesC = estado.migracao3 ? estado.cartoes.filter((x) => x.ativo || x.id === c.cartao_id) : [];
-    $("#lbl-cartao-conta").hidden = !cartoesC.length;
-    $("#sel-cartao-conta").innerHTML = `<option value="">Não</option>` + cartoesC.map((x) => `<option value="${x.id}">💳 ${esc(x.nome)}</option>`).join("");
-    $("#sel-cartao-conta").value = c.cartao_id || "";
-    if (!editandoConta) f.elements.responsavel.value = "Casal";
+    f.elements.responsavel.value = RESPONSAVEIS.includes(c.responsavel) ? c.responsavel : "Casal";
     f.elements.inicio.value = (c.inicio || estado.mes).slice(0, 7);
-    f.elements.ativa.checked = !!c.ativa;
+    f.elements.ativa.checked = c.ativa !== false;
+    // valor muda?
+    $("#campo-variavel").hidden = !estado.migracao2;
+    definirVariavel(!!c.variavel);
+    // categoria
+    const cats = [...new Set([...(CFG.CATEGORIAS || []), ...estado.contas.map((x) => x.categoria)].filter(Boolean))];
+    if (c.categoria && !cats.includes(c.categoria)) cats.push(c.categoria);
+    $("#sel-cat-conta").innerHTML = `<option value="" disabled ${c.categoria ? "" : "selected"}>Escolha…</option>` + cats.map((x) => `<option>${esc(x)}</option>`).join("") + `<option value="__outra">+ Outra categoria…</option>`;
+    $("#sel-cat-conta").value = c.categoria || "";
+    $("#lbl-cat-outra").hidden = true;
+    f.elements.categoria_outra.required = false;
+    // como paga (inclui os cartões)
+    const cartoes = estado.migracao3 ? estado.cartoes.filter((x) => x.ativo || x.id === c.cartao_id) : [];
+    const formas = FORMAS_CONTA.filter((x) => !(cartoes.length && x === "Cartão de crédito"));
+    if (c.forma_pagamento && !c.cartao_id && !formas.includes(c.forma_pagamento)) formas.push(c.forma_pagamento);
+    $("#sel-forma-conta").innerHTML = `<option value="">Não sei / tanto faz</option>` + formas.map((x) => `<option>${esc(x)}</option>`).join("") +
+      (cartoes.length ? `<optgroup label="Cartão de crédito">${cartoes.map((x) => `<option value="cartao:${x.id}">💳 ${esc(x.nome)}</option>`).join("")}</optgroup>` : "");
+    $("#sel-forma-conta").value = c.cartao_id ? "cartao:" + c.cartao_id : c.forma_pagamento || "";
+    caixaEncerrar(f, {
+      editando: !!editandoConta, ativo: c.ativa !== false, campo: "ativa", excluir: "#btn-excluir-conta",
+      pergunta: "Parou de pagar esta conta? (ex.: cancelou a assinatura)", encerrar: "Encerrar conta",
+      encerrada: "Esta conta está encerrada: não aparece mais nos meses seguintes. O histórico fica guardado.", reativar: "Voltar a cobrar",
+      erro: "Cadastrou errado?"
+    });
     $("#modal-conta").showModal();
+  }
+
+  function definirVariavel(sim) {
+    $("#form-conta").elements.variavel.checked = sim;
+    $$("#seg-variavel button").forEach((x) => x.classList.toggle("ativo", (x.dataset.v === "sim") === sim));
+    $("#dica-variavel").hidden = !sim;
   }
 
   async function salvarConta(ev) {
     ev.preventDefault();
     const f = ev.target.elements;
+    const catSel = f.categoria_sel.value;
+    const categoria = catSel === "__outra" ? f.categoria_outra.value.trim() : catSel;
+    if (!categoria) return toast("Escolha uma categoria");
+    const forma = f.forma.value;
+    const cartao = forma.startsWith("cartao:") ? estado.cartoes.find((x) => x.id === forma.slice(7)) : null;
     const dados = {
       nome: f.nome.value.trim(), valor: parseValor(f.valor.value), dia_vencimento: Number(f.dia_vencimento.value),
-      categoria: f.categoria.value.trim(), responsavel: f.responsavel.value,
-      forma_pagamento: f.forma_pagamento.value.trim() || null, observacao: f.observacao.value.trim() || null,
-      inicio: f.inicio.value + "-01", ativa: f.ativa.checked
+      categoria, responsavel: f.responsavel.value,
+      forma_pagamento: cartao ? "Cartão " + cartao.nome : forma || null, observacao: f.observacao.value.trim() || null,
+      inicio: (f.inicio.value || estado.mes.slice(0, 7)) + "-01", ativa: f.ativa.checked
     };
     if (estado.migracao2) dados.variavel = f.variavel.checked;
-    if (estado.migracao3) {
-      dados.cartao_id = f.cartao_id.value || null;
-      const ct = estado.cartoes.find((x) => x.id === dados.cartao_id);
-      if (ct && (!dados.forma_pagamento || /cart/i.test(dados.forma_pagamento))) dados.forma_pagamento = "Cartão " + ct.nome;
-    }
+    if (estado.migracao3) dados.cartao_id = cartao ? cartao.id : null;
     if (Number.isNaN(dados.valor)) return toast("Valor inválido");
     try {
+      const eraAtiva = editandoConta ? editandoConta.ativa : true;
       if (editandoConta) Object.assign(editandoConta, await db.atualizar("contas", editandoConta.id, dados));
       else estado.contas.push(await db.inserir("contas", dados));
       $("#modal-conta").close();
-      toast("Conta salva");
+      toast(eraAtiva && !dados.ativa ? "Conta encerrada" : !eraAtiva && dados.ativa ? "Conta reativada" : "Conta salva");
       render();
       if ($("#modal-fatura").open) desenharFatura();
     } catch (e) { erro(e); }
   }
 
+  /** Caixa no fim do formulário: "Parou de pagar? [Encerrar]" e "Cadastrou errado? [Excluir]" (só ao editar). */
+  function caixaEncerrar(form, o) {
+    const box = form.querySelector("[data-encerrar]");
+    const btnExcluir = $(o.excluir);
+    btnExcluir.hidden = !o.editando;
+    box.hidden = !o.editando;
+    if (!o.editando) { form.appendChild(btnExcluir); return; }
+    box.innerHTML = `
+      <div class="be-linha"><span>${esc(o.ativo ? o.pergunta : o.encerrada)}</span>
+        <button type="button" class="btn ${o.ativo ? "btn-ghost" : "btn-primary"}" data-alternar-ativo>${esc(o.ativo ? o.encerrar : o.reativar)}</button></div>
+      <div class="be-linha"><span>${esc(o.erro)}</span><span data-slot-excluir></span></div>`;
+    box.querySelector("[data-slot-excluir]").appendChild(btnExcluir);
+    btnExcluir.textContent = "Excluir de vez";
+    box.querySelector("[data-alternar-ativo]").onclick = () => {
+      form.elements[o.campo].checked = !o.ativo;
+      form.requestSubmit();
+    };
+  }
+
   async function excluirConta() {
     if (!editandoConta) return;
-    if (!confirm(`Excluir “${editandoConta.nome}” e todo o histórico de pagamentos dela?\n\nDica: se ela só deixou de existir, desmarque “Conta ativa” para manter o histórico.`)) return;
+    if (!confirm(`Excluir “${editandoConta.nome}” e todo o histórico de pagamentos dela?\n\nSe você só parou de pagar, use “Encerrar conta”: ela some dos próximos meses e o histórico fica guardado.`)) return;
     try {
       await db.remover("contas", editandoConta.id);
       estado.contas = estado.contas.filter((c) => c.id !== editandoConta.id);
@@ -1065,12 +1123,15 @@
     f.reset();
     editandoRenda = id ? estado.rendas.find((r) => r.id === id) : null;
     $("#titulo-modal-renda").textContent = editandoRenda ? "Editar renda" : "Nova renda";
-    $("#btn-excluir-renda").hidden = !editandoRenda;
+
     const r = editandoRenda || { ativa: true, responsavel: PESSOAS[0] };
     f.elements.descricao.value = r.descricao || "";
     f.elements.valor.value = paraCampo(r.valor);
     f.elements.responsavel.value = r.responsavel;
-    f.elements.ativa.checked = !!r.ativa;
+    f.elements.ativa.checked = r.ativa !== false;
+    caixaEncerrar(f, { editando: !!editandoRenda, ativo: r.ativa !== false, campo: "ativa", excluir: "#btn-excluir-renda",
+      pergunta: "Parou de receber essa renda?", encerrar: "Encerrar renda",
+      encerrada: "Esta renda está encerrada e não entra nas contas do mês.", reativar: "Voltar a contar", erro: "Cadastrou errado?" });
     $("#modal-renda").showModal();
   }
 
@@ -1106,14 +1167,15 @@
     if (!cats.includes("Outros")) cats.push("Outros");
     $("#chips-cat").innerHTML = cats.map((c) => `<button type="button" class="chip-cat ${c === atual ? "ativo" : ""}" data-cat="${esc(c)}">${svg(iconeDe(c))}<span>${esc(c)}</span></button>`).join("");
   }
-  function abrirGasto(id) {
+  function abrirGasto(id, prefill = {}) {
     if (!estado.migracao2) { irPara("gastos"); return toast("Rode a migração 02 no Supabase primeiro"); }
     const f = $("#form-gasto");
     f.reset();
     editandoGasto = id ? estado.gastos.find((g) => g.id === id) : null;
     $("#titulo-modal-gasto").textContent = editandoGasto ? "Editar gasto" : "Novo gasto";
     $("#btn-excluir-gasto").hidden = !editandoGasto;
-    const g = editandoGasto || { data: estado.mes === compDe(new Date()) ? hojeISO() : estado.mes.slice(0, 8) + "01", responsavel: estado.usuario.nome.replace(" (demo)", ""), categoria: filtroCatGasto || "" };
+    $("#explica-gasto").hidden = !!editandoGasto;
+    const g = editandoGasto || { data: estado.mes === compDe(new Date()) ? hojeISO() : estado.mes.slice(0, 8) + "01", responsavel: estado.usuario.nome.replace(" (demo)", ""), categoria: filtroCatGasto || "", ...prefill };
     f.elements.valor.value = paraCampo(g.valor);
     f.elements.descricao.value = g.descricao || "";
     f.elements.data.value = g.data;
@@ -1186,11 +1248,14 @@
     f.reset();
     editandoOrc = id ? estado.orcamentos.find((o) => o.id === id) : null;
     $("#titulo-modal-orcamento").textContent = editandoOrc ? "Editar categoria" : "Nova categoria de gasto";
-    $("#btn-excluir-orcamento").hidden = !editandoOrc;
+
     const o = editandoOrc || { ativa: true };
     f.elements.categoria.value = o.categoria || "";
     f.elements.limite.value = paraCampo(o.limite);
-    f.elements.ativa.checked = !!o.ativa;
+    f.elements.ativa.checked = o.ativa !== false;
+    caixaEncerrar(f, { editando: !!editandoOrc, ativo: o.ativa !== false, campo: "ativa", excluir: "#btn-excluir-orcamento",
+      pergunta: "Não quer mais acompanhar essa categoria?", encerrar: "Arquivar",
+      encerrada: "Categoria arquivada: não aparece no orçamento.", reativar: "Reativar", erro: "Cadastrou errado?" });
     $("#modal-orcamento").showModal();
   }
 
@@ -1231,13 +1296,16 @@
     const f = $("#form-meta"); f.reset();
     editandoMeta = id ? estado.metas.find((m) => m.id === id) : null;
     $("#titulo-modal-meta").textContent = editandoMeta ? "Editar meta" : "Nova meta";
-    $("#btn-excluir-meta").hidden = !editandoMeta;
+
     const m = editandoMeta || { ativa: true };
     f.elements.nome.value = m.nome || "";
     f.elements.valor_alvo.value = paraCampo(m.valor_alvo);
     f.elements.prazo.value = m.prazo ? m.prazo.slice(0, 7) : "";
     f.elements.onde.value = m.onde || "";
-    f.elements.ativa.checked = !!m.ativa;
+    f.elements.ativa.checked = m.ativa !== false;
+    caixaEncerrar(f, { editando: !!editandoMeta, ativo: m.ativa !== false, campo: "ativa", excluir: "#btn-excluir-meta",
+      pergunta: "Pausou ou desistiu desta meta?", encerrar: "Arquivar meta",
+      encerrada: "Meta arquivada: o que foi guardado continua contando.", reativar: "Reativar", erro: "Cadastrou errado?" });
     $("#modal-meta").showModal();
   }
   async function salvarMeta(ev) {
@@ -1326,14 +1394,17 @@
     const f = $("#form-cartao"); f.reset();
     editandoCartao = id ? estado.cartoes.find((c) => c.id === id) : null;
     $("#titulo-modal-cartao").textContent = editandoCartao ? "Editar cartão" : "Novo cartão";
-    $("#btn-excluir-cartao").hidden = !editandoCartao;
+
     const c = editandoCartao || { ativo: true, responsavel: "Casal" };
     f.elements.nome.value = c.nome || "";
     f.elements.dia_fechamento.value = c.dia_fechamento || "";
     f.elements.dia_vencimento.value = c.dia_vencimento || "";
     f.elements.limite.value = paraCampo(c.limite);
     f.elements.responsavel.value = c.responsavel;
-    f.elements.ativo.checked = !!c.ativo;
+    f.elements.ativo.checked = c.ativo !== false;
+    caixaEncerrar(f, { editando: !!editandoCartao, ativo: c.ativo !== false, campo: "ativo", excluir: "#btn-excluir-cartao",
+      pergunta: "Cancelou este cartão?", encerrar: "Arquivar cartão",
+      encerrada: "Cartão arquivado: não aparece para novas compras.", reativar: "Reativar", erro: "Cadastrou errado?" });
     $("#modal-cartao").showModal();
   }
   async function salvarCartao(ev) {
@@ -1349,7 +1420,7 @@
     } catch (e) { erro(e); }
   }
   async function excluirCartao() {
-    if (!editandoCartao || !confirm(`Excluir o cartão “${editandoCartao.nome}”?\n\nOs gastos lançados nele continuam, mas deixam de aparecer na fatura. Para manter o histórico, desmarque “Cartão ativo”.`)) return;
+    if (!editandoCartao || !confirm(`Excluir o cartão “${editandoCartao.nome}”?\n\nOs gastos lançados nele continuam, mas deixam de aparecer na fatura. Para manter o histórico, use “Arquivar cartão”.`)) return;
     try {
       const id = editandoCartao.id;
       await db.remover("cartoes", id);
@@ -1474,6 +1545,15 @@
       else if (t.dataset.acao === "novo-aporte") abrirAporte();
       else if (t.dataset.acao === "novo-cartao") abrirCartao();
       else if (t.dataset.acao === "tutorial") abrirTutorial(0);
+      else if (t.dataset.acao === "trocar-para-gasto") {
+        const f = $("#form-conta").elements;
+        const pre = { descricao: f.nome.value.trim(), valor: parseValor(f.valor.value) || undefined };
+        $("#modal-conta").close(); abrirGasto(null, pre);
+      } else if (t.dataset.acao === "trocar-para-conta") {
+        const f = $("#form-gasto").elements;
+        const pre = { nome: f.descricao.value.trim(), valor: parseValor(f.valor.value) || undefined };
+        $("#modal-gasto").close(); abrirConta(null, pre);
+      }
       else if (t.dataset.acao === "novo-orcamento") abrirOrcamento();
       else if (t.dataset.ir) irPara(t.dataset.ir);
       else if (t.dataset.acao === "nova-conta") abrirConta();
@@ -1539,6 +1619,14 @@
       $("#form-aporte").elements.meta_id.value = b.dataset.meta;
       $$("#chips-meta .chip-cat").forEach((x) => x.classList.toggle("ativo", x === b));
     });
+    $("#btn-aviso-contas").addEventListener("click", () => { gravarPref("aviso-contas-ok", true); renderAvisoContas(); });
+    $("#seg-variavel").addEventListener("click", (ev) => { const b = ev.target.closest("[data-v]"); if (b) definirVariavel(b.dataset.v === "sim"); });
+    $("#sel-cat-conta").addEventListener("change", (ev) => {
+      const outra = ev.target.value === "__outra";
+      $("#lbl-cat-outra").hidden = !outra;
+      $("#form-conta").elements.categoria_outra.required = outra;
+      if (outra) setTimeout(() => $("#form-conta").elements.categoria_outra.focus(), 50);
+    });
     $("#sel-forma-gasto").addEventListener("change", (ev) => { $("#lbl-parcelas").hidden = !ev.target.value.startsWith("cartao:"); });
     $("#btn-excluir-orcamento").addEventListener("click", excluirOrcamento);
     $("#resumo-gastos").addEventListener("keydown", (ev) => { if (ev.key === "Enter") irPara("gastos"); });
@@ -1569,13 +1657,13 @@
       texto: "O cartão azul mostra o total das contas fixas do mês, quanto já foi pago e quanto falta.",
       itens: ["A rosca mostra o % já pago", "O 👁 esconde os valores (bom para abrir em público)", "“Sobram” = renda − contas fixas − gastos", "Os alertas avisam contas atrasadas, vencendo e faturas", "Atalhos: novo gasto, pagar, guardar e análises"] },
     { ic: "lista", cor: "azul", titulo: "Contas: marque o que pagou", ir: "contas",
-      texto: "As contas fixas do mês, em ordem de vencimento. O número vermelho na aba mostra quantas estão atrasadas ou vencem hoje.",
-      itens: ["Toque no quadrado para marcar como paga", "Errou? Aparece “Desfazer” por 5 segundos", "Contas que mudam de valor (luz, água) perguntam quanto veio; antes de pagar aparecem com “~” (estimativa)", "Toque no nome da conta para editar"] },
+      texto: "Contas fixas são as que se repetem todo mês (aluguel, luz, internet). O que é pago uma vez só, como mercado ou cabeleireiro, vai em Gastos.",
+      itens: ["Toque no quadrado para marcar como paga — só isso, não precisa mexer no cadastro", "No mês seguinte ela volta sozinha como “a pagar”", "Errou? Aparece “Desfazer” por 5 segundos", "Contas que mudam de valor (luz, água) perguntam quanto veio; antes de pagar aparecem com “~” (estimativa)", "Cancelou algo (ex.: Netflix)? Abra a conta e toque em “Encerrar conta”"] },
     { ic: "carrinho", cor: "azul", titulo: "Gastos: o dia a dia com limite", ir: "gastos",
       texto: "Mercado, delivery, lazer, farmácia… lance cada gasto e acompanhe o limite de cada categoria.",
-      itens: ["Toque em + : digite o valor, escolha a categoria e salve", "Orçamento: quanto já foi gasto, quanto resta e quanto dá por dia", "Barra amarela a partir de 80%, vermelha quando passa", "Extrato: os lançamentos dia a dia, como no banco", "Todos / Vinícius / Marcela filtra por pessoa"] },
-    { ic: "cartao", cor: "azul", titulo: "Cartões: a fatura se monta sozinha", ir: "gastos", sub: "cartoes",
-      texto: "Cadastre o cartão com os dias de fechamento e vencimento. Ao lançar um gasto, escolha o cartão em “Pagamento”.",
+      itens: ["Para o que foi pago na hora, uma vez só", "Toque em + : digite o valor, escolha a categoria e salve", "Orçamento: quanto já foi gasto, quanto resta e quanto dá por dia", "Barra amarela a partir de 80%, vermelha quando passa", "Extrato: os lançamentos dia a dia, como no banco", "Todos / Vinícius / Marcela filtra por pessoa"] },
+    { ic: "cartao", cor: "azul", titulo: "Cartões (só se usarem crédito)", ir: "gastos", sub: "cartoes",
+      texto: "Quem paga tudo no Pix ou débito pode pular esta parte. Se usarem cartão de crédito, cadastre com os dias de fechamento e vencimento e escolha o cartão em “Pagamento” ao lançar um gasto.",
       itens: ["Compras parceladas: cada parcela cai na fatura certa", "Contas fixas no cartão (streaming, internet) entram na fatura", "Status: aberta, fechada, vencida ou paga", "Toque na fatura para ver os itens e marcar como paga"] },
     { ic: "alvo", cor: "verde", titulo: "Metas: guardem para o que importa", ir: "metas",
       texto: "Reserva de emergência, viagem, apartamento… defina quanto e até quando.",

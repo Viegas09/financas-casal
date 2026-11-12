@@ -655,3 +655,32 @@ dialog.tutorial[open] { display: flex; animation: tutEntra .28s cubic-bezier(.2,
 .tut-pontos button[aria-selected="true"] { width: 24px; background: var(--accent); }
 .tut-acoes { display: flex; gap: 10px; padding: 12px 20px calc(18px + var(--safe-b)); }
 .tut-acoes .btn { flex: 1; padding: 13px; }
+
+/* ================================================================
+   FORMULÁRIOS MAIS CLAROS
+   ================================================================ */
+dialog.sheet { max-height: calc(100dvh - var(--safe-t) - 12px); }
+.explica { margin: -4px 0 0; font-size: 13px; line-height: 1.45; color: var(--text-2); background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; }
+.explica .btn-link { font-size: 13px; padding: 0; }
+.subtitulo-aba { margin: -4px 0 0; font-size: 13px; color: var(--text-3); }
+.subtitulo-aba .btn-link { font-size: 13px; padding: 0; }
+.campo { display: grid; gap: 6px; }
+.rotulo-campo { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.dica-campo { font-size: 12px; color: var(--text-3); }
+#seg-variavel button { font-size: 13px; }
+.mais-opcoes { border-top: 1px solid var(--grid); padding-top: 10px; }
+.mais-opcoes summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--accent); list-style: none; padding: 2px 0; }
+.mais-opcoes summary::-webkit-details-marker { display: none; }
+.mais-opcoes summary::after { content: " ›"; display: inline-block; transition: transform .2s; }
+.mais-opcoes[open] summary::after { transform: rotate(90deg); }
+.mais-opcoes[open] { display: grid; gap: 12px; }
+.box-encerrar { display: grid; gap: 0; border-top: 1px solid var(--grid); padding-top: 6px; }
+.be-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 13px; color: var(--text-2); }
+.be-linha + .be-linha { border-top: 1px solid var(--grid); }
+.be-linha .btn { flex: none; padding: 8px 12px; font-size: 13px; }
+form > .btn-perigo[hidden] { display: none; }
+
+.aviso-contas { display: grid; gap: 8px; border: 2px solid var(--accent-soft); }
+.aviso-contas ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; color: var(--text-2); }
+.aviso-contas .btn { justify-self: start; padding: 9px 16px; }
+.quad { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--text-3); border-radius: 4px; vertical-align: -2px; }

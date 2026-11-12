@@ -63,7 +63,7 @@
         <div class="hero" id="hero"></div>
         <div class="atalhos">
           <button data-acao="novo-gasto"><span class="bola"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></span>Novo gasto</button>
-          <button data-ir="contas"><span class="bola"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg></span>Pagar</button>
+          <button data-ir="contas"><span class="bola"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg></span>Pagar conta</button>
           <button data-acao="novo-aporte"><span class="bola"><svg viewBox="0 0 24 24"><path d="M19 9c-1-3-4-4-7-4-4.5 0-8 2.5-8 6.5 0 2 1 3.5 2.5 4.5V20h3v-2h5v2h3v-3.5c1-.7 1.8-1.6 2.2-2.5H21v-4h-1.5c-.2-.4-.3-.7-.5-1zM15 9.5h.01M3 9.5c-.8-.5-1-1.5-.5-2.3"/></svg></span>Guardar</button>
           <button data-ir="analises"><span class="bola"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7"/></svg></span>Análises</button>
         </div>
@@ -86,12 +86,22 @@
       <!-- ---------- CONTAS DO MÊS ---------- -->
       <section id="aba-contas" class="aba" hidden>
         <div class="titulo-aba">
-          <div class="titulo-linha"><h1>Contas do mês</h1><button class="btn-add" data-acao="nova-conta" aria-label="Nova conta">+</button></div>
+          <div class="titulo-linha"><h1>Contas do mês</h1><button class="btn-add" data-acao="nova-conta" aria-label="Nova conta fixa">+</button></div>
+          <p class="subtitulo-aba">As contas fixas, que se repetem todo mês. O que for pago uma vez só vai em <button type="button" class="btn-link" data-ir="gastos">Gastos</button>.</p>
           <div class="segmento" id="filtro-status" role="group" aria-label="Filtrar">
             <button data-f="pendentes" class="ativo">A pagar</button>
             <button data-f="pagas">Pagas</button>
             <button data-f="todas">Todas</button>
           </div>
+        </div>
+        <div class="card aviso-contas" id="aviso-contas" hidden>
+          <b>Como funciona</b>
+          <ul>
+            <li>Pagou a conta (Pix, boleto, débito…)? Toque no <span class="quad" aria-hidden="true"></span> ao lado dela. Só isso.</li>
+            <li>No mês que vem ela volta sozinha como “a pagar”. <b>Não precisa encerrar nada.</b></li>
+            <li>“Encerrar” é só para o que vocês pararam de pagar de vez (ex.: cancelaram a Netflix).</li>
+          </ul>
+          <button type="button" class="btn btn-primary" id="btn-aviso-contas">Entendi</button>
         </div>
         <article class="card card-lista">
           <ul class="lista-contas" id="lista-mes"></ul>
@@ -166,7 +176,7 @@
         <div class="titulo-aba">
           <div class="titulo-linha"><h1>Cadastros</h1><button class="btn-add" id="btn-add-cadastro" aria-label="Adicionar">+</button></div>
           <div class="segmento" id="seg-cadastro" role="group" aria-label="Escolher cadastro">
-            <button data-c="contas" class="ativo">Contas</button>
+            <button data-c="contas" class="ativo">Contas fixas</button>
             <button data-c="rendas">Rendas</button>
             <button data-c="orcamentos">Orçamentos</button>
             <button data-c="cartoes">Cartões</button>
@@ -226,48 +236,60 @@
   <dialog id="modal-conta" class="sheet">
     <form id="form-conta" method="dialog">
       <div class="puxador" aria-hidden="true"></div>
-      <h2 id="titulo-modal-conta">Nova conta</h2>
-      <label>Nome da conta
-        <input name="nome" required maxlength="80" placeholder="Ex.: Aluguel, Luz, Internet" />
+      <h2 id="titulo-modal-conta">Nova conta fixa</h2>
+      <p class="explica" id="explica-conta">Conta fixa é o que <b>se repete todo mês</b>: aluguel, luz, internet, assinaturas.
+        Pagou algo <b>uma vez só</b> (cabeleireiro, mercado, farmácia)? <button type="button" class="btn-link" data-acao="trocar-para-gasto">Lançar como gasto →</button></p>
+      <label>Nome
+        <input name="nome" required maxlength="80" placeholder="Ex.: Aluguel, Luz, Internet" autocomplete="off" />
       </label>
       <div class="linha">
-        <label>Valor (R$)
+        <label>Valor por mês (R$)
           <input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
         </label>
-        <label>Vence todo dia
-          <input name="dia_vencimento" type="number" min="1" max="31" required inputmode="numeric" />
+        <label>Dia do vencimento
+          <input name="dia_vencimento" type="number" min="1" max="31" required inputmode="numeric" placeholder="Ex.: 10" />
         </label>
+      </div>
+      <div class="campo" id="campo-variavel">
+        <span class="rotulo-campo">O valor muda de um mês para o outro?</span>
+        <div class="segmento" id="seg-variavel" role="group" aria-label="O valor muda?">
+          <button type="button" data-v="nao" class="ativo">Não, é sempre igual</button>
+          <button type="button" data-v="sim">Sim (luz, água, gás)</button>
+        </div>
+        <small class="dica-campo" id="dica-variavel" hidden>Ao marcar como paga, o app pergunta quanto veio.</small>
+        <input type="checkbox" name="variavel" hidden />
       </div>
       <div class="linha">
         <label>Categoria
-          <input name="categoria" list="lista-categorias" required maxlength="40" />
+          <select name="categoria_sel" id="sel-cat-conta"></select>
         </label>
-        <label>Responsável
+        <label>Quem paga
           <select name="responsavel" id="sel-responsavel-conta"></select>
         </label>
       </div>
-      <div class="linha">
-        <label>Forma de pagamento
-          <input name="forma_pagamento" list="lista-pagamentos" maxlength="40" />
-        </label>
-        <label>Vale a partir de
+      <label id="lbl-cat-outra" hidden>Nome da nova categoria
+        <input name="categoria_outra" maxlength="40" autocomplete="off" placeholder="Ex.: Impostos" />
+      </label>
+      <label>Como paga
+        <select name="forma" id="sel-forma-conta"></select>
+      </label>
+      <details class="mais-opcoes">
+        <summary>Mais opções</summary>
+        <label>Começa a contar em
           <input name="inicio" type="month" required />
         </label>
-      </div>
-      <label>Observação
-        <input name="observacao" maxlength="200" />
-      </label>
-      <label id="lbl-cartao-conta" hidden>Cobrada no cartão de crédito?
-        <select name="cartao_id" id="sel-cartao-conta"></select>
-      </label>
-      <label class="check" id="lbl-variavel"><input type="checkbox" name="variavel" /> Valor muda todo mês (luz, água, gás…)</label>
-      <label class="check"><input type="checkbox" name="ativa" checked /> Conta ativa</label>
+        <label>Observação
+          <input name="observacao" maxlength="200" autocomplete="off" />
+        </label>
+      </details>
+      <input type="checkbox" name="ativa" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
       <div class="modal-acoes">
-        <button type="button" class="btn btn-perigo" id="btn-excluir-conta" hidden>Excluir</button>
         <span class="espaco"></span>
         <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
         <button type="submit" class="btn btn-primary">Salvar</button>
       </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-conta" hidden>Excluir</button>
     </form>
   </dialog>
 
@@ -276,6 +298,7 @@
     <form id="form-renda" method="dialog">
       <div class="puxador" aria-hidden="true"></div>
       <h2 id="titulo-modal-renda">Nova renda</h2>
+      <p class="explica">O que entra todo mês, como o salário líquido (o que cai na conta).</p>
       <label>Descrição
         <input name="descricao" required maxlength="80" placeholder="Ex.: Salário, Freela" />
       </label>
@@ -287,13 +310,14 @@
           <select name="responsavel" id="sel-responsavel-renda"></select>
         </label>
       </div>
-      <label class="check"><input type="checkbox" name="ativa" checked /> Renda ativa</label>
+      <input type="checkbox" name="ativa" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
       <div class="modal-acoes">
-        <button type="button" class="btn btn-perigo" id="btn-excluir-renda" hidden>Excluir</button>
         <span class="espaco"></span>
         <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
         <button type="submit" class="btn btn-primary">Salvar</button>
       </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-renda" hidden>Excluir</button>
     </form>
   </dialog>
 
@@ -302,6 +326,7 @@
     <form id="form-gasto" method="dialog">
       <div class="puxador" aria-hidden="true"></div>
       <h2 id="titulo-modal-gasto">Novo gasto</h2>
+      <p class="explica" id="explica-gasto">Algo pago agora, uma vez só (mercado, cabeleireiro, delivery). Se repete todo mês? Cadastre como <button type="button" class="btn-link" data-acao="trocar-para-conta">conta fixa →</button></p>
       <label class="valor-grande">Valor
         <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
       </label>
@@ -346,13 +371,14 @@
       <label>Limite por mês (R$)
         <input name="limite" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
       </label>
-      <label class="check"><input type="checkbox" name="ativa" checked /> Categoria ativa</label>
+      <input type="checkbox" name="ativa" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
       <div class="modal-acoes">
-        <button type="button" class="btn btn-perigo" id="btn-excluir-orcamento" hidden>Excluir</button>
         <span class="espaco"></span>
         <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
         <button type="submit" class="btn btn-primary">Salvar</button>
       </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-orcamento" hidden>Excluir</button>
     </form>
   </dialog>
 
@@ -395,13 +421,14 @@
       <label>Onde o dinheiro fica (opcional)
         <input name="onde" maxlength="60" list="lista-onde" placeholder="Ex.: CDB 100% CDI, Tesouro Selic, poupança" />
       </label>
-      <label class="check"><input type="checkbox" name="ativa" checked /> Meta ativa</label>
+      <input type="checkbox" name="ativa" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
       <div class="modal-acoes">
-        <button type="button" class="btn btn-perigo" id="btn-excluir-meta" hidden>Excluir</button>
         <span class="espaco"></span>
         <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
         <button type="submit" class="btn btn-primary">Salvar</button>
       </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-meta" hidden>Excluir</button>
     </form>
   </dialog>
 
@@ -477,13 +504,14 @@
           <select name="responsavel" id="sel-responsavel-cartao"></select>
         </label>
       </div>
-      <label class="check"><input type="checkbox" name="ativo" checked /> Cartão ativo</label>
+      <input type="checkbox" name="ativo" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
       <div class="modal-acoes">
-        <button type="button" class="btn btn-perigo" id="btn-excluir-cartao" hidden>Excluir</button>
         <span class="espaco"></span>
         <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
         <button type="submit" class="btn btn-primary">Salvar</button>
       </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-cartao" hidden>Excluir</button>
     </form>
   </dialog>
 
