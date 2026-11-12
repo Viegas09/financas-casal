@@ -64,6 +64,8 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
 
 ## Dicas de uso
 
+- **Tutorial:** o botão **?** no topo (ou *Mais → Tutorial do app*) abre um passo a passo de cada tela e a lista de *Primeiros passos*, que se marca sozinha. Ele abre sozinho no primeiro acesso de cada aparelho.
+
 - **Filtro por pessoa:** nas abas *Gastos* e *Metas* há os botões *Todos / Vinícius / Marcela*. Com uma pessoa escolhida, aparecem só os gastos e aportes dela e quanto isso representa do total do casal. Os gastos lançados como “Casal” aparecem só em *Todos*. A escolha fica salva em cada celular; a tela inicial e as contas fixas sempre mostram o casal.
 
 - **Conta que acabou** (ex.: cancelou um streaming): edite e desmarque **Conta ativa**. Ela some dos próximos meses mas o histórico fica. Só use **Excluir** para contas cadastradas por engano.

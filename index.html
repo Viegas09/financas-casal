@@ -52,6 +52,7 @@
         <button class="btn-icone" id="mes-anterior" aria-label="Mês anterior">‹</button>
         <strong id="mes-atual"></strong>
         <button class="btn-icone" id="mes-proximo" aria-label="Próximo mês">›</button>
+        <button class="btn-ajuda" id="btn-ajuda" aria-label="Tutorial do app" title="Como usar o app">?</button>
       </div>
     </header>
     <div id="banner-demo" class="banner" hidden>Modo demonstração · dados só neste navegador</div>
@@ -186,6 +187,7 @@
         </article>
 
         <article class="card card-lista menu">
+          <button class="menu-item" data-acao="tutorial"><span>Tutorial do app</span><span class="seta">›</span></button>
           <button class="menu-item" data-ir="analises"><span>Análises e gráficos</span><span class="seta">›</span></button>
           <button class="menu-item" id="btn-exportar"><span>Exportar tudo em CSV</span><span class="seta">›</span></button>
           <button class="menu-item perigo" id="btn-sair"><span>Sair</span><span class="seta">›</span></button>
@@ -495,6 +497,20 @@
         <button type="button" class="btn btn-ghost" data-fechar>Fechar</button>
         <button type="button" class="btn btn-primary" id="btn-pagar-fatura">Marcar fatura como paga</button>
       </div>
+    </div>
+  </dialog>
+
+  <!-- ============ TUTORIAL ============ -->
+  <dialog id="modal-tutorial" class="tutorial" aria-label="Tutorial do app">
+    <div class="tut-topo">
+      <span class="tut-contador" id="tut-contador"></span>
+      <button type="button" class="tut-pular" id="tut-fechar">Pular</button>
+    </div>
+    <div class="tut-trilho" id="tut-trilho"></div>
+    <div class="tut-pontos" id="tut-pontos" role="tablist" aria-label="Etapas do tutorial"></div>
+    <div class="tut-acoes">
+      <button type="button" class="btn btn-ghost" id="tut-voltar">Voltar</button>
+      <button type="button" class="btn btn-primary" id="tut-proximo" autofocus>Próximo</button>
     </div>
   </dialog>
 
