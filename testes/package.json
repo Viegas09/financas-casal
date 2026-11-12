@@ -1,0 +1,12 @@
+{
+  "name": "financas-casal-testes",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node banco.test.mjs && node app.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.2.17",
+    "playwright": "1.49.1"
+  }
+}

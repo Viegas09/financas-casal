@@ -101,6 +101,23 @@ Quando uma versão nova precisar de tabelas novas, vem um arquivo `supabase/migr
 | `migracao-04-conta-unica.sql` | Contas “só neste mês” (uma fatura, IPVA) que não se repetem |
 | `migracao-05-familias.sql` | Várias famílias, convites e cadastro só por convite (desfazer: `migracao-05-desfazer.sql`) |
 
+## Como as mudanças chegam no app (link de teste)
+
+1. Toda mudança vai primeiro para o ramo **`teste`** do GitHub.
+2. O GitHub roda os **testes automáticos** (pasta `testes/`: separação entre famílias no banco, migrações, telas, importação de extratos). Se algum falhar, nada é publicado.
+3. Passando, a versão aparece no **link de teste**: `https://SEU-USUARIO.github.io/financas-casal/teste/`. Ele roda sempre em **modo demonstração** (dados de exemplo, só no celular de quem testa): não toca nos dados reais.
+4. Depois do “pode subir”, a mudança é levada para o ramo **`main`**, que é o app de verdade.
+
+Para rodar os testes no computador: `cd testes && npm install && npx playwright install chromium && npm test`.
+
+## Backup semanal
+
+O GitHub faz um backup do banco toda segunda (arquivo criptografado, guardado 90 dias em *Actions → Backup semanal*). Para ligar, cadastre em **Settings → Secrets and variables → Actions → New repository secret**:
+- `SUPABASE_DB_URL`: no Supabase, botão **Connect** → *Session pooler* → copie a URI e troque `[YOUR-PASSWORD]` pela senha do banco.
+- `BACKUP_SENHA`: uma senha forte inventada por vocês (guarde bem: sem ela o backup não abre).
+
+As instruções para abrir e restaurar estão no começo de `.github/workflows/backup.yml`.
+
 ## Estrutura
 
 ```
@@ -108,8 +125,12 @@ index.html            página única do app
 manifest.webmanifest  permite instalar como app na tela de início
 icons/                ícones do app
 css/style.css         visual (claro/escuro automático, feito primeiro para celular)
-js/config.js          URL/chave do Supabase, nomes, categorias
-js/app.js             lógica do painel
+js/config.js          URL/chave do Supabase, categorias padrão
+js/*.js               lógica do app, um arquivo por assunto (nucleo, auth, dados, telas,
+                      gastos, cartoes, metas, acoes, eventos, tutorial, familia,
+                      importar, arrastar, demo; inicio.js carrega por último)
+testes/               testes automáticos (banco e telas)
+.github/workflows/    testes, publicação do link de teste e backup semanal
 supabase/schema.sql   tabelas + regras de segurança (instalação do zero)
 supabase/migracao-*   atualizações do banco para quem já instalou
 ```

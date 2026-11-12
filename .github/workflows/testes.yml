@@ -1,0 +1,32 @@
+name: Testes
+
+# Roda a cada envio (menos no ramo "teste", que roda pelo "Publicar link de teste")
+on:
+  push:
+    branches-ignore: [teste]
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Conferir sintaxe do JavaScript
+        run: for f in js/*.js; do node --check "$f"; done
+      - name: Instalar ferramentas de teste
+        working-directory: testes
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Testes do banco (separação entre famílias, migrações)
+        working-directory: testes
+        run: node banco.test.mjs
+      - name: Testes das telas
+        working-directory: testes
+        run: node app.test.mjs
