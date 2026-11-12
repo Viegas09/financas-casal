@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#1f5fae" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Finanças" />
+  <title>TESTE · Finanças</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/style.css?v=202611121525" />
+</head>
+<body>
+  <div id="splash" class="splash" aria-hidden="true">
+    <img src="icons/icon-192.png" alt="" />
+    <span>Finanças do Casal</span>
+  </div>
+  <!-- ============ LOGIN ============ -->
+  <section id="tela-login" class="login" hidden>
+    <form id="form-login" class="login-card">
+      <img src="icons/icon-192.png" alt="" class="login-logo" />
+      <h1 id="login-titulo">Finanças do Casal</h1>
+      <p class="muted" id="login-sub">Entre com o seu e-mail e senha.</p>
+      <label>E-mail
+        <input type="email" name="email" autocomplete="email" required />
+      </label>
+      <label>Senha
+        <input type="password" name="senha" autocomplete="current-password" required minlength="6" />
+      </label>
+      <label id="lbl-senha2" hidden>Repita a senha
+        <input type="password" name="senha2" autocomplete="new-password" minlength="6" />
+      </label>
+      <button type="submit" class="btn btn-primary btn-bloco" id="btn-login">Entrar</button>
+      <button type="button" id="btn-esqueci" class="btn-link">Esqueci minha senha</button>
+      <p id="login-erro" class="erro" role="alert"></p>
+      <div class="login-convite">
+        <span id="login-pergunta">Recebeu um convite?</span>
+        <button type="button" id="btn-modo-cadastro" class="btn-link">Criar minha conta</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============ APP ============ -->
+  <div id="app" hidden>
+    <header class="topo">
+      <div class="saudacao">
+        <span class="avatar" id="avatar" aria-hidden="true"></span>
+        <div>
+          <div class="ola">Olá,</div>
+          <strong id="nome-usuario"></strong>
+        </div>
+      </div>
+      <div class="mes-nav" aria-label="Mês de referência">
+        <button class="btn-icone" id="mes-anterior" aria-label="Mês anterior">‹</button>
+        <strong id="mes-atual"></strong>
+        <button class="btn-icone" id="mes-proximo" aria-label="Próximo mês">›</button>
+        <button class="btn-ajuda" id="btn-ajuda" aria-label="Tutorial do app" title="Como usar o app">?</button>
+      </div>
+    </header>
+    <div id="banner-demo" class="banner" hidden>VERSÃO DE TESTE · dados de exemplo, só neste celular</div>
+
+    <main>
+      <!-- ---------- INÍCIO ---------- -->
+      <section id="aba-inicio" class="aba">
+        <div class="hero" id="hero"></div>
+        <div class="atalhos">
+          <button data-acao="novo-gasto"><span class="bola"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></span>Novo gasto</button>
+          <button data-ir="contas"><span class="bola"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg></span>Pagar conta</button>
+          <button data-acao="novo-aporte"><span class="bola"><svg viewBox="0 0 24 24"><path d="M19 9c-1-3-4-4-7-4-4.5 0-8 2.5-8 6.5 0 2 1 3.5 2.5 4.5V20h3v-2h5v2h3v-3.5c1-.7 1.8-1.6 2.2-2.5H21v-4h-1.5c-.2-.4-.3-.7-.5-1zM15 9.5h.01M3 9.5c-.8-.5-1-1.5-.5-2.3"/></svg></span>Guardar</button>
+          <button data-ir="analises"><span class="bola"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7"/></svg></span>Análises</button>
+        </div>
+        <div id="alertas" class="alertas"></div>
+
+        <article class="card card-gastos-resumo" data-ir="gastos" id="resumo-gastos" role="button" tabindex="0"></article>
+
+        <div class="grade-inicio">
+          <article class="card">
+            <div class="card-topo">
+              <h2>Próximas contas</h2>
+              <button class="btn-link" data-ir="contas">Ver todas</button>
+            </div>
+            <ul class="lista-contas" id="lista-proximas"></ul>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ---------- CONTAS DO MÊS ---------- -->
+      <section id="aba-contas" class="aba" hidden>
+        <div class="titulo-aba">
+          <div class="titulo-linha"><h1>Contas do mês</h1><button class="btn-add" data-acao="nova-conta" aria-label="Nova conta fixa">+</button></div>
+          <p class="subtitulo-aba">As contas fixas, que se repetem todo mês. O que for pago uma vez só vai em <button type="button" class="btn-link" data-ir="gastos">Gastos</button>.</p>
+          <div class="segmento" id="filtro-status" role="group" aria-label="Filtrar">
+            <button data-f="pendentes" class="ativo">A pagar</button>
+            <button data-f="pagas">Pagas</button>
+            <button data-f="todas">Todas</button>
+          </div>
+        </div>
+        <div class="card resumo-contas" id="resumo-contas" hidden></div>
+        <div class="card aviso-contas" id="aviso-contas" hidden>
+          <b>Como funciona</b>
+          <ul>
+            <li>Pagou a conta (Pix, boleto, débito…)? Toque no <span class="quad" aria-hidden="true"></span> ao lado dela. Só isso.</li>
+            <li>No mês que vem ela volta sozinha como “a pagar”. <b>Não precisa encerrar nada.</b></li>
+            <li>“Encerrar” é só para o que vocês pararam de pagar de vez (ex.: cancelaram a Netflix).</li>
+          </ul>
+          <button type="button" class="btn btn-primary" id="btn-aviso-contas">Entendi</button>
+        </div>
+        <article class="card card-lista">
+          <ul class="lista-contas" id="lista-mes"></ul>
+        </article>
+        <p class="dica">Toque no quadrado para marcar como paga. Toque na conta para editar.</p>
+      </section>
+
+      <!-- ---------- GASTOS VARIÁVEIS ---------- -->
+      <section id="aba-gastos" class="aba" hidden>
+        <div class="titulo-aba">
+          <div class="titulo-linha"><h1>Gastos do mês</h1><div class="titulo-botoes"><button class="btn-importar" data-acao="importar" aria-label="Importar extrato do banco" title="Importar extrato do banco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Importar</span></button><button class="btn-add" data-acao="novo-gasto" aria-label="Novo gasto">+</button></div></div>
+          <div class="filtro-pessoa" data-filtro-pessoa role="group" aria-label="Filtrar por pessoa"></div>
+          <div class="segmento" id="seg-gastos" role="group" aria-label="Visualizar">
+            <button data-g="orcamento" class="ativo">Orçamento</button>
+            <button data-g="extrato">Extrato</button>
+            <button data-g="cartoes">Cartões</button>
+          </div>
+        </div>
+        <div id="aviso-migracao" class="card aviso" hidden></div>
+        <div class="painel-gastos" data-painel="orcamento">
+          <div class="resumo-orc" id="resumo-orc"></div>
+          <article class="card card-lista"><ul class="lista-orc" id="lista-orc"></ul></article>
+        </div>
+        <div class="painel-gastos" data-painel="extrato" hidden>
+          <div id="extrato"></div>
+        </div>
+        <div class="painel-gastos" data-painel="cartoes" hidden>
+          <div id="faturas"></div>
+        </div>
+      </section>
+
+      <!-- ---------- METAS ---------- -->
+      <section id="aba-metas" class="aba" hidden>
+        <div class="titulo-aba">
+          <div class="titulo-linha"><h1>Metas</h1><button class="btn-add" data-acao="nova-meta" aria-label="Nova meta">+</button></div>
+          <div class="filtro-pessoa" data-filtro-pessoa role="group" aria-label="Filtrar por pessoa"></div>
+        </div>
+        <div id="aviso-migracao3" class="card aviso" hidden></div>
+        <div id="resumo-metas"></div>
+        <div id="lista-metas" class="lista-metas"></div>
+      </section>
+
+      <!-- ---------- ANÁLISES ---------- -->
+      <section id="aba-analises" class="aba" hidden>
+        <div class="titulo-aba">
+          <div class="titulo-linha"><h1>Análises</h1></div>
+          <div class="segmento" id="seg-analise" role="group" aria-label="Escolher análise">
+            <button data-a="categorias" class="ativo">Categorias</button>
+            <button data-a="divisao">Quem paga</button>
+            <button data-a="historico">6 meses</button>
+          </div>
+        </div>
+        <article class="card painel-analise" data-painel="categorias">
+          <h2>Por categoria</h2>
+          <div id="graf-categorias" class="barras-h"></div>
+        </article>
+        <article class="card painel-analise" data-painel="divisao" hidden>
+          <h2>Quem paga o quê</h2>
+          <p class="muted pequeno">Contas do “Casal” divididas meio a meio.</p>
+          <div id="divisao"></div>
+        </article>
+        <article class="card painel-analise" data-painel="historico" hidden>
+          <h2>Contas fixas nos últimos 6 meses</h2>
+          <p class="muted pequeno">Meses passados: valor pago. Mês atual em diante: previsto (listrado).</p>
+          <div id="graf-historico" class="barras-v"></div>
+          <div id="eixo-historico" class="eixo-x"></div>
+        </article>
+      </section>
+
+      <!-- ---------- MAIS ---------- -->
+      <section id="aba-mais" class="aba" hidden>
+        <div class="titulo-aba">
+          <div class="titulo-linha"><h1>Cadastros</h1><button class="btn-add" id="btn-add-cadastro" aria-label="Adicionar">+</button></div>
+          <div class="segmento" id="seg-cadastro" role="group" aria-label="Escolher cadastro">
+            <button data-c="contas" class="ativo">Contas fixas</button>
+            <button data-c="rendas">Rendas</button>
+            <button data-c="orcamentos">Orçamentos</button>
+            <button data-c="cartoes">Cartões</button>
+          </div>
+        </div>
+
+        <article class="card card-lista painel-cadastro" data-painel="contas">
+          <ul class="lista-cadastro" id="cad-contas"></ul>
+        </article>
+        <article class="card card-lista painel-cadastro" data-painel="rendas" hidden>
+          <ul class="lista-cadastro" id="cad-rendas"></ul>
+        </article>
+        <article class="card card-lista painel-cadastro" data-painel="orcamentos" hidden>
+          <ul class="lista-cadastro" id="cad-orcamentos"></ul>
+        </article>
+        <article class="card card-lista painel-cadastro" data-painel="cartoes" hidden>
+          <ul class="lista-cadastro" id="cad-cartoes"></ul>
+        </article>
+
+        <article class="card card-familia" id="card-familia" hidden></article>
+
+        <article class="card card-lista menu">
+          <button class="menu-item" data-acao="tutorial"><span>Tutorial do app</span><span class="seta">›</span></button>
+          <button class="menu-item" data-acao="importar"><span>Importar extrato do banco</span><span class="seta">›</span></button>
+          <button class="menu-item" data-ir="analises"><span>Análises e gráficos</span><span class="seta">›</span></button>
+          <button class="menu-item" id="btn-exportar"><span>Exportar tudo em CSV</span><span class="seta">›</span></button>
+          <button class="menu-item perigo" id="btn-sair"><span>Sair</span><span class="seta">›</span></button>
+        </article>
+      </section>
+    </main>
+
+
+    <!-- Barra de abas -->
+    <nav class="tabbar" role="tablist" aria-label="Navegação">
+      <button role="tab" data-aba="inicio" aria-selected="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span>Início</span>
+      </button>
+      <button role="tab" data-aba="contas" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 0 1 1-1zm3 5h6M9 12h6M9 16h4"/></svg>
+        <span>Contas</span>
+        <i class="contador" id="contador-pendentes" hidden></i>
+      </button>
+      <button role="tab" data-aba="gastos" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+        <span>Gastos</span>
+      </button>
+      <button role="tab" data-aba="metas" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+        <span>Metas</span>
+      </button>
+      <button role="tab" data-aba="mais" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <span>Mais</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ============ PAINEL CONTA ============ -->
+  <dialog id="modal-conta" class="sheet">
+    <form id="form-conta" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-conta">Nova conta</h2>
+      <p class="explica" id="explica-conta">Contas são o que tem <b>vencimento</b>: aluguel, luz, internet, uma fatura.
+        Compra feita na hora (mercado, cabeleireiro, farmácia)? <button type="button" class="btn-link" data-acao="trocar-para-gasto">Lançar como gasto →</button></p>
+      <label>Nome
+        <input name="nome" required maxlength="80" placeholder="Ex.: Aluguel, Luz, Internet" autocomplete="off" />
+      </label>
+      <div class="linha">
+        <label>Valor por mês (R$)
+          <input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
+        </label>
+        <label>Dia do vencimento
+          <input name="dia_vencimento" type="number" min="1" max="31" required inputmode="numeric" placeholder="Ex.: 10" />
+        </label>
+      </div>
+      <div class="campo" id="campo-tipo">
+        <span class="rotulo-campo">Como é essa conta?</span>
+        <div class="tipos-conta" id="tipos-conta" role="radiogroup" aria-label="Tipo de conta">
+          <button type="button" role="radio" data-t="fixo"><b>Mesmo valor todo mês</b><small>aluguel, internet, assinatura</small></button>
+          <button type="button" role="radio" data-t="variavel"><b>Valor muda todo mês</b><small>luz, água, gás</small></button>
+          <button type="button" role="radio" data-t="unico"><b>Só neste mês</b><small>uma fatura, IPVA, uma parcela avulsa</small></button>
+        </div>
+        <small class="dica-campo" id="dica-tipo" hidden></small>
+        <input type="checkbox" name="variavel" hidden />
+        <input type="hidden" name="tipo" />
+      </div>
+      <div class="linha">
+        <label>Categoria
+          <select name="categoria_sel" id="sel-cat-conta"></select>
+        </label>
+        <label>Quem paga
+          <select name="responsavel" id="sel-responsavel-conta"></select>
+        </label>
+      </div>
+      <label id="lbl-cat-outra" hidden>Nome da nova categoria
+        <input name="categoria_outra" maxlength="40" autocomplete="off" placeholder="Ex.: Impostos" />
+      </label>
+      <label>Como paga
+        <select name="forma" id="sel-forma-conta"></select>
+      </label>
+      <details class="mais-opcoes">
+        <summary>Mais opções</summary>
+        <label>Começa a contar em
+          <input name="inicio" type="month" required />
+        </label>
+        <label>Observação
+          <input name="observacao" maxlength="200" autocomplete="off" />
+        </label>
+      </details>
+      <input type="checkbox" name="ativa" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-conta" hidden>Excluir</button>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL RENDA ============ -->
+  <dialog id="modal-renda" class="sheet">
+    <form id="form-renda" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-renda">Nova renda</h2>
+      <p class="explica">O que entra todo mês, como o salário líquido (o que cai na conta).</p>
+      <label>Descrição
+        <input name="descricao" required maxlength="80" placeholder="Ex.: Salário, Freela" />
+      </label>
+      <div class="linha">
+        <label>Valor mensal (R$)
+          <input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
+        </label>
+        <label>De quem
+          <select name="responsavel" id="sel-responsavel-renda"></select>
+        </label>
+      </div>
+      <input type="checkbox" name="ativa" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-renda" hidden>Excluir</button>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL GASTO ============ -->
+  <dialog id="modal-gasto" class="sheet">
+    <form id="form-gasto" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-gasto">Novo gasto</h2>
+      <p class="explica" id="explica-gasto">Algo pago agora, uma vez só (mercado, cabeleireiro, delivery). Tem vencimento (aluguel, luz, fatura)? Cadastre como <button type="button" class="btn-link" data-acao="trocar-para-conta">conta →</button></p>
+      <label class="valor-grande">Valor
+        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
+      </label>
+      <label>Descrição
+        <input name="descricao" required maxlength="80" placeholder="Ex.: Mercado do mês, iFood, cinema" />
+      </label>
+      <div class="chips-cat" id="chips-cat" role="group" aria-label="Categoria"></div>
+      <input type="hidden" name="categoria" required />
+      <div class="linha">
+        <label>Data
+          <input name="data" type="date" required />
+        </label>
+        <label>Quem pagou
+          <select name="responsavel" id="sel-responsavel-gasto"></select>
+        </label>
+      </div>
+      <div class="linha">
+        <label>Pagamento
+          <select name="forma" id="sel-forma-gasto"></select>
+        </label>
+        <label id="lbl-parcelas" hidden>Parcelas
+          <select name="parcelas" id="sel-parcelas"></select>
+        </label>
+      </div>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-perigo" id="btn-excluir-gasto" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL ORÇAMENTO ============ -->
+  <dialog id="modal-orcamento" class="sheet">
+    <form id="form-orcamento" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-orcamento">Nova categoria de gasto</h2>
+      <label>Categoria
+        <input name="categoria" required maxlength="40" placeholder="Ex.: Mercado, Lazer, Farmácia" />
+      </label>
+      <label>Limite por mês (R$)
+        <input name="limite" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
+      </label>
+      <input type="checkbox" name="ativa" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-orcamento" hidden>Excluir</button>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL VALOR REAL ============ -->
+  <dialog id="modal-pagar" class="sheet">
+    <form id="form-pagar" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-pagar">Quanto veio a conta?</h2>
+      <p class="muted pequeno" id="dica-pagar"></p>
+      <label class="valor-grande">Valor pago
+        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" autocomplete="off" /></span>
+      </label>
+      <label>Pago em
+        <input name="pago_em" type="date" required />
+      </label>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Marcar como paga</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL META ============ -->
+  <dialog id="modal-meta" class="sheet">
+    <form id="form-meta" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-meta">Nova meta</h2>
+      <label>Nome da meta
+        <input name="nome" required maxlength="60" placeholder="Ex.: Reserva de emergência, Viagem, Casa própria" />
+      </label>
+      <div class="linha">
+        <label>Quanto querem juntar (R$)
+          <input name="valor_alvo" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
+        </label>
+        <label>Até quando (opcional)
+          <input name="prazo" type="month" />
+        </label>
+      </div>
+      <label>Onde o dinheiro fica (opcional)
+        <input name="onde" maxlength="60" list="lista-onde" placeholder="Ex.: CDB 100% CDI, Tesouro Selic, poupança" />
+      </label>
+      <input type="checkbox" name="ativa" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-meta" hidden>Excluir</button>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL DETALHE DA META ============ -->
+  <dialog id="modal-meta-detalhe" class="sheet">
+    <div class="sheet-corpo">
+      <div class="puxador" aria-hidden="true"></div>
+      <div id="meta-detalhe"></div>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-ghost" id="btn-editar-meta">Editar meta</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" id="btn-retirar-meta">Retirar</button>
+        <button type="button" class="btn btn-primary" id="btn-guardar-meta">Guardar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ============ PAINEL APORTE ============ -->
+  <dialog id="modal-aporte" class="sheet">
+    <form id="form-aporte" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-aporte">Guardar dinheiro</h2>
+      <div class="segmento" id="seg-tipo-aporte" role="group" aria-label="Tipo">
+        <button type="button" data-t="guardar" class="ativo">Guardar</button>
+        <button type="button" data-t="retirar">Retirar</button>
+      </div>
+      <label class="valor-grande">Valor
+        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
+      </label>
+      <div class="chips-cat" id="chips-meta" role="group" aria-label="Meta"></div>
+      <input type="hidden" name="meta_id" />
+      <div class="linha">
+        <label>Data
+          <input name="data" type="date" required />
+        </label>
+        <label>Quem
+          <select name="responsavel" id="sel-responsavel-aporte"></select>
+        </label>
+      </div>
+      <label>Observação
+        <input name="observacao" maxlength="120" placeholder="Opcional" />
+      </label>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-perigo" id="btn-excluir-aporte" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL CARTÃO ============ -->
+  <dialog id="modal-cartao" class="sheet">
+    <form id="form-cartao" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-modal-cartao">Novo cartão</h2>
+      <label>Nome do cartão
+        <input name="nome" required maxlength="40" placeholder="Ex.: Nubank, Itaú Visa" />
+      </label>
+      <div class="linha">
+        <label>Fecha todo dia
+          <input name="dia_fechamento" type="number" min="1" max="31" required inputmode="numeric" />
+        </label>
+        <label>Vence todo dia
+          <input name="dia_vencimento" type="number" min="1" max="31" required inputmode="numeric" />
+        </label>
+      </div>
+      <div class="linha">
+        <label>Limite (opcional)
+          <input name="limite" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" />
+        </label>
+        <label>Titular
+          <select name="responsavel" id="sel-responsavel-cartao"></select>
+        </label>
+      </div>
+      <input type="checkbox" name="ativo" checked hidden />
+      <div class="box-encerrar" data-encerrar hidden></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+      <button type="button" class="btn btn-perigo" id="btn-excluir-cartao" hidden>Excluir</button>
+    </form>
+  </dialog>
+
+  <!-- ============ PAINEL FATURA ============ -->
+  <dialog id="modal-fatura" class="sheet">
+    <div class="sheet-corpo">
+      <div class="puxador" aria-hidden="true"></div>
+      <div id="fatura-detalhe"></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Fechar</button>
+        <button type="button" class="btn btn-primary" id="btn-pagar-fatura">Marcar fatura como paga</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ============ CONVIDAR ============ -->
+  <dialog id="modal-convite" class="sheet">
+    <form id="form-convite" method="dialog">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2 id="titulo-convite">Convidar para a família</h2>
+      <p class="explica" id="explica-convite"></p>
+      <div id="convite-campos">
+        <label>Nome (como vai aparecer no app)
+          <input name="nome" required maxlength="40" autocomplete="off" placeholder="Ex.: Carlos" />
+        </label>
+        <label>E-mail da pessoa
+          <input name="email" type="email" required autocomplete="off" placeholder="email@exemplo.com" />
+        </label>
+        <label id="lbl-familia-nome" hidden>Nome da família
+          <input name="familia_nome" maxlength="50" autocomplete="off" placeholder="Ex.: Ana & Carlos" />
+        </label>
+      </div>
+      <div id="convite-pronto" hidden></div>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar id="convite-fechar">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="convite-enviar">Criar convite</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ IMPORTAR EXTRATO ============ -->
+  <dialog id="modal-importar" class="sheet sheet-alta">
+    <div class="sheet-corpo">
+      <div class="puxador" aria-hidden="true"></div>
+      <div class="imp-topo"><h2>Importar extrato do banco</h2><button type="button" class="btn-link" data-fechar>Fechar</button></div>
+
+      <div id="imp-passo1">
+        <p class="explica">Baixe o extrato ou a fatura no app do banco (formato <b>OFX</b> ou <b>CSV</b>) e escolha o arquivo aqui. O app mostra as compras para vocês revisarem antes de salvar.</p>
+        <label class="imp-arquivo">
+          <input type="file" id="imp-file" accept=".ofx,.csv,.txt,.qfx,application/x-ofx,text/csv" />
+          <span class="ia-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
+          <b>Escolher arquivo</b><small>.ofx ou .csv</small>
+        </label>
+        <details class="mais-opcoes imp-ajuda">
+          <summary>Como baixar o arquivo no meu banco</summary>
+          <ul>
+            <li><b>Nubank:</b> no app, abra a conta ou o cartão → <i>Extrato</i> / fatura → <i>Exportar</i>. O arquivo chega no e-mail (use o OFX ou CSV).</li>
+            <li><b>Mercado Pago:</b> no app ou no site, vá em <i>Seu dinheiro</i> / <i>Atividade</i> → <i>Extrato</i> (ou <i>Baixar extrato</i>), escolha o período e baixe em <b>CSV</b> (planilha).</li>
+            <li><b>Inter, Itaú, Bradesco, Santander, BB, C6:</b> procure <i>Extrato</i> → <i>Exportar</i> ou <i>Salvar</i> e escolha OFX (ou CSV/Excel salvo como CSV). No computador, pelo internet banking, costuma ser mais fácil.</li>
+            <li>No iPhone, o arquivo baixado fica em <i>Arquivos</i>; se chegou por e-mail, toque nele → <i>Salvar em Arquivos</i>.</li>
+          </ul>
+        </details>
+        <p class="erro" id="imp-erro" role="alert"></p>
+      </div>
+
+      <div id="imp-passo2" hidden>
+        <div class="imp-opcoes">
+          <label>Esses gastos foram no
+            <select id="imp-forma"></select>
+          </label>
+          <label>Quem pagou
+            <select id="imp-quem"></select>
+          </label>
+        </div>
+        <div class="imp-resumo" id="imp-resumo"></div>
+        <div class="imp-filtros">
+          <button type="button" class="btn-link" id="imp-marcar">Marcar todos</button>
+          <button type="button" class="btn-link" id="imp-desmarcar">Desmarcar todos</button>
+          <button type="button" class="btn-link" id="imp-inverter" title="Use se as compras vieram como entradas">Valores trocados? Inverter</button>
+        </div>
+        <ul class="imp-lista" id="imp-lista"></ul>
+        <div class="modal-acoes imp-acoes">
+          <button type="button" class="btn btn-ghost" id="imp-voltar">Outro arquivo</button>
+          <span class="espaco"></span>
+          <button type="button" class="btn btn-primary" id="imp-confirmar">Importar</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ============ TUTORIAL ============ -->
+  <dialog id="modal-tutorial" class="tutorial" aria-label="Tutorial do app">
+    <div class="tut-topo">
+      <span class="tut-contador" id="tut-contador"></span>
+      <button type="button" class="tut-pular" id="tut-fechar">Pular</button>
+    </div>
+    <div class="tut-trilho" id="tut-trilho"></div>
+    <div class="tut-pontos" id="tut-pontos" role="tablist" aria-label="Etapas do tutorial"></div>
+    <div class="tut-acoes">
+      <button type="button" class="btn btn-ghost" id="tut-voltar">Voltar</button>
+      <button type="button" class="btn btn-primary" id="tut-proximo" autofocus>Próximo</button>
+    </div>
+  </dialog>
+
+  <datalist id="lista-onde">
+    <option value="Tesouro Selic"></option><option value="CDB 100% CDI"></option><option value="Poupança"></option>
+    <option value="Conta remunerada"></option><option value="Fundo de investimento"></option><option value="Ações / ETFs"></option>
+  </datalist>
+  <datalist id="lista-categorias"></datalist>
+  <datalist id="lista-pagamentos">
+    <option value="Pix"></option><option value="Boleto"></option><option value="Débito automático"></option>
+    <option value="Cartão de crédito"></option><option value="Dinheiro"></option>
+  </datalist>
+
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js?v=202611121525"></script>
+  <script src="js/nucleo.js?v=202611121525"></script>
+  <script src="js/auth.js?v=202611121525"></script>
+  <script src="js/dados.js?v=202611121525"></script>
+  <script src="js/telas.js?v=202611121525"></script>
+  <script src="js/gastos.js?v=202611121525"></script>
+  <script src="js/cartoes.js?v=202611121525"></script>
+  <script src="js/metas.js?v=202611121525"></script>
+  <script src="js/acoes.js?v=202611121525"></script>
+  <script src="js/eventos.js?v=202611121525"></script>
+  <script src="js/tutorial.js?v=202611121525"></script>
+  <script src="js/familia.js?v=202611121525"></script>
+  <script src="js/importar.js?v=202611121525"></script>
+  <script src="js/arrastar.js?v=202611121525"></script>
+  <script src="js/demo.js?v=202611121525"></script>
+  <script src="js/inicio.js?v=202611121525"></script>
+</body>
+</html>
