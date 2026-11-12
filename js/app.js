@@ -322,6 +322,7 @@
     renderHistorico();
     renderCadastroContas();
     renderCadastroRendas();
+    renderFiltroPessoa();
     renderGastos();
     renderCadastroOrcamentos();
     renderFaturas();
@@ -513,6 +514,18 @@
       : vazio("moeda", "Nenhuma renda cadastrada", "Com as rendas, o painel mostra quanto sobra depois das contas.", ["nova-renda", "Nova renda"]);
   }
 
+  // ---------- Filtro por pessoa (abas Gastos e Metas) ----------
+  let pessoa = lerPref("pessoa", "todos");
+  if (pessoa !== "todos" && !PESSOAS.includes(pessoa)) pessoa = "todos";
+  const daPessoa = (x) => pessoa === "todos" || x.responsavel === pessoa;
+  const gastosFiltrados = () => gastosDoMes(estado.mes).filter(daPessoa);
+  function renderFiltroPessoa() {
+    const ops = [["todos", "Todos"], ...PESSOAS.map((p) => [p, p])];
+    $$("[data-filtro-pessoa]").forEach((el) => {
+      el.innerHTML = ops.map(([v, t]) => `<button type="button" class="chip-pessoa ${v === pessoa ? "ativo" : ""}" data-pessoa="${esc(v)}" aria-pressed="${v === pessoa}">${v === "todos" ? "" : `<span class="mini-avatar">${esc(t.charAt(0))}</span>`}${esc(t)}</button>`).join("");
+    });
+  }
+
   // ---------- Gastos variáveis ----------
   function statusOrc(gasto, limite) {
     if (!limite) return { cls: "neutro", pct: 0, txt: "Sem limite" };
@@ -560,7 +573,8 @@
     $$(".painel-gastos").forEach((p) => p.classList.toggle("desativado", !estado.migracao2));
     if (!estado.migracao2) { $("#resumo-orc").innerHTML = ""; $("#lista-orc").innerHTML = ""; $("#extrato").innerHTML = ""; return; }
 
-    const gastos = gastosDoMes(estado.mes);
+    const gastos = gastosFiltrados();
+    if (pessoa !== "todos") { renderGastosPessoa(gastos); renderExtrato(gastos); return; }
     const total = soma(gastos, (g) => g.valor);
     const limite = soma(estado.orcamentos.filter((o) => o.ativa), (o) => o.limite);
     const st = statusOrc(total, limite);
@@ -587,6 +601,35 @@
     }).join("") : vazio("carrinho", "Nenhuma categoria de gasto", "Crie categorias com limite mensal em Mais → Orçamentos.", ["novo-orcamento", "Nova categoria"]);
 
     renderExtrato(gastos);
+  }
+
+  /** Visão de uma pessoa: quanto ela gastou e quanto isso representa do gasto do casal (os limites são do casal). */
+  function renderGastosPessoa(gastos) {
+    const doCasal = gastosDoMes(estado.mes);
+    const total = soma(gastos, (g) => g.valor), totalCasal = soma(doCasal, (g) => g.valor);
+    const pct = totalCasal ? Math.round((total / totalCasal) * 100) : 0;
+    $("#resumo-orc").innerHTML = `
+      <div class="ro-num"><small>Gastos de ${esc(pessoa)} em ${esc(nomeMes(estado.mes, "mes"))}</small><b>${fmt(total)}</b><span>de ${fmt(totalCasal)} do casal</span></div>
+      <div class="meter-orc grande ok"><span style="width:${pct}%"></span></div>
+      <div class="ro-rodape"><span>${pct}% dos gastos do casal</span><span>${gastos.length} lançamento${gastos.length !== 1 ? "s" : ""}</span></div>`;
+    const porCat = {}, porCatCasal = {};
+    gastos.forEach((g) => (porCat[g.categoria] = (porCat[g.categoria] || 0) + Number(g.valor)));
+    doCasal.forEach((g) => (porCatCasal[g.categoria] = (porCatCasal[g.categoria] || 0) + Number(g.valor)));
+    const linhas = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
+    $("#lista-orc").innerHTML = linhas.length ? linhas.map(([cat, v]) => {
+      const c = porCatCasal[cat] || v, p = Math.round((v / c) * 100);
+      return `
+      <li>
+        <button class="orc-item" data-filtrar-cat="${esc(cat)}">
+          <span class="bola-cat">${svg(iconeDe(cat))}</span>
+          <div class="orc-meio">
+            <div class="orc-linha"><span class="nome">${esc(cat)}</span><span class="valor">${fmt(v)}</span></div>
+            <div class="meter-orc ok"><span style="width:${p}%"></span></div>
+            <div class="orc-linha orc-st"><span class="ok">${p}% do gasto do casal aqui</span><span class="neutro">casal ${fmt(c)}</span></div>
+          </div>
+        </button>
+      </li>`;
+    }).join("") : vazio("carrinho", `${esc(pessoa)} não lançou gastos neste mês`, "Os gastos marcados como “Casal” aparecem só em Todos.");
   }
 
   let filtroCatGasto = null;
@@ -805,11 +848,21 @@
     $("#aviso-migracao3").innerHTML = avisoMigracao3();
     if (!estado.migracao3) { $("#resumo-metas").innerHTML = ""; $("#lista-metas").innerHTML = ""; return; }
     const ativas = estado.metas.filter((m) => m.ativa);
-    const total = soma(estado.metas, (m) => guardadoEm(m));
-    const doMes = soma(estado.aportes.filter((a) => a.data.slice(0, 7) === estado.mes.slice(0, 7)), (a) => a.valor);
+    const aps = estado.aportes.filter(daPessoa);
+    const total = soma(aps, (a) => a.valor);
+    const totalCasal = soma(estado.metas, (m) => guardadoEm(m));
+    const doMes = soma(aps.filter((a) => a.data.slice(0, 7) === estado.mes.slice(0, 7)), (a) => a.valor);
     const renda = soma(estado.rendas.filter((r) => r.ativa), (r) => r.valor);
     const sobra = renda - soma(contasDoMes(estado.mes), (c) => c.valorMes) - soma(gastosDoMes(estado.mes), (g) => g.valor);
-    $("#resumo-metas").innerHTML = estado.metas.length ? `
+    $("#resumo-metas").innerHTML = !estado.metas.length ? "" : pessoa !== "todos" ? `
+      <div class="hero hero-metas">
+        <div class="rotulo">Guardado por ${esc(pessoa)}</div>
+        <div class="grande">${fmt(total)}</div>
+        <div class="duas">
+          <div><small>Em ${esc(nomeMes(estado.mes, "mes"))}</small><b>${doMes < 0 ? "−" : ""}${fmt(Math.abs(doMes))}</b></div>
+          <div><small>Do total do casal</small><b>${totalCasal > 0 ? Math.round((total / totalCasal) * 100) + "%" : "—"}</b></div>
+        </div>
+      </div>` : `
       <div class="hero hero-metas">
         <div class="rotulo">Total guardado nas metas</div>
         <div class="grande">${fmt(total)}</div>
@@ -818,7 +871,7 @@
           <div><small>${renda ? "Do que sobrou no mês" : "Metas ativas"}</small><b>${renda ? (sobra > 0 ? Math.round((doMes / sobra) * 100) + "%" : "—") : ativas.length}</b></div>
         </div>
         ${renda && sobra > 0 ? `<div class="renda-linha"><span>Sobra do mês, depois de contas e gastos</span><span>${fmt(sobra)}</span></div>` : ""}
-      </div>` : "";
+      </div>`;
     const metas = [...estado.metas].sort((a, b) => (b.ativa - a.ativa) || infoMeta(b).pct - infoMeta(a).pct);
     $("#lista-metas").innerHTML = metas.length ? metas.map((m) => {
       const i = infoMeta(m);
@@ -831,6 +884,7 @@
         </div>
         <div class="mc-valores"><b>${fmt(i.guardado)}</b><span>de ${fmt(i.alvo)}</span></div>
         <div class="meter-orc ${i.falta ? "ok" : "bom"}"><span style="width:${i.pct}%"></span></div>
+        ${pessoa !== "todos" ? `<div class="mc-pessoa"><span class="mini-avatar">${esc(pessoa.charAt(0))}</span>${esc(pessoa)} guardou ${fmt(soma(estado.aportes.filter((a) => a.meta_id === m.id && a.responsavel === pessoa), (a) => a.valor))} nesta meta</div>` : ""}
         <div class="mc-plano ${i.alerta}">${i.falta ? `Faltam ${fmt(i.falta)} · ` : ""}${esc(i.plano)}${i.alerta === "warn" ? " · ritmo abaixo do necessário" : ""}</div>
       </button>`;
     }).join("") : `<article class="card card-lista"><ul class="lista-cadastro">${vazio("alvo", "Nenhuma meta ainda", "Reserva de emergência, viagem, casa própria… defina quanto e até quando, e o app calcula quanto guardar por mês.", ["nova-meta", "Criar primeira meta"])}</ul></article>`;
@@ -845,7 +899,7 @@
   function desenharMetaDetalhe() {
     const m = metaAberta, i = infoMeta(m);
     const R = 34, C = 2 * Math.PI * R;
-    const hist = estado.aportes.filter((a) => a.meta_id === m.id).sort((a, b) => b.data.localeCompare(a.data));
+    const hist = estado.aportes.filter((a) => a.meta_id === m.id && daPessoa(a)).sort((a, b) => b.data.localeCompare(a.data));
     $("#meta-detalhe").innerHTML = `
       <div class="md-topo">
         <div class="rosca rosca-meta" role="img" aria-label="${Math.floor(i.pct)}% da meta">
@@ -856,7 +910,7 @@
           <div class="md-valor">${fmt(i.guardado)} <span>de ${fmt(i.alvo)}</span></div></div>
       </div>
       <div class="md-plano ${i.alerta}">${i.falta ? `Faltam ${fmt(i.falta)} · ` : ""}${esc(i.plano)}</div>
-      <h3 class="md-h">Histórico</h3>
+      <h3 class="md-h">Histórico${pessoa !== "todos" ? ` de ${esc(pessoa)}` : ""}</h3>
       <ul class="lista-cadastro">${hist.length ? hist.map((a) => `
         <li><button class="item" data-editar-aporte="${a.id}">
           <span class="bola-cat ${a.valor < 0 ? "retirada" : ""}">${svg(a.valor < 0 ? "sacola" : "porquinho")}</span>
@@ -1397,8 +1451,8 @@
     });
     document.addEventListener("click", (ev) => {
       const fc = ev.target.closest("[data-filtrar-cat]");
-      if (fc) { filtroCatGasto = fc.dataset.filtrarCat; renderExtrato(gastosDoMes(estado.mes)); mostrarExtrato(); window.scrollTo({ top: 0 }); }
-      if (ev.target.closest("[data-limpar-filtro]")) { filtroCatGasto = null; renderExtrato(gastosDoMes(estado.mes)); }
+      if (fc) { filtroCatGasto = fc.dataset.filtrarCat; renderExtrato(gastosFiltrados()); mostrarExtrato(); window.scrollTo({ top: 0 }); }
+      if (ev.target.closest("[data-limpar-filtro]")) { filtroCatGasto = null; renderExtrato(gastosFiltrados()); }
     });
 
     document.addEventListener("click", (ev) => {
@@ -1422,6 +1476,13 @@
       else if (t.dataset.acao === "nova-conta") abrirConta();
       else if (t.dataset.acao === "nova-renda") abrirRenda();
       else if (t.hasAttribute("data-fechar")) t.closest("dialog").close();
+    });
+
+    // Filtro por pessoa
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-pessoa]"); if (!b) return;
+      pessoa = b.dataset.pessoa; gravarPref("pessoa", pessoa); filtroCatGasto = null;
+      renderFiltroPessoa(); renderGastos(); renderMetas();
     });
 
     // Olho: esconder/mostrar valores
