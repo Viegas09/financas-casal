@@ -1,0 +1,53 @@
+name: Publicar link de teste
+
+# Ao enviar para o ramo "teste": roda os testes e, se tudo passar,
+# publica essa versão em <site>/teste/ — sempre em MODO DEMONSTRAÇÃO
+# (dados de exemplo no próprio celular; não toca nos dados reais).
+on:
+  push:
+    branches: [teste]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar-teste
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    uses: ./.github/workflows/testes.yml
+
+  publicar:
+    needs: testes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pegar a versão de teste
+        uses: actions/checkout@v4
+        with:
+          ref: teste
+          path: novo
+      - name: Pegar o site publicado
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site
+      - name: Copiar para /teste/ em modo demonstração
+        run: |
+          rm -rf site/teste
+          mkdir -p site/teste
+          cp -r novo/index.html novo/manifest.webmanifest novo/css novo/js novo/icons site/teste/
+          sed -i 's#SUPABASE_URL: "[^"]*"#SUPABASE_URL: ""#; s#SUPABASE_ANON_KEY: "[^"]*"#SUPABASE_ANON_KEY: ""#' site/teste/js/config.js
+          sed -i 's#<title>[^<]*</title>#<title>TESTE · Finanças</title>#; s#Modo demonstração · dados só neste navegador#VERSÃO DE TESTE · dados de exemplo, só neste celular#' site/teste/index.html
+          sed -i 's#"name": "[^"]*"#"name": "Finanças (teste)"#; s#"short_name": "[^"]*"#"short_name": "Teste"#' site/teste/manifest.webmanifest
+          echo "versão: $(cd novo && git log -1 --format='%h %s')" > site/teste/VERSAO.txt
+      - name: Publicar
+        working-directory: site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add teste
+          if git diff --cached --quiet; then echo "Nada mudou"; exit 0; fi
+          git commit -m "Atualiza o link de teste ($(cd ../novo && git log -1 --format=%h))"
+          git push

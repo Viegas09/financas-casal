@@ -1,0 +1,53 @@
+name: Backup semanal
+
+# Toda segunda às 06:00 (Brasília) — e também manualmente em Actions → Backup semanal → Run workflow.
+# O arquivo sai CRIPTOGRAFADO (senha só vocês sabem) e fica 90 dias em Actions → Backup semanal → Artifacts.
+#
+# Precisa de 2 segredos em Settings → Secrets and variables → Actions:
+#   SUPABASE_DB_URL  → Supabase → Connect → "Session pooler" (URI, com a senha do banco no lugar de [YOUR-PASSWORD])
+#   BACKUP_SENHA     → uma senha forte inventada por vocês (guarde num lugar seguro: sem ela o backup não abre)
+#
+# Para abrir um backup:  openssl enc -d -aes-256-cbc -pbkdf2 -in backup-AAAA-MM-DD.dump.enc -out backup.dump
+# Para restaurar:        pg_restore --no-owner --clean --if-exists -d "<SUPABASE_DB_URL>" backup.dump
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DB: ${{ secrets.SUPABASE_DB_URL }}
+      SENHA: ${{ secrets.BACKUP_SENHA }}
+    steps:
+      - name: Conferir configuração
+        run: |
+          if [ -z "$DB" ] || [ -z "$SENHA" ]; then
+            echo "::warning::Backup ainda não configurado: faltam os segredos SUPABASE_DB_URL e/ou BACKUP_SENHA."
+            echo "PULAR=1" >> "$GITHUB_ENV"
+          fi
+      - name: Instalar pg_dump (Postgres 17)
+        if: env.PULAR != '1'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Gerar backup criptografado
+        if: env.PULAR != '1'
+        run: |
+          ARQ="backup-$(date -u +%F).dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$DB" --schema=public --no-owner --no-privileges -Fc -f "$ARQ"
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in "$ARQ" -out "$ARQ.enc" -pass env:SENHA
+          rm "$ARQ"
+          ls -lh "$ARQ.enc"
+          echo "ARQ=$ARQ.enc" >> "$GITHUB_ENV"
+      - name: Guardar
+        if: env.PULAR != '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARQ }}
+          path: ${{ env.ARQ }}
+          retention-days: 90
