@@ -281,8 +281,11 @@
       .filter((c) => pagamentoDe(c.id, comp) || (c.ativa && (c.inicio || "0000-00-00") <= comp))
       .map((c) => {
         const pg = pagamentoDe(c.id, comp);
-        const prev = !pg && c.variavel ? previsaoVariavel(c, comp) : null;
-        return { ...c, pagamento: pg || null, estimado: prev !== null, valorMes: pg ? Number(pg.valor_pago) : prev ?? Number(c.valor), status: statusDe(c, comp, pg) };
+        // conta de valor variável em mês futuro: não projeta valor ("a definir") e não soma no total
+        const aDefinir = !pg && !!c.variavel && comp > compDe(new Date());
+        const prev = !pg && c.variavel && !aDefinir ? previsaoVariavel(c, comp) : null;
+        return { ...c, pagamento: pg || null, estimado: prev !== null, aDefinir,
+          valorMes: pg ? Number(pg.valor_pago) : aDefinir ? 0 : prev ?? Number(c.valor), status: statusDe(c, comp, pg) };
       })
       .sort((a, b) => a.dia_vencimento - b.dia_vencimento || a.nome.localeCompare(b.nome));
   }
@@ -426,7 +429,8 @@
           <div class="meta">Dia ${c.dia_vencimento} · ${esc(c.categoria)} · ${esc(c.responsavel)}</div>
         </div>
         <div class="dir">
-          <span class="valor" ${c.estimado ? 'title="Estimativa pela média dos últimos meses"' : ""}>${c.estimado && !ocultar ? "~" : ""}${fmt(c.valorMes)}</span>
+          ${c.aDefinir ? `<span class="valor a-definir" title="O valor muda todo mês: informe quando pagar">a definir</span>`
+            : `<span class="valor" ${c.estimado ? 'title="Estimativa pela média dos últimos meses"' : ""}>${c.estimado && !ocultar ? "~" : ""}${fmt(c.valorMes)}</span>`}
           <span class="badge ${c.status.chave}">${c.status.texto}</span>
         </div>
       </li>`;
@@ -454,7 +458,7 @@
     const npag = lista.filter((c) => c.pagamento).length;
     $("#resumo-contas").hidden = !lista.length;
     $("#resumo-contas").innerHTML = `
-      <div class="rc-topo"><div><small>Contas fixas de ${esc(nomeMes(estado.mes, "mes"))}</small><b>${fmt(total)}</b></div><span class="rc-pct">${pct}%<small>pago</small></span></div>
+      <div class="rc-topo"><div><small>Contas fixas de ${esc(nomeMes(estado.mes, "mes"))}</small><b>${fmt(total)}</b>${lista.some((c) => c.aDefinir) ? `<em class="rc-def">+ ${lista.filter((c) => c.aDefinir).length} com valor a definir</em>` : ""}</div><span class="rc-pct">${pct}%<small>pago</small></span></div>
       <div class="meter-orc grande ${pct === 100 ? "bom" : "ok"}"><span style="width:${pct}%"></span></div>
       <div class="rc-duas">
         <div><small>Já pago</small><b class="bom-txt">${fmt(pago)}</b><em>${npag} de ${lista.length} conta${lista.length !== 1 ? "s" : ""}</em></div>
@@ -726,7 +730,7 @@
       const mesConta = somaMes(comp, i);
       contasDoMes(mesConta).filter((x) => x.cartao_id === c.id).forEach((x) => {
         const data = dataNoMes(mesConta, x.dia_vencimento);
-        if (competenciaFatura(c, data) === comp) itens.push({ tipo: "conta", id: x.id, data, descricao: x.nome, categoria: x.categoria, valor: x.valorMes, parcela: "", estimado: x.estimado });
+        if (competenciaFatura(c, data) === comp) itens.push({ tipo: "conta", id: x.id, data, descricao: x.nome, categoria: x.categoria, valor: x.valorMes, parcela: "", estimado: x.estimado, aDefinir: x.aDefinir });
       });
     }
     return itens.sort((a, b) => b.data.localeCompare(a.data));
@@ -808,7 +812,7 @@
         <li><button class="item" ${i.tipo === "gasto" ? `data-editar-gasto="${i.id}"` : `data-editar-conta="${i.id}"`}>
           <span class="bola-cat">${svg(iconeDe(i.categoria, i.descricao))}</span>
           <div><div class="nome">${esc(i.descricao)}${i.parcela ? ` <span class="badge futura">${i.parcela}</span>` : ""}${i.tipo === "conta" ? ' <span class="badge futura">fixa</span>' : ""}</div><div class="meta">${esc(fmtData(i.data))} · ${esc(i.categoria)}</div></div>
-          <span class="valor">${i.estimado && !ocultar ? "~" : ""}${fmt(i.valor)}</span><span class="seta">›</span>
+          <span class="valor ${i.aDefinir ? "a-definir" : ""}">${i.aDefinir ? "a definir" : (i.estimado && !ocultar ? "~" : "") + fmt(i.valor)}</span><span class="seta">›</span>
         </button></li>`).join("") : vazio("cartao", "Nada nesta fatura", "Ao lançar um gasto, escolha este cartão em “Pagamento”.")}</ul>`;
     $("#btn-pagar-fatura").textContent = pg ? "Desmarcar pagamento" : "Marcar fatura como paga";
     $("#btn-pagar-fatura").classList.toggle("btn-primary", !pg);
