@@ -3,8 +3,9 @@
 Dashboard online de contas fixas do Vinícius e da Marcela.
 
 - **Site:** HTML + JavaScript puro (sem instalar nada, sem etapa de build), hospedado no **GitHub Pages**.
-- **Login e banco de dados:** **Supabase** (plano gratuito). Cada um tem o próprio e-mail e senha; os dois veem os mesmos dados.
-- **Segurança:** só quem está na tabela `membros` consegue ler ou alterar qualquer coisa (regras RLS no banco).
+- **Login e banco de dados:** **Supabase** (plano gratuito). Cada pessoa tem o próprio e-mail e senha.
+- **Várias famílias:** cada família (ex.: um casal) tem os próprios dados; os membros veem tudo junto e uma família **não vê** a outra. Cadastro **só por convite**; cada pessoa pertence a uma família.
+- **Segurança:** a separação é feita pelo próprio banco (regras RLS por família), não pela tela.
 
 ## O que o painel faz
 
@@ -30,17 +31,18 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
 1. Crie uma conta em <https://supabase.com> e clique em **New project** (escolha a região *South America (São Paulo)*). Guarde a senha do banco num lugar seguro.
 2. No menu lateral, abra **SQL Editor → New query**, cole todo o conteúdo de [`supabase/schema.sql`](supabase/schema.sql) e clique em **Run**.
 
-### 2. Fechar o cadastro público e criar os dois usuários
-1. Em **Authentication → Sign In / Providers** (ou *Settings*, dependendo da versão do painel), **desative “Allow new users to sign up”**. Assim ninguém de fora consegue criar conta.
-2. Em **Authentication → Users → Add user → Create new user**, crie o seu usuário e o da Marcela (e-mail + senha) e marque **Auto Confirm User**.
-3. Volte ao **SQL Editor** e rode (trocando os e-mails):
+### 2. Criar o primeiro usuário (o cadastro é só por convite)
+1. No **SQL Editor**, crie o seu convite (trocando os dados) e rode:
    ```sql
-   insert into public.membros (user_id, nome)
-     select id, 'Vinícius' from auth.users where email = 'seu@email.com';
-   insert into public.membros (user_id, nome)
-     select id, 'Marcela' from auth.users where email = 'email.da.marcela@email.com';
+   insert into public.convites (email, nome, familia_nome) values ('seu@email.com', 'Seu nome', 'Nossa família');
    ```
-   Os nomes precisam ser iguais aos de `PESSOAS` em `js/config.js`.
+2. Em **Authentication → Users → Add user → Create new user**, crie o seu usuário com esse e-mail e marque **Auto Confirm User**. Você vira dono da família.
+3. Dê a você permissão de convidar outras famílias:
+   ```sql
+   update public.membros set admin = true where email = 'seu@email.com';
+   ```
+4. Em **Authentication → Sign In / Providers**, deixe **“Allow new users to sign up” ligado** e **“Confirm email” ligado**. Quem não tem convite é recusado pelo banco.
+5. O cônjuge e outras famílias você convida pelo app: **Mais → Família**.
 
 ### 3. Ligar o site ao banco
 1. No Supabase, abra **Project Settings → API** e copie a **Project URL** e a chave **anon / public**.
@@ -61,6 +63,14 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
 - Comecem pela aba **Rendas**, depois cadastrem as **Contas fixas**. No dia a dia, só marcar ✓ quando pagar.
 
 ---
+
+## Famílias e convites
+
+- **Mais → Família** mostra a sua família, quem está nela e os convites pendentes.
+- **Convidar para esta família:** para o cônjuge (ou outra pessoa que deve ver tudo junto). Informe o nome (como vai aparecer em “Quem paga”) e o e-mail.
+- **Convidar uma nova família** (só admin): a pessoa ganha uma família separada, com os próprios dados, e depois convida o cônjuge dela.
+- Depois de criar o convite, toque em **Compartilhar** e mande a mensagem. A pessoa abre o link, toca em **Criar minha conta**, usa **o mesmo e-mail** do convite, escolhe uma senha e confirma pelo e-mail que chega.
+- Donos podem renomear a família e remover membros convidados (um dono não remove o outro).
 
 ## Dicas de uso
 
@@ -89,6 +99,7 @@ Quando uma versão nova precisar de tabelas novas, vem um arquivo `supabase/migr
 | `migracao-02-gastos.sql` | Gastos variáveis, orçamentos por categoria e contas de valor variável |
 | `migracao-03-metas-cartoes.sql` | Metas e aportes, cartões de crédito, faturas e compras parceladas |
 | `migracao-04-conta-unica.sql` | Contas “só neste mês” (uma fatura, IPVA) que não se repetem |
+| `migracao-05-familias.sql` | Várias famílias, convites e cadastro só por convite (desfazer: `migracao-05-desfazer.sql`) |
 
 ## Estrutura
 
