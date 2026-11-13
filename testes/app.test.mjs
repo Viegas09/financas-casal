@@ -129,6 +129,22 @@ const aba = (p, a) => p.click(`.tabbar [data-aba=${a}]`);
   await p.keyboard.press("Escape"); await p.waitForTimeout(250);
   it = await importar("debcred.csv");
   ok(marcados(it).length === 1, "planilha com colunas de crédito e débito");
+  // lembretes no calendário
+  await p.evaluate(() => document.querySelectorAll("dialog[open]").forEach((d) => d.close())); await p.waitForTimeout(200);
+  await aba(p, "mais"); await p.waitForTimeout(200);
+  await p.click("#btn-calendario"); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => document.querySelector("#modal-calendario").open) && /Vão entrar \d+ conta/.test(await p.innerText("#cal-resumo")), "lembretes no calendário: mostra quantas contas vão entrar");
+  const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#cal-baixar")]);
+  const ics = fs.readFileSync(await dl.path(), "utf8");
+  const esperado = await p.evaluate(() => { const i = itensDoCalendario("todas", true); return i.contas.length + i.cartoes.length; });
+  ok(dl.suggestedFilename() === "plinc-vencimentos.ics" && ics.startsWith("BEGIN:VCALENDAR") && ics.trim().endsWith("END:VCALENDAR") && (ics.match(/BEGIN:VEVENT/g) || []).length === esperado,
+    "baixa o arquivo .ics com um evento por conta/fatura");
+  ok(/RRULE:FREQ=MONTHLY;BYMONTHDAY=\d+/.test(ics) && (ics.match(/BEGIN:VALARM/g) || []).length === esperado * 2, "eventos se repetem todo mês e avisam na véspera e no dia");
+  ok(await p.evaluate(() => regraMensal(31) === "FREQ=MONTHLY;BYMONTHDAY=28,29,30,31;BYSETPOS=-1" && regraMensal(10) === "FREQ=MONTHLY;BYMONTHDAY=10"), "vencimento dia 31 cai no último dia em meses curtos");
+  const unica = await p.evaluate(() => gerarICS({ contas: [{ id: "u", nome: "IPVA", valor: 10, dia_vencimento: 20, responsavel: "Casal", ativa: true, inicio: compDe(new Date()), fim: compDe(new Date()) }], cartoes: [] }));
+  ok(!unica.includes("RRULE") && unica.includes("SUMMARY:Vence: IPVA"), "conta “só neste mês” vira um lembrete único");
+  const cartao = await p.evaluate(() => itensDoCalendario("todas", true).contas.some((c) => c.cartao_id));
+  ok(!cartao, "contas pagas no cartão ficam de fora (entram na fatura)");
   ok(p.erros.length === 0, "modo demonstração sem erros de JavaScript " + p.erros.join(" | "));
 }
 
