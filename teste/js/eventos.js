@@ -81,7 +81,7 @@ function ligarEventos() {
     const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
     $("#login-erro").textContent = error ? error.message : "Se o e-mail existir, você receberá um link para criar nova senha.";
   });
-  $("#btn-sair").addEventListener("click", () => (DEMO ? toast("No modo demonstração não há login.") : sb.auth.signOut()));
+  $("#btn-sair").addEventListener("click", () => { if (DEMO) return toast("No modo demonstração não há login."); cacheLocal.limpar(); sb.auth.signOut(); });
 
   $("#mes-anterior").addEventListener("click", () => { estado.mes = somaMes(estado.mes, -1); filtroCatGasto = null; render(); });
   $("#mes-proximo").addEventListener("click", () => { estado.mes = somaMes(estado.mes, 1); filtroCatGasto = null; render(); });

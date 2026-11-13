@@ -1,1 +1,1 @@
-versão: bf55de8 Marca Plinc no app: nome, ícones, favicon e fontes (Inter + Space Grotesk)
+versão: 6eb3d69 Fase 1.2: app rápido e funcionando sem internet
