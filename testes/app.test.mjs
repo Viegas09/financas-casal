@@ -16,7 +16,7 @@ let falhas = 0;
 const ok = (c, m) => { if (!c) falhas++; console.log((c ? "✅ " : "❌ ") + m); };
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 
-async function pagina({ mock = null, limpar = true, armazenar = null } = {}) {
+async function pagina({ mock = null, limpar = true, armazenar = null, url = URL_APP } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p = await ctx.newPage();
   p.erros = [];
@@ -29,7 +29,7 @@ async function pagina({ mock = null, limpar = true, armazenar = null } = {}) {
     if (l && !sessionStorage.getItem("ja")) { localStorage.clear(); sessionStorage.setItem("ja", "1"); }
     localStorage.setItem("fc-tutorial-visto", "true"); localStorage.setItem("fc-aviso-contas-ok", "true");
   }, [mock, limpar, armazenar]);
-  await p.goto(URL_APP);
+  await p.goto(url);
   await p.waitForTimeout(1200);
   return p;
 }
@@ -281,6 +281,15 @@ const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ u
   await aba(p, "mais"); await p.waitForTimeout(200); await p.click("#btn-sair"); await p.waitForTimeout(300);
   ok(!(await p.evaluate(() => window.__MOCK.canais["plinc-familia:f1"])), "ao sair da conta, para de escutar o canal");
   ok(p.erros.length === 0, "sem erros de JavaScript (ao vivo) " + p.erros.join(" | "));
+}
+
+// ================= DEMONSTRAÇÃO PÚBLICA (app?demo, link da página de venda) =================
+{
+  const p = await pagina({ url: URL_APP + "?demo", mock: { usuarios: [VINI], tabelas: { ...tabs(), membros: [{ user_id: "u-vini", nome: "Vinícius" }] } } });
+  ok(await p.isVisible("#app") && await p.isHidden("#tela-login"), "app?demo abre direto, sem login, mesmo com o banco configurado");
+  ok((await p.innerText("#nome-usuario")) === "Ana (demo)" && (await p.innerText("#banner-demo")).includes("Demonstração"), "demonstração usa a família de exemplo (Ana e Léo) e mostra o aviso com link para assinar");
+  ok(await p.evaluate(() => !!localStorage.getItem("plinc-demo-publica") && !localStorage.getItem("plinc-dados-v1:u-vini") && sb === null), "demonstração não conversa com o banco e guarda os dados de exemplo à parte");
+  ok(p.erros.length === 0, "sem erros de JavaScript (demonstração pública) " + p.erros.join(" | "));
 }
 
 await browser.close();

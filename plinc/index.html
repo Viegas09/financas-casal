@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- enquanto estiver no endereço provisório, fica fora do Google; tirar quando for para useplinc.com.br -->
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Plinc — o app de finanças do casal</title>
+  <meta name="description" content="Contas, gastos, cartões e metas do casal num app só. O que um lança, o outro vê na hora. Veja a demonstração sem cadastro. R$ 19,90 por mês para a família toda." />
+  <meta name="theme-color" content="#ffffff" />
+  <meta property="og:title" content="Plinc — o app de finanças do casal" />
+  <meta property="og:description" content="Contas, gastos, cartões e metas do casal num app só. Toda moeda conta." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="../icons/favicon.svg" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <link rel="preload" href="../fonts/space-grotesk-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <style>
+    @font-face { font-family: "Inter"; font-weight: 400; font-display: swap; src: url("../fonts/inter-latin-400-normal.woff2") format("woff2"); }
+    @font-face { font-family: "Inter"; font-weight: 500; font-display: swap; src: url("../fonts/inter-latin-500-normal.woff2") format("woff2"); }
+    @font-face { font-family: "Inter"; font-weight: 600; font-display: swap; src: url("../fonts/inter-latin-600-normal.woff2") format("woff2"); }
+    @font-face { font-family: "Space Grotesk"; font-weight: 500; font-display: swap; src: url("../fonts/space-grotesk-latin-500-normal.woff2") format("woff2"); }
+    @font-face { font-family: "Space Grotesk"; font-weight: 700; font-display: swap; src: url("../fonts/space-grotesk-latin-700-normal.woff2") format("woff2"); }
+
+    :root {
+      --preto: #0b0b0b; --azul: #2a78d6; --azul-forte: #1f5fae; --azul-nevoa: #e6effa;
+      --fundo: #f2f3f5; --branco: #ffffff; --texto-2: #52514e; --borda: #e4e5e8;
+      --titulo: "Space Grotesk", "Inter", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--preto); background: var(--branco); font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    img { max-width: 100%; display: block; }
+    a { color: var(--azul-forte); }
+    h1, h2, h3 { font-family: var(--titulo); letter-spacing: -0.025em; line-height: 1.08; margin: 0; }
+    p { margin: 0; }
+    .wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+    .marca { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--preto); }
+    .marca span { font-family: var(--titulo); font-weight: 700; font-size: 28px; letter-spacing: -0.045em; line-height: 1; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: 14px; font-weight: 600; font-size: 16px; text-decoration: none; border: 1px solid transparent; white-space: nowrap; }
+    .btn-primario { background: var(--azul); color: var(--branco); }
+    .btn-primario:hover { background: var(--azul-forte); }
+    .btn-fantasma { color: var(--preto); background: transparent; }
+    .btn-fantasma:hover { background: var(--fundo); }
+    .btn-grande { min-height: 56px; padding: 0 28px; font-size: 17px; }
+    .btn:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--azul); outline-offset: 3px; }
+
+    /* Topo */
+    .topo { position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,.92); backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--borda); }
+    .topo .wrap { display: flex; align-items: center; gap: 16px; min-height: 68px; }
+    .topo nav { display: none; gap: 28px; margin-left: 24px; }
+    .topo nav a { color: var(--texto-2); text-decoration: none; font-weight: 500; font-size: 15px; }
+    .topo nav a:hover { color: var(--preto); }
+    .topo .acoes { margin-left: auto; display: flex; gap: 6px; }
+    .topo .btn { min-height: 44px; padding: 0 16px; font-size: 15px; }
+
+    /* Hero */
+    .hero { padding: 48px 0 56px; }
+    .hero .wrap { display: grid; gap: 48px; align-items: center; }
+    .selo { display: inline-block; font-size: 14px; font-weight: 600; color: var(--azul-forte); background: var(--azul-nevoa); padding: 6px 12px; border-radius: 999px; margin-bottom: 20px; }
+    .hero h1 { font-size: clamp(44px, 9vw, 76px); }
+    .hero h1 em { font-style: normal; color: var(--azul); }
+    .hero .sub { font-size: 19px; color: var(--texto-2); margin: 20px 0 28px; max-width: 520px; }
+    .hero .ctas { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .hero .preco-mini { margin-top: 14px; font-size: 14px; color: var(--texto-2); }
+    .vitrine { position: relative; justify-self: center; }
+    .celular { width: 280px; border-radius: 46px; border: 10px solid var(--preto); overflow: hidden; background: var(--preto); box-shadow: 0 30px 60px -20px rgba(16,24,40,.35); }
+    .celular img { width: 100%; height: auto; }
+    .aviso-flutuante { position: absolute; left: -36px; bottom: 72px; width: 236px; display: flex; gap: 10px; align-items: flex-start; background: var(--branco); border: 1px solid var(--borda); border-radius: 18px; padding: 12px; box-shadow: 0 12px 30px -10px rgba(16,24,40,.25); font-size: 13px; line-height: 1.35; }
+    .aviso-flutuante b { display: block; font-size: 14px; }
+    .aviso-flutuante small { color: var(--texto-2); font-size: 13px; }
+    .icone-app { flex: none; width: 36px; height: 36px; border-radius: 9px; background: var(--azul); display: grid; place-items: center; }
+
+    /* Faixa */
+    .faixa { background: var(--fundo); border-block: 1px solid var(--borda); }
+    .faixa ul { list-style: none; margin: 0; padding: 18px 0; display: flex; flex-wrap: wrap; gap: 12px 32px; justify-content: center; }
+    .faixa li { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; color: var(--texto-2); }
+    .faixa svg { color: var(--azul); }
+
+    /* Seções */
+    section.bloco { padding: 72px 0; }
+    .cabeca { max-width: 640px; margin-bottom: 40px; }
+    .cabeca h2 { font-size: clamp(32px, 6vw, 48px); }
+    .cabeca p { margin-top: 14px; font-size: 18px; color: var(--texto-2); }
+    .cartoes { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .cartao { background: var(--fundo); border-radius: 22px; padding: 26px; }
+    .cartao .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--branco); color: var(--azul); display: grid; place-items: center; margin-bottom: 18px; }
+    .cartao h3 { font-size: 21px; margin-bottom: 8px; }
+    .cartao p { color: var(--texto-2); font-size: 16px; }
+
+    .lado { display: grid; gap: 48px; align-items: center; }
+    .lado .celular { width: 260px; justify-self: center; }
+    .lista { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 18px; }
+    .lista li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; }
+    .lista li svg { color: var(--azul); margin-top: 2px; }
+    .lista b { display: block; font-size: 17px; }
+    .lista span { color: var(--texto-2); font-size: 16px; }
+    .escuro { background: var(--preto); color: var(--branco); }
+    .escuro .cabeca p, .escuro .lista span { color: #c3c2b7; }
+    .escuro .lista svg { color: #3987e5; }
+
+    .passos { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); counter-reset: passo; }
+    .passos li { border: 1px solid var(--borda); border-radius: 22px; padding: 26px; counter-increment: passo; }
+    .passos li::before { content: counter(passo); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--preto); color: var(--branco); font-family: var(--titulo); font-weight: 700; font-size: 18px; margin-bottom: 18px; }
+    .passos h3 { font-size: 20px; margin-bottom: 8px; }
+    .passos p { color: var(--texto-2); font-size: 16px; }
+
+    .extras { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 16px; }
+    .extra { display: flex; gap: 12px; align-items: flex-start; padding: 18px; border-radius: 18px; background: var(--fundo); }
+    .extra svg { flex: none; color: var(--azul); margin-top: 2px; }
+    .extra b { display: block; font-size: 16px; }
+    .extra span { color: var(--texto-2); font-size: 15px; }
+
+    /* Preço */
+    .preco { background: var(--fundo); }
+    .plano { max-width: 520px; margin: 0 auto; background: var(--branco); border: 2px solid var(--azul); border-radius: 28px; padding: 36px; text-align: center; }
+    .plano .nome { font-weight: 600; color: var(--azul-forte); font-size: 15px; letter-spacing: .04em; text-transform: uppercase; }
+    .plano .valor { font-family: var(--titulo); font-weight: 700; font-size: 64px; letter-spacing: -0.04em; line-height: 1; margin: 14px 0 4px; }
+    .plano .valor small { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; color: var(--texto-2); }
+    .plano .por { color: var(--texto-2); }
+    .plano ul { list-style: none; padding: 0; margin: 28px 0; text-align: left; display: grid; gap: 12px; }
+    .plano li { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; }
+    .plano li svg { flex: none; color: var(--azul); margin-top: 3px; }
+    .plano .btn { width: 100%; }
+    .plano .nota { margin-top: 12px; font-size: 14px; color: var(--texto-2); }
+
+    /* Dúvidas */
+    .duvidas { max-width: 760px; }
+    details { border-bottom: 1px solid var(--borda); }
+    summary { cursor: pointer; list-style: none; padding: 22px 36px 22px 0; font-weight: 600; font-size: 18px; position: relative; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-family: var(--titulo); font-size: 26px; font-weight: 500; color: var(--azul); }
+    details[open] summary::after { content: "–"; }
+    details p { padding: 0 0 22px; color: var(--texto-2); }
+
+    .final { text-align: center; }
+    .final h2 { font-size: clamp(36px, 7vw, 60px); }
+    .final p { color: #c3c2b7; margin: 16px auto 28px; max-width: 520px; font-size: 18px; }
+
+    footer { padding: 40px 0; border-top: 1px solid var(--borda); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: center; justify-content: space-between; }
+    footer nav { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 15px; }
+    footer nav a { color: var(--texto-2); text-decoration: none; }
+    footer nav a:hover { color: var(--preto); }
+    footer small { color: var(--texto-2); font-size: 14px; }
+
+    @media (min-width: 900px) {
+      .topo nav { display: flex; }
+      .hero { padding: 72px 0 88px; }
+      .hero .wrap { grid-template-columns: 1.15fr .85fr; }
+      .celular { width: 300px; }
+      .lado { grid-template-columns: 1fr 1fr; gap: 72px; }
+      .lado.inverte .texto { order: 2; }
+      section.bloco { padding: 104px 0; }
+    }
+    @media (max-width: 520px) {
+      .topo .btn-fantasma { display: none; }
+      .aviso-flutuante { left: -12px; width: 220px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="simbolo" viewBox="0 0 100 100"><path d="M28 27 L21 21 M72 27 L79 21" stroke="#2a78d6" stroke-width="4.5" stroke-linecap="round" fill="none"/><circle cx="50" cy="36" r="17" fill="#2a78d6"/><circle cx="50" cy="36" r="9.5" fill="none" stroke="#fff" stroke-width="3.5"/><rect x="22" y="64" width="56" height="11" rx="5.5" fill="#0b0b0b"/></symbol>
+      <symbol id="ok" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="topo">
+    <div class="wrap">
+      <a class="marca" href="#" aria-label="Plinc, início da página"><svg width="34" height="34" aria-hidden="true"><use href="#simbolo"/></svg><span>plinc</span></a>
+      <nav aria-label="Seções">
+        <a href="#recursos">Recursos</a>
+        <a href="#como">Como começar</a>
+        <a href="#preco">Preço</a>
+        <a href="#duvidas">Dúvidas</a>
+      </nav>
+      <div class="acoes">
+        <a class="btn btn-fantasma" href="../">Entrar</a>
+        <a class="btn btn-primario" href="../?demo" data-demo>Ver demonstração</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div>
+          <p class="selo">O app de finanças do casal</p>
+          <h1>Toda moeda <em>conta.</em></h1>
+          <p class="sub">Contas, gastos, cartões e metas da casa num app só. O que um lança, o outro vê na hora, e vocês param de se perguntar “já pagou a luz?”.</p>
+          <div class="ctas">
+            <a class="btn btn-primario btn-grande" href="../?demo" data-demo>Ver o app por dentro</a>
+            <a class="btn btn-fantasma btn-grande" href="#preco">Assinar por R$ 19,90/mês</a>
+          </div>
+          <p class="preco-mini">A demonstração abre na hora, sem cadastro, com dados de exemplo.</p>
+        </div>
+        <div class="vitrine">
+          <div class="celular"><img src="img/app-inicio.webp" width="390" height="844" alt="Tela inicial do Plinc com o total do mês, contas pagas e próximas contas" fetchpriority="high" /></div>
+          <div class="aviso-flutuante" aria-hidden="true">
+            <div class="icone-app"><svg width="26" height="26" viewBox="0 0 100 100"><circle cx="50" cy="36" r="18" fill="#fff"/><circle cx="50" cy="36" r="10" fill="none" stroke="#2a78d6" stroke-width="4"/><rect x="21" y="64" width="58" height="12" rx="6" fill="#0b0b0b"/></svg></div>
+            <div><b>Plinc!</b><small>Léo pagou a conta de luz. Faltam 2 contas este mês.</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="faixa">
+      <ul class="wrap">
+        <li><svg width="18" height="18" aria-hidden="true"><use href="#ok"/></svg>iPhone e Android, direto do navegador</li>
+        <li><svg width="18" height="18" aria-hidden="true"><use href="#ok"/></svg>Sem conectar sua conta do banco</li>
+        <li><svg width="18" height="18" aria-hidden="true"><use href="#ok"/></svg>Cada família só vê os próprios dados</li>
+      </ul>
+    </div>
+
+    <section class="bloco" id="recursos">
+      <div class="wrap">
+        <div class="cabeca">
+          <h2>Tudo o que entra e sai da casa, num lugar só.</h2>
+          <p>Feito para quem cansou de planilha esquecida e de conta descoberta no dia do corte.</p>
+        </div>
+        <div class="cartoes">
+          <article class="cartao">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="m9 16 2 2 4-4"/></svg></div>
+            <h3>Contas fixas sem susto</h3>
+            <p>Aluguel, luz, internet: o Plinc avisa o que vence, mostra o que está atrasado e marca como pago com um toque.</p>
+          </article>
+          <article class="cartao">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div>
+            <h3>Gastos com limite</h3>
+            <p>Defina quanto querem gastar com mercado, delivery ou lazer, e veja quanto ainda dá por dia até o fim do mês.</p>
+          </article>
+          <article class="cartao">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></div>
+            <h3>Cartões e parcelas</h3>
+            <p>A fatura de cada cartão montada sozinha, com as parcelas nos meses certos. Quem paga tudo no Pix nem vê essa parte.</p>
+          </article>
+          <article class="cartao">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
+            <h3>Metas juntos</h3>
+            <p>Reserva de emergência, viagem, casa nova: quanto já guardaram, quanto falta por mês e se o ritmo está bom.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco escuro" aria-labelledby="t-dois">
+      <div class="wrap lado">
+        <div class="texto">
+          <div class="cabeca" style="margin-bottom:0">
+            <h2 id="t-dois">Feito para dois. Ou para a família toda.</h2>
+            <p>Cada um usa no próprio celular, com o próprio login, e a conta da casa fica uma só.</p>
+          </div>
+          <ul class="lista">
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#ok"/></svg><div><b>Atualiza na hora</b><span>Lançou no seu celular, aparece no do outro em segundos.</span></div></li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#ok"/></svg><div><b>O meu, o seu e o nosso</b><span>Cada conta tem quem paga. Filtre por pessoa e veja quanto cada um gastou.</span></div></li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#ok"/></svg><div><b>Convite em um toque</b><span>Mande o convite por WhatsApp e pronto: vocês já estão na mesma casa.</span></div></li>
+          </ul>
+        </div>
+        <div class="celular"><img src="img/app-gastos.webp" width="390" height="844" loading="lazy" alt="Tela de gastos do mês do Plinc, com limite por categoria e filtro por pessoa" /></div>
+      </div>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-metas">
+      <div class="wrap lado inverte">
+        <div class="texto">
+          <div class="cabeca" style="margin-bottom:0">
+            <h2 id="t-metas">Sobrou? Vira meta.</h2>
+            <p>O Plinc mostra quanto sobrou depois das contas e dos gastos, e quanto vocês precisam guardar por mês para chegar lá no prazo.</p>
+          </div>
+          <ul class="lista">
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#ok"/></svg><div><b>Quanto falta, mês a mês</b><span>Coloque o valor e a data; o app calcula o ritmo.</span></div></li>
+            <li><svg width="22" height="22" aria-hidden="true"><use href="#ok"/></svg><div><b>Onde o dinheiro está</b><span>Anote se está na poupança, no Tesouro ou no CDB.</span></div></li>
+          </ul>
+        </div>
+        <div class="celular"><img src="img/app-metas.webp" width="390" height="844" loading="lazy" alt="Tela de metas do Plinc com reserva de emergência e viagem" /></div>
+      </div>
+    </section>
+
+    <section class="bloco" id="como" style="padding-top:0">
+      <div class="wrap">
+        <div class="cabeca">
+          <h2>Comece em 5 minutos.</h2>
+        </div>
+        <ol class="passos">
+          <li><h3>Assine e crie a conta</h3><p>Só e-mail e senha. Abre no navegador e você pode colocar na tela inicial do celular, como um app.</p></li>
+          <li><h3>Convide seu par</h3><p>Um link no WhatsApp e vocês dois já veem a mesma casa, cada um no seu celular.</p></li>
+          <li><h3>Lance as contas do mês</h3><p>Cadastre as contas fixas uma vez. Os gastos, lance na hora ou importe o extrato do banco.</p></li>
+        </ol>
+        <div class="extras">
+          <div class="extra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><div><b>Importa o extrato</b><span>Arquivos OFX ou CSV de Nubank, Mercado Pago, Inter, Itaú e outros.</span></div></div>
+          <div class="extra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><div><b>Lembretes no calendário</b><span>Os vencimentos vão para o calendário do celular, com aviso na véspera.</span></div></div>
+          <div class="extra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5.2-2.8M19 13a10 10 0 0 0-2-1.5M12 20h.01"/></svg><div><b>Abre sem internet</b><span>No metrô ou no avião, os números da casa continuam ali.</span></div></div>
+          <div class="extra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h8"/></svg><div><b>Seus dados são seus</b><span>Exporte tudo em planilha quando quiser.</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco preco" id="preco">
+      <div class="wrap">
+        <div class="cabeca" style="text-align:center;margin-left:auto;margin-right:auto">
+          <h2>Um preço. A família toda.</h2>
+          <p>Sem plano básico, sem recurso escondido.</p>
+        </div>
+        <div class="plano">
+          <p class="nome">Plinc Família</p>
+          <p class="valor">R$ 19,90<small>/mês</small></p>
+          <p class="por">para o casal e quem mais vocês convidarem</p>
+          <ul>
+            <li><svg width="18" height="18" aria-hidden="true"><use href="#ok"/></svg>Contas fixas, gastos, cartões e metas</li>
+            <li><svg width="18" height="18" aria-hidden="true"><use href="#ok"/></svg>Cada um com seu login, tudo sincronizado na hora</li>
+            <li><svg width="18" height="18" aria-hidden="true"><use href="#ok"/></svg>Importação de extrato e lembretes no calendário</li>
+            <li><svg width="18" height="18" aria-hidden="true"><use href="#ok"/></svg>Backup semanal dos seus dados</li>
+          </ul>
+          <a class="btn btn-primario btn-grande" href="../?cadastro" data-cta>Assinar o Plinc</a>
+          <p class="nota">Cancele quando quiser. Quer ver antes? <a href="../?demo" data-demo>Abra a demonstração</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco" id="duvidas">
+      <div class="wrap">
+        <div class="cabeca"><h2>Dúvidas</h2></div>
+        <div class="duvidas">
+          <details>
+            <summary>Preciso conectar minha conta do banco?</summary>
+            <p>Não. Você lança os gastos no app ou importa o extrato que baixar do banco (OFX ou CSV). O Plinc nunca pede a senha do seu banco.</p>
+          </details>
+          <details>
+            <summary>Funciona no iPhone e no Android?</summary>
+            <p>Sim. O Plinc abre direto no navegador do celular ou do computador, e dá para adicionar na tela inicial para usar como um app.</p>
+          </details>
+          <details>
+            <summary>Quantas pessoas podem usar?</summary>
+            <p>O preço é por família: o casal e quem mais dividir as contas da casa com vocês. Cada pessoa tem o próprio login.</p>
+          </details>
+          <details>
+            <summary>Pago tudo no Pix ou no débito. Serve para mim?</summary>
+            <p>Serve. A parte de cartões só aparece se você cadastrar um cartão; sem isso, o app fica só com contas, gastos e metas.</p>
+          </details>
+          <details>
+            <summary>Meus dados ficam seguros?</summary>
+            <p>Cada família só enxerga os próprios dados: essa regra fica no banco de dados, não só no app. Fazemos backup criptografado toda semana, e você pode exportar tudo em planilha quando quiser.</p>
+          </details>
+          <details>
+            <summary>Posso ver o app antes de assinar?</summary>
+            <p>Pode. A demonstração abre na hora, sem cadastro, com uma família de exemplo. Mexa à vontade: o que você fizer fica só no seu navegador.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco escuro final">
+      <div class="wrap">
+        <h2>A casa no azul começa hoje.</h2>
+        <p>Veja o Plinc por dentro em um minuto, sem cadastro.</p>
+        <a class="btn btn-primario btn-grande" href="../?demo" data-demo>Ver o app por dentro</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <a class="marca" href="#" aria-label="Plinc, início da página"><svg width="28" height="28" aria-hidden="true"><use href="#simbolo"/></svg><span style="font-size:24px">plinc</span></a>
+      <nav aria-label="Rodapé">
+        <a href="../">Entrar</a>
+        <a href="#preco">Preço</a>
+        <a href="#duvidas">Dúvidas</a>
+        <span style="color:var(--texto-2)">Termos de uso e Privacidade: em breve</span>
+      </nav>
+      <small>© 2026 Plinc · Toda moeda conta.</small>
+    </div>
+  </footer>
+</body>
+</html>
