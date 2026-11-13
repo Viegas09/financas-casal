@@ -2,9 +2,12 @@
 "use strict";
 
 const CFG = window.CONFIG || {};
-const DEMO = !CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY;
+// Demonstração pública (link app?demo, usado na página de venda): dados de exemplo só no navegador de quem visita,
+// mesmo com o Supabase configurado — não lê nem mexe na conta de ninguém
+const DEMO_PUBLICA = new URLSearchParams(location.search).has("demo");
+const DEMO = DEMO_PUBLICA || !CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY;
 // Pessoas da família (vêm do banco depois do login; o config.js é só o padrão / modo demonstração)
-let PESSOAS = CFG.PESSOAS || ["Pessoa 1", "Pessoa 2"];
+let PESSOAS = DEMO_PUBLICA ? ["Ana", "Léo"] : CFG.PESSOAS || ["Pessoa 1", "Pessoa 2"];
 let RESPONSAVEIS = [...PESSOAS, "Casal"];
 function definirPessoas(lista) {
   PESSOAS = lista && lista.length ? [...lista] : CFG.PESSOAS || ["Pessoa 1"];
@@ -133,7 +136,7 @@ let sb = null;
 if (!DEMO) sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 
 const demoStore = {
-  chave: "financas-casal-demo",
+  chave: DEMO_PUBLICA ? "plinc-demo-publica" : "financas-casal-demo",
   ler() { try { return JSON.parse(localStorage.getItem(this.chave)) || null; } catch { return null; } },
   gravar(d) { try { localStorage.setItem(this.chave, JSON.stringify(d)); } catch {} },
   dados() {
