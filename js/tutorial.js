@@ -1,11 +1,11 @@
-/* Finanças do Casal — Tutorial do app. */
+/* Plinc — Tutorial do app. */
 "use strict";
 
 // ================================================================
 // TUTORIAL
 // ================================================================
 const TUTORIAL = [
-  { ic: "moeda", cor: "azul", titulo: "Bem-vindos ao Finanças do Casal",
+  { ic: "moeda", cor: "azul", titulo: "Bem-vindos ao Plinc",
     texto: "Um lugar só para as contas fixas, os gastos do dia a dia, os cartões e as metas de vocês dois. Tudo o que um lança, o outro vê na hora.",
     itens: ["Use as setas ‹ › no topo para mudar o mês", "Toque no ? a qualquer momento para rever este tutorial"] },
   { ic: "casa", cor: "azul", titulo: "Início: o resumo do mês", ir: "inicio",

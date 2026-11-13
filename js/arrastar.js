@@ -1,4 +1,4 @@
-/* Finanças do Casal — Arrastar para excluir, trava de envio, avisos (toast). */
+/* Plinc — Arrastar para excluir, trava de envio, avisos (toast). */
 "use strict";
 
 // ================================================================

@@ -37,10 +37,10 @@ jobs:
         run: |
           rm -rf site/teste
           mkdir -p site/teste
-          cp -r novo/index.html novo/manifest.webmanifest novo/css novo/js novo/icons site/teste/
+          cp -r novo/index.html novo/manifest.webmanifest novo/css novo/js novo/icons novo/fonts site/teste/
           sed -i 's#SUPABASE_URL: "[^"]*"#SUPABASE_URL: ""#; s#SUPABASE_ANON_KEY: "[^"]*"#SUPABASE_ANON_KEY: ""#' site/teste/js/config.js
-          sed -i 's#<title>[^<]*</title>#<title>TESTE · Finanças</title>#; s#Modo demonstração · dados só neste navegador#VERSÃO DE TESTE · dados de exemplo, só neste celular#' site/teste/index.html
-          sed -i 's#"name": "[^"]*"#"name": "Finanças (teste)"#; s#"short_name": "[^"]*"#"short_name": "Teste"#' site/teste/manifest.webmanifest
+          sed -i 's#<title>[^<]*</title>#<title>TESTE · Plinc</title>#; s#Modo demonstração · dados só neste navegador#VERSÃO DE TESTE · dados de exemplo, só neste celular#' site/teste/index.html
+          sed -i 's#"name": "[^"]*"#"name": "Plinc (teste)"#; s#"short_name": "[^"]*"#"short_name": "Teste"#' site/teste/manifest.webmanifest
           echo "versão: $(cd novo && git log -1 --format='%h %s')" > site/teste/VERSAO.txt
       - name: Publicar
         working-directory: site

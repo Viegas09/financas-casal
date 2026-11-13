@@ -1,4 +1,4 @@
-/* Finanças do Casal — Família e convites. */
+/* Plinc — Família e convites. */
 "use strict";
 
 // ================================================================
@@ -61,7 +61,7 @@ function abrirConvite(modo) {
 }
 
 const linkApp = () => location.origin + location.pathname + "?convite";
-const msgConvite = (c) => `Oi, ${c.nome}! Te convidei para o app Finanças${c.familia_id ? ` (${estado.familia.nome})` : ""}.\n\n1. Abra: ${linkApp()}\n2. Toque em “Criar minha conta”\n3. Use este e-mail: ${c.email}\n4. Escolha uma senha e confirme pelo e-mail que vai chegar.`;
+const msgConvite = (c) => `Oi, ${c.nome}! Te convidei para o app Plinc${c.familia_id ? ` (${estado.familia.nome})` : ""}.\n\n1. Abra: ${linkApp()}\n2. Toque em “Criar minha conta”\n3. Use este e-mail: ${c.email}\n4. Escolha uma senha e confirme pelo e-mail que vai chegar.`;
 
 function mostrarConvitePronto(c) {
   $("#convite-campos").hidden = true; $("#convite-pronto").hidden = false;
