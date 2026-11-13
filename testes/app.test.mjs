@@ -16,18 +16,19 @@ let falhas = 0;
 const ok = (c, m) => { if (!c) falhas++; console.log((c ? "✅ " : "❌ ") + m); };
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 
-async function pagina({ mock = null, limpar = true } = {}) {
+async function pagina({ mock = null, limpar = true, armazenar = null } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p = await ctx.newPage();
   p.erros = [];
   p.on("pageerror", (e) => p.erros.push(String(e)));
   await p.route("**/js/config.js*", (r) => r.fulfill({ body: mock ? cfgMock : cfgDemo, contentType: "application/javascript" }));
   await p.route("**/supabase-js@2", (r) => r.fulfill({ body: mock ? simulado : "", contentType: "application/javascript" }));
-  await p.addInitScript(([m, l]) => {
+  await p.addInitScript(([m, l, a]) => {
     if (m) window.__MOCK = m;
+    if (a) for (const [k, v] of Object.entries(a)) localStorage.setItem(k, v);
     if (l && !sessionStorage.getItem("ja")) { localStorage.clear(); sessionStorage.setItem("ja", "1"); }
     localStorage.setItem("fc-tutorial-visto", "true"); localStorage.setItem("fc-aviso-contas-ok", "true");
-  }, [mock, limpar]);
+  }, [mock, limpar, armazenar]);
   await p.goto(URL_APP);
   await p.waitForTimeout(1200);
   return p;
@@ -183,6 +184,49 @@ const entrar = async (p, email = "vini@x.com") => {
   ok(ops.join() === "Ana", "família de uma pessoa: “Quem paga” só com o nome dela (sem “Casal”)");
   await p.keyboard.press("Escape"); await aba(p, "mais"); await p.waitForTimeout(200);
   ok(!(await p.innerText("#card-familia")).includes("Outras famílias"), "quem não é admin não vê “convidar nova família”");
+}
+
+// ================= SEM INTERNET =================
+// (cada "abrir de novo" é uma página nova com o que ficou guardado no aparelho — recarregar arquivo local no Chromium às vezes perde o localStorage)
+const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ user_id: "u-vini", nome: "Vinícius" }] } });
+{
+  const p1 = await pagina({ mock: MOCK_VINI() });
+  await entrar(p1);
+  const ls = await p1.evaluate(() => ({ ...localStorage }));
+  const guardado = JSON.parse(ls["plinc-dados-v1:u-vini"] || "null");
+  ok(guardado && guardado.contas.length === 1, "depois de entrar, os dados ficam guardados no aparelho");
+  ok(await p1.isHidden("#banner-offline"), "com internet, sem aviso de offline");
+
+  // abre o app de novo, sem internet
+  const p = await pagina({ limpar: false, mock: MOCK_VINI(), armazenar: { ...ls, "teste-semRede": "1" } });
+  await p.context().setOffline(true); await p.waitForTimeout(300);
+  ok(await p.isVisible("#app") && (await p.innerText("#hero-total")).includes("2.200"), "sem internet: o app abre com os últimos dados");
+  ok(await p.isVisible("#banner-offline") && (await p.innerText("#banner-offline")).includes("Sem internet"), "sem internet: aparece o aviso com a hora dos dados");
+  ok(await p.isHidden("#tela-login"), "sem internet: não manda para o login");
+  ok(!(await p.evaluate(() => window.__MOCK.saiu)), "sem internet: não desconecta a conta");
+
+  // tentar salvar sem internet
+  const antes = await p.evaluate(() => window.__MOCK.tabelas.gastos.length);
+  const msg = await p.evaluate(async () => { try { await db.inserir("gastos", { descricao: "x", valor: 1, data: hojeISO(), categoria: "Mercado" }); return "salvou"; } catch (e) { return e.message; } });
+  ok(msg.includes("Sem internet") && antes === (await p.evaluate(() => window.__MOCK.tabelas.gastos.length)), "sem internet: salvar avisa “Sem internet” e não grava nada");
+
+  // a internet volta
+  await p.evaluate(() => localStorage.removeItem("teste-semRede"));
+  await p.context().setOffline(false);
+  await p.waitForFunction(() => document.querySelector("#banner-offline").hidden, null, { timeout: 4000 }).catch(() => {});
+  ok(await p.isHidden("#banner-offline"), "a internet volta: o aviso some e os dados atualizam");
+
+  // sair apaga a cópia do aparelho
+  await aba(p, "mais"); await p.waitForTimeout(200);
+  await p.click("#btn-sair"); await p.waitForTimeout(300);
+  ok(!(await p.evaluate(() => localStorage.getItem("plinc-dados-v1:u-vini"))), "ao sair da conta, os dados guardados no aparelho são apagados");
+  ok(p.erros.length === 0 && p1.erros.length === 0, "sem erros de JavaScript (sem internet) " + p.erros.join(" | "));
+}
+{
+  // primeira vez, sem internet e sem dados guardados
+  const p = await pagina({ limpar: false, mock: MOCK_VINI(), armazenar: { "teste-semRede": "1", "sb-simulado-auth-token": JSON.stringify({ user: { id: "u-vini" } }) } });
+  await p.waitForFunction(() => document.querySelector("#login-erro")?.textContent.includes("Sem internet"), null, { timeout: 4000 }).catch(() => {});
+  ok(await p.isVisible("#tela-login") && (await p.innerText("#login-erro")).includes("Sem internet"), "sem internet e sem dados guardados: login avisa “Sem internet”");
 }
 
 await browser.close();
