@@ -1,1 +1,1 @@
-versão: 53d812d Página de venda do Plinc + demonstração pública (app?demo)
+versão: c1a1e73 Página de venda: mais preto e animações com GSAP
