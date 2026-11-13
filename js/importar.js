@@ -1,4 +1,4 @@
-/* Finanças do Casal — Importar extrato do banco (OFX / CSV). */
+/* Plinc — Importar extrato do banco (OFX / CSV). */
 "use strict";
 
 // ================================================================

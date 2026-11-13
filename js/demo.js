@@ -1,4 +1,4 @@
-/* Finanças do Casal — Dados de exemplo do modo demonstração. */
+/* Plinc — Dados de exemplo do modo demonstração. */
 "use strict";
 
 // ---------- Dados de exemplo (só no modo demonstração) ----------

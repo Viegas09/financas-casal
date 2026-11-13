@@ -1,4 +1,4 @@
-/* Finanças do Casal — Ligação dos botões e eventos. */
+/* Plinc — Ligação dos botões e eventos. */
 "use strict";
 
 // ================================================================
@@ -35,7 +35,8 @@ function ligarEventos() {
   let modoCadastro = false;
   const definirModo = (cad) => {
     modoCadastro = cad;
-    $("#login-titulo").textContent = cad ? "Criar minha conta" : "Finanças do Casal";
+    $("#login-titulo").textContent = cad ? "Criar minha conta" : "plinc";
+    $("#login-titulo").classList.toggle("marca", !cad);
     $("#login-sub").textContent = cad ? "Use o mesmo e-mail que recebeu o convite e escolha uma senha." : "Entre com o seu e-mail e senha.";
     $("#lbl-senha2").hidden = !cad; $("#form-login").elements.senha2.required = cad;
     $("#form-login").elements.senha.autocomplete = cad ? "new-password" : "current-password";

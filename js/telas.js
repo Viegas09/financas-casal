@@ -1,4 +1,4 @@
-/* Finanças do Casal — Desenho das telas: início, contas, análises, cadastros e filtro por pessoa. */
+/* Plinc — Desenho das telas: início, contas, análises, cadastros e filtro por pessoa. */
 "use strict";
 
 // ================================================================

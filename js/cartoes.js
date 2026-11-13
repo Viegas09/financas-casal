@@ -1,4 +1,4 @@
-/* Finanças do Casal — Cartões de crédito e faturas. */
+/* Plinc — Cartões de crédito e faturas. */
 "use strict";
 
 // ---------- Cartões de crédito ----------

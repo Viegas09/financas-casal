@@ -1,3 +1,11 @@
+/* Fontes da marca Plinc (hospedadas no próprio app) */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("../fonts/inter-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("../fonts/inter-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("../fonts/inter-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/inter-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 500; font-display: swap; src: url("../fonts/space-grotesk-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/space-grotesk-latin-700-normal.woff2") format("woff2"); }
+
 :root {
   color-scheme: light;
   --bg: #f2f3f5;
@@ -50,7 +58,7 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
   font-size: 15px;
@@ -60,7 +68,10 @@ body {
 }
 [hidden] { display: none !important; }
 h1, h2 { margin: 0; letter-spacing: -.015em; }
-h1 { font-size: 22px; font-weight: 700; }
+h1 { font-size: 22px; font-weight: 700; font-family: "Space Grotesk", "Inter", sans-serif; letter-spacing: -.02em; }
+.marca { font-family: "Space Grotesk", "Inter", sans-serif; font-weight: 700; letter-spacing: -.045em; text-transform: lowercase; }
+h1.marca { font-size: 40px; line-height: 1; }
+body .hero .grande, body .renda-num b { font-family: "Space Grotesk", "Inter", sans-serif; font-variant-numeric: normal; letter-spacing: -.02em; }
 h2 { font-size: 16px; font-weight: 650; }
 .muted { color: var(--text-2); }
 .pequeno { font-size: 13px; margin: 4px 0 12px; }
@@ -381,6 +392,7 @@ dialog form { padding: 8px 20px calc(20px + var(--safe-b)); display: grid; gap: 
   transition: opacity .35s ease, visibility .35s;
 }
 .splash img { width: 84px; height: 84px; border-radius: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.25); animation: pulsa 1.2s ease-in-out infinite; }
+.splash .marca { font-size: 34px; }
 .splash.sai { opacity: 0; visibility: hidden; }
 @keyframes pulsa { 50% { transform: scale(.94); } }
 

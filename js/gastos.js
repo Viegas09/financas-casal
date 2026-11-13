@@ -1,4 +1,4 @@
-/* Finanças do Casal — Gastos variáveis e orçamentos. */
+/* Plinc — Gastos variáveis e orçamentos. */
 "use strict";
 
 // ---------- Gastos variáveis ----------

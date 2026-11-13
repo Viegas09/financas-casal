@@ -1,4 +1,4 @@
-/* Finanças do Casal — Ações: pagar, formulários de conta, renda, gasto, orçamento, meta, aporte, cartão, exportar. */
+/* Plinc — Ações: pagar, formulários de conta, renda, gasto, orçamento, meta, aporte, cartão, exportar. */
 "use strict";
 
 // ================================================================
@@ -579,7 +579,7 @@ function exportarCSV() {
   const csv = "﻿" + linhas.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  a.download = `financas-casal-contas-${hojeISO()}.csv`;
+  a.download = `plinc-contas-${hojeISO()}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
   if (estado.gastos.length) {
@@ -588,7 +588,7 @@ function exportarCSV() {
     const csv2 = "\ufeff" + lg.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
     const b = document.createElement("a");
     b.href = URL.createObjectURL(new Blob([csv2], { type: "text/csv;charset=utf-8" }));
-    b.download = `financas-casal-gastos-${hojeISO()}.csv`;
+    b.download = `plinc-gastos-${hojeISO()}.csv`;
     setTimeout(() => { b.click(); URL.revokeObjectURL(b.href); }, 400);
   }
 }

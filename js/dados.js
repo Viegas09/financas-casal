@@ -1,4 +1,4 @@
-/* Finanças do Casal — Carregar dados e cálculos do mês. */
+/* Plinc — Carregar dados e cálculos do mês. */
 "use strict";
 
 // ================================================================
