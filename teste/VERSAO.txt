@@ -1,1 +1,1 @@
-versão: 6eb3d69 Fase 1.2: app rápido e funcionando sem internet
+versão: a2fc7bd Fase 1.3: sincronização ao vivo entre os celulares da família
