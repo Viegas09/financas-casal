@@ -146,6 +146,14 @@ let memDemo = null;
 const demoDB = () => (memDemo ??= demoStore.dados());
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
+// ---------- Sem internet ----------
+const MSG_SEM_REDE = "Sem internet: não deu para salvar. Tente de novo quando a conexão voltar.";
+const ehErroDeRede = (e) => !navigator.onLine || e?.rede || e?.name === "AuthRetryableFetchError" ||
+  /failed to fetch|networkerror|load failed|network request failed|internet connection/i.test(String(e?.message || e || ""));
+/** Antes de gravar: sem internet, avisa em vez de tentar. Depois: erro de rede vira mensagem clara; sucesso atualiza a cópia do aparelho. */
+const exigirRede = () => { if (!navigator.onLine) throw Object.assign(new Error(MSG_SEM_REDE), { rede: true }); };
+const falhou = (error) => (ehErroDeRede(error) ? Object.assign(new Error(MSG_SEM_REDE), { rede: true }) : error);
+
 const db = {
   async listar(tabela) {
     if (DEMO) return structuredClone(demoDB()[tabela] || []);
@@ -155,27 +163,35 @@ const db = {
   },
   async inserir(tabela, linha) {
     if (DEMO) { const r = { id: uid(), ...linha }; (demoDB()[tabela] ||= []).push(r); demoStore.gravar(demoDB()); return r; }
+    exigirRede();
     const { data, error } = await sb.from(tabela).insert(linha).select().single();
-    if (error) throw error;
+    if (error) throw falhou(error);
+    salvarCacheDepois();
     return data;
   },
   async inserirVarios(tabela, linhas) {
     if (!linhas.length) return [];
     if (DEMO) { const rs = linhas.map((l) => ({ id: uid(), ...l })); (demoDB()[tabela] ||= []).push(...rs); demoStore.gravar(demoDB()); return rs; }
+    exigirRede();
     const { data, error } = await sb.from(tabela).insert(linhas).select();
-    if (error) throw error;
+    if (error) throw falhou(error);
+    salvarCacheDepois();
     return data;
   },
   async atualizar(tabela, id, campos) {
     if (DEMO) { const r = demoDB()[tabela].find((x) => x.id === id); Object.assign(r, campos); demoStore.gravar(demoDB()); return r; }
+    exigirRede();
     const { data, error } = await sb.from(tabela).update(campos).eq("id", id).select().single();
-    if (error) throw error;
+    if (error) throw falhou(error);
+    salvarCacheDepois();
     return data;
   },
   async remover(tabela, id) {
     if (DEMO) { const t = demoDB()[tabela]; t.splice(t.findIndex((x) => x.id === id), 1); demoStore.gravar(demoDB()); return; }
+    exigirRede();
     const { error } = await sb.from(tabela).delete().eq("id", id);
-    if (error) throw error;
+    if (error) throw falhou(error);
+    salvarCacheDepois();
   }
 };
 

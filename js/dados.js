@@ -6,7 +6,7 @@
 // ================================================================
 async function carregar() {
   try {
-    const opcional = (t, flag) => db.listar(t).catch((e) => { console.warn(t, e); estado[flag] = false; return []; });
+    const opcional = (t, flag) => db.listar(t).catch((e) => { if (ehErroDeRede(e)) throw e; console.warn(t, e); estado[flag] = false; return []; });
     estado.migracao2 = true; estado.migracao3 = true; estado.migracao6 = true;
     const [contas, pagamentos, rendas, gastos, orcamentos, metas, aportes, cartoes, faturas_pagas, valores_mes] = await Promise.all([
       db.listar("contas"), db.listar("pagamentos"), db.listar("rendas"),
@@ -20,11 +20,18 @@ async function carregar() {
       const [mb, cv] = await Promise.all([db.listar("membros").catch(() => []), db.listar("convites").catch(() => [])]);
       estado.membrosFamilia = mb; estado.convites = cv;
     }
+    estado.doCache = false; estado.salvoEm = new Date().toISOString();
+    modoOffline(false);
+    cacheLocal.salvar();
     render();
     esconderSplash();
     if (!lerPref("tutorial-visto", false)) setTimeout(() => abrirTutorial(0), 500);
   } catch (e) {
     esconderSplash();
+    if (!DEMO && ehErroDeRede(e)) {
+      if (estado.doCache) return modoOffline(true);   // segue mostrando os dados guardados
+      return toast("Sem internet: não foi possível carregar os dados. Tente de novo quando a conexão voltar.");
+    }
     console.error(e);
     toast("Não foi possível carregar os dados: " + (e.message || e));
   }

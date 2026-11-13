@@ -108,4 +108,4 @@ function toast(msg, opcoes) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.hidden = true), opcoes ? 5000 : 2600);
 }
-function erro(e) { console.error(e); toast("Erro: " + (e.message || e)); }
+function erro(e) { console.error(e); toast(e?.rede ? e.message : "Erro: " + (e.message || e)); }
