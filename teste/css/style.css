@@ -137,6 +137,7 @@ label.check input { width: 20px; height: 20px; }
 .mes-nav { display: flex; align-items: center; gap: 6px; }
 .mes-nav strong { min-width: 92px; text-align: center; font-size: 14px; }
 .banner { background: var(--warn-bg); color: var(--warn); padding: 6px 16px; font-size: 12px; text-align: center; font-weight: 600; }
+.banner a { color: inherit; font-weight: 700; }
 .banner.offline { background: var(--neutral-bg); color: var(--text-2); }
 
 main {

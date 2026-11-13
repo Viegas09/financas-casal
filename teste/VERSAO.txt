@@ -1,1 +1,1 @@
-versão: e509d38 Fase 1.4: lembretes de vencimento no calendário (.ics)
+versão: 53d812d Página de venda do Plinc + demonstração pública (app?demo)

@@ -19,6 +19,7 @@ async function iniciar() {
 
   if (DEMO) {
     $("#banner-demo").hidden = false;
+    if (DEMO_PUBLICA) $("#banner-demo").innerHTML = 'Demonstração com dados de exemplo · pode mexer à vontade · <a href="plinc/#preco">Assinar o Plinc</a>';
     estado.usuario = { nome: PESSOAS[0] + " (demo)" };
     return entrarNoApp();
   }

@@ -7,7 +7,7 @@
  */
 "use strict";
 
-const VERSAO = "1";
+const VERSAO = "2";
 const BASE = new URL("./", self.location).pathname;              // ex.: /financas-casal/ ou /financas-casal/teste/
 const PREFIXO = "plinc:" + BASE + ":";
 const CACHE = PREFIXO + VERSAO;
@@ -101,6 +101,7 @@ self.addEventListener("fetch", (ev) => {
   if (u.origin !== self.location.origin || !u.pathname.startsWith(BASE)) return;   // Supabase e outros sites: direto
   const resto = u.pathname.slice(BASE.length);
   if (resto.startsWith("teste/")) return;                                          // o link de teste tem o próprio
-  if (req.mode === "navigate" || resto === "" || resto === "index.html") return ev.respondWith(pagina(req));
+  if (resto === "" || resto === "index.html") return ev.respondWith(pagina(req));
+  if (req.mode === "navigate" || resto.startsWith("plinc/")) return;                // página de venda e outras páginas: direto
   if (/\.(js|css|png|svg|woff2|webmanifest)$/.test(u.pathname)) return ev.respondWith(arquivo(req));
 });
