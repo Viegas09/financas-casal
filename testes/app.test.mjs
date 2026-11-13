@@ -229,6 +229,44 @@ const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ u
   ok(await p.isVisible("#tela-login") && (await p.innerText("#login-erro")).includes("Sem internet"), "sem internet e sem dados guardados: login avisa “Sem internet”");
 }
 
+// ================= AO VIVO (dois celulares da mesma família) =================
+{
+  const FAM = () => ({ usuarios: [VINI], tabelas: { ...tabs(),
+    membros: [{ user_id: "u-vini", nome: "Vinícius", familia_id: "f1", papel: "dono", admin: true, email: "vini@x.com" }],
+    familias: [{ id: "f1", nome: "Vinícius & Marcela", pessoas: ["Vinícius", "Marcela"] }], convites: [] } });
+  const p = await pagina({ mock: FAM() });
+  await entrar(p);
+  ok(await p.evaluate(() => (window.__MOCK.canais["plinc-familia:f1"] || []).length === 1), "ao entrar, o celular escuta o canal da própria família");
+
+  // a Marcela lança um gasto no celular dela
+  await p.evaluate(() => { window.__MOCK.tabelas.gastos.push({ id: "g-ma", descricao: "Padaria", valor: 37.5, data: hojeISO(), categoria: "Mercado", responsavel: "Marcela" }); window.__MOCK.receber("plinc-familia:f1"); });
+  await p.waitForFunction(() => estado.gastos.some((g) => g.id === "g-ma"), null, { timeout: 4000 }).catch(() => {});
+  ok(await p.evaluate(() => estado.gastos.some((g) => g.id === "g-ma")), "outro celular salvou: os dados atualizam sozinhos");
+  await p.waitForFunction(() => document.querySelector("#hero-total").textContent.includes("2.237,50"), null, { timeout: 3000 }).catch(() => {});
+  ok((await p.innerText("#hero-total")).includes("2.237,50"), "o total da tela inicial já inclui o gasto da Marcela " + (await p.innerText("#hero-total")));
+
+  // aviso chega com um formulário aberto: espera fechar
+  await aba(p, "contas"); await p.click("#aba-contas .btn-add"); await p.waitForTimeout(250);
+  await p.evaluate(() => { window.__MOCK.tabelas.gastos.push({ id: "g-ma2", descricao: "Farmácia", valor: 20, data: hojeISO(), categoria: "Saúde", responsavel: "Marcela" }); window.__MOCK.receber("plinc-familia:f1"); });
+  await p.waitForTimeout(2000);
+  ok(!(await p.evaluate(() => estado.gastos.some((g) => g.id === "g-ma2"))), "com formulário aberto, não atualiza no meio (não perde o que está sendo digitado)");
+  await p.keyboard.press("Escape");
+  await p.waitForFunction(() => estado.gastos.some((g) => g.id === "g-ma2"), null, { timeout: 4000 }).catch(() => {});
+  ok(await p.evaluate(() => estado.gastos.some((g) => g.id === "g-ma2")), "fechou o formulário: atualiza em seguida");
+
+  // este celular salva: avisa a família (um aviso só)
+  const antes = await p.evaluate(() => window.__MOCK.enviados.length);
+  await p.evaluate(async () => { await db.inserir("gastos", { descricao: "Café", valor: 8, data: hojeISO(), categoria: "Mercado" }); await db.inserir("gastos", { descricao: "Pão", valor: 5, data: hojeISO(), categoria: "Mercado" }); });
+  await p.waitForTimeout(700);
+  const env = await p.evaluate(() => window.__MOCK.enviados);
+  ok(env.length - antes === 1 && env.at(-1).canal === "plinc-familia:f1" && env.at(-1).event === "mudou" && JSON.stringify(env.at(-1).payload) === "{}", "ao salvar, avisa os outros celulares da família (só o sinal, sem dados)");
+
+  // sair: para de escutar
+  await aba(p, "mais"); await p.waitForTimeout(200); await p.click("#btn-sair"); await p.waitForTimeout(300);
+  ok(!(await p.evaluate(() => window.__MOCK.canais["plinc-familia:f1"])), "ao sair da conta, para de escutar o canal");
+  ok(p.erros.length === 0, "sem erros de JavaScript (ao vivo) " + p.erros.join(" | "));
+}
+
 await browser.close();
 console.log(falhas ? `\n${falhas} FALHA(S) nas telas` : "\nTelas: tudo certo");
 process.exit(falhas ? 1 : 0);

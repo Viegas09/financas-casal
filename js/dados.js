@@ -4,7 +4,8 @@
 // ================================================================
 // CARREGAR E CALCULAR
 // ================================================================
-async function carregar() {
+/** Busca tudo no banco. silencioso: atualização automática (sem tutorial). Devolve true se deu certo. */
+async function carregar({ silencioso = false } = {}) {
   try {
     const opcional = (t, flag) => db.listar(t).catch((e) => { if (ehErroDeRede(e)) throw e; console.warn(t, e); estado[flag] = false; return []; });
     estado.migracao2 = true; estado.migracao3 = true; estado.migracao6 = true;
@@ -23,17 +24,21 @@ async function carregar() {
     estado.doCache = false; estado.salvoEm = new Date().toISOString();
     modoOffline(false);
     cacheLocal.salvar();
+    aoVivo.carregadoEm = Date.now();
     render();
     esconderSplash();
-    if (!lerPref("tutorial-visto", false)) setTimeout(() => abrirTutorial(0), 500);
+    if (!silencioso && !lerPref("tutorial-visto", false)) setTimeout(() => abrirTutorial(0), 500);
+    return true;
   } catch (e) {
     esconderSplash();
     if (!DEMO && ehErroDeRede(e)) {
-      if (estado.doCache) return modoOffline(true);   // segue mostrando os dados guardados
-      return toast("Sem internet: não foi possível carregar os dados. Tente de novo quando a conexão voltar.");
+      if (estado.doCache || silencioso) { modoOffline(true); return false; }   // segue mostrando os dados que já estão na tela
+      toast("Sem internet: não foi possível carregar os dados. Tente de novo quando a conexão voltar.");
+      return false;
     }
     console.error(e);
     toast("Não foi possível carregar os dados: " + (e.message || e));
+    return false;
   }
 }
 
