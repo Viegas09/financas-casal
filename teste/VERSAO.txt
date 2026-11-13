@@ -1,1 +1,1 @@
-versão: c1a1e73 Página de venda: mais preto e animações com GSAP
+versão: d5b4b09 Fase 3: assinatura com Mercado Pago e cadastro aberto
