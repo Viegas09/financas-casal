@@ -1,1 +1,1 @@
-versão: a2fc7bd Fase 1.3: sincronização ao vivo entre os celulares da família
+versão: e509d38 Fase 1.4: lembretes de vencimento no calendário (.ics)

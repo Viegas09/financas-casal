@@ -10,6 +10,7 @@ async function iniciar() {
   ligarTutorial();
   ligarArraste();
   ligarImportar();
+  ligarCalendario();
   ligarFamilia();
 
   ligarOffline();
