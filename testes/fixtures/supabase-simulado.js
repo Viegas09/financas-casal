@@ -43,14 +43,22 @@ window.supabase = { createClient() {
   }
   // teste chama: __MOCK.receber("plinc-familia:f1") como se outro celular tivesse salvo
   M.receber = (nome, evento = "mudou") => (M.canais[nome] || []).filter((x) => x.evento === evento).forEach((x) => x.cb({ event: evento, payload: {} }));
+  // assinatura (migração 07): sem M.assinatura, finge que a migração não rodou
+  async function rpc(nome) {
+    if (semRede()) return err("TypeError: Failed to fetch");
+    if (nome === "minha_assinatura") return M.assinatura !== undefined ? { data: typeof M.assinatura === "function" ? M.assinatura() : M.assinatura, error: null } : err("function public.minha_assinatura() does not exist");
+    return err("function " + nome + " does not exist");
+  }
+  M.chamadas ||= [];
+  const functions = { async invoke(nome, { body } = {}) { M.chamadas.push({ nome, body }); const f = M.funcoes?.[nome]; return f ? f(body) : { data: null, error: { message: "função não publicada" } }; } };
   return {
-    from, channel,
+    from, channel, rpc, functions,
     removeChannel(c) { delete M.canais[c.nome]; return Promise.resolve("ok"); },
     auth: {
       async getSession() { return { data: { session: sess } }; },
       async getUser() { return semRede() ? { data: { user: null }, error: { name: "AuthRetryableFetchError", message: "Failed to fetch" } } : { data: { user: sess?.user } }; },
       async signInWithPassword({ email, password }) { const u = M.usuarios.find((x) => x.email === email && x.senha === password); if (!u) return err("Invalid login credentials"); sess = { user: u }; localStorage.setItem(CHAVE, JSON.stringify(sess)); return { data: { session: sess }, error: null }; },
-      async signUp({ email, password }) { return M.signUp ? M.signUp(email, password) : err("Signups not allowed for this instance"); },
+      async signUp({ email, password, options }) { M.ultimoSignUp = { email, options }; return M.signUp ? M.signUp(email, password) : err("Signups not allowed for this instance"); },
       async signOut() { sess = null; localStorage.removeItem(CHAVE); M.saiu = true; return { error: null }; },
       onAuthStateChange() {}, async resetPasswordForEmail() { return { error: null }; }, async updateUser() { return { error: null }; }
     }

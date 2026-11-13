@@ -27,6 +27,9 @@ jobs:
       - name: Testes do banco (separação entre famílias, migrações)
         working-directory: testes
         run: node banco.test.mjs
+      - name: Testes das funções de assinatura (Mercado Pago simulado)
+        working-directory: testes
+        run: node funcoes.test.mjs
       - name: Testes das telas
         working-directory: testes
         run: node app.test.mjs

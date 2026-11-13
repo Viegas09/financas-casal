@@ -37,24 +37,27 @@ function ligarEventos() {
     modoCadastro = cad;
     $("#login-titulo").textContent = cad ? "Criar minha conta" : "plinc";
     $("#login-titulo").classList.toggle("marca", !cad);
-    $("#login-sub").textContent = cad ? "Use o mesmo e-mail que recebeu o convite e escolha uma senha." : "Entre com o seu e-mail e senha.";
+    $("#login-sub").textContent = cad ? "Se recebeu um convite, use o mesmo e-mail do convite." : "Entre com o seu e-mail e senha.";
+    $("#lbl-nome").hidden = !cad;
     $("#lbl-senha2").hidden = !cad; $("#form-login").elements.senha2.required = cad;
     $("#form-login").elements.senha.autocomplete = cad ? "new-password" : "current-password";
     $("#btn-login").textContent = cad ? "Criar conta" : "Entrar";
     $("#btn-esqueci").hidden = cad;
-    $("#login-pergunta").textContent = cad ? "Já tem conta?" : "Recebeu um convite?";
+    $("#login-pergunta").textContent = cad ? "Já tem conta?" : "Ainda não tem conta?";
     $("#btn-modo-cadastro").textContent = cad ? "Entrar" : "Criar minha conta";
     $("#login-erro").textContent = "";
   };
   $("#btn-modo-cadastro").addEventListener("click", () => definirModo(!modoCadastro));
-  if (new URLSearchParams(location.search).get("convite") !== null) definirModo(true);
+  const qs = new URLSearchParams(location.search);
+  if (qs.get("convite") !== null || qs.get("cadastro") !== null) definirModo(true);
   $("#form-login").addEventListener("submit", travar(async (ev) => {
     const f = ev.target.elements;
     $("#login-erro").textContent = "";
     const email = f.email.value.trim();
     if (modoCadastro) {
       if (f.senha.value !== f.senha2.value) { $("#login-erro").textContent = "As senhas não são iguais."; return; }
-      const { data, error } = await sb.auth.signUp({ email, password: f.senha.value, options: { emailRedirectTo: location.origin + location.pathname } });
+      const nome = (f.nome.value || "").trim().slice(0, 40);
+      const { data, error } = await sb.auth.signUp({ email, password: f.senha.value, options: { emailRedirectTo: location.origin + location.pathname, data: nome ? { nome } : {} } });
       if (error) {
         const m = error.message || "";
         $("#login-erro").textContent = /already|registered|exists/i.test(m) ? "Já existe uma conta com este e-mail. Toque em “Entrar”."

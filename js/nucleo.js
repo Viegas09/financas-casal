@@ -154,8 +154,11 @@ const MSG_SEM_REDE = "Sem internet: não deu para salvar. Tente de novo quando a
 const ehErroDeRede = (e) => !navigator.onLine || e?.rede || e?.name === "AuthRetryableFetchError" ||
   /failed to fetch|networkerror|load failed|network request failed|internet connection/i.test(String(e?.message || e || ""));
 /** Antes de gravar: sem internet, avisa em vez de tentar. Depois: erro de rede vira mensagem clara; sucesso atualiza a cópia do aparelho. */
-const exigirRede = () => { if (!navigator.onLine) throw Object.assign(new Error(MSG_SEM_REDE), { rede: true }); };
-const falhou = (error) => (ehErroDeRede(error) ? Object.assign(new Error(MSG_SEM_REDE), { rede: true }) : error);
+const exigirRede = () => { if (!navigator.onLine) throw Object.assign(new Error(MSG_SEM_REDE), { rede: true }); exigirAssinatura(); };
+const falhou = (error) => ehErroDeRede(error) ? Object.assign(new Error(MSG_SEM_REDE), { rede: true })
+  : /row-level security|PGRST116|violates row/i.test(String(error?.message || error?.code || "")) && estado.migracao7
+    ? Object.assign(new Error("Não deu para salvar: confira se a assinatura está em dia (Mais → Sua assinatura)."), { amigavel: true })
+    : error;
 
 /** Depois de gravar no banco: atualiza a cópia do aparelho e avisa os outros celulares da família. */
 function depoisDeSalvar() { salvarCacheDepois(); avisarFamilia(); }

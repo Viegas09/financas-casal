@@ -138,6 +138,14 @@ label.check input { width: 20px; height: 20px; }
 .mes-nav strong { min-width: 92px; text-align: center; font-size: 14px; }
 .banner { background: var(--warn-bg); color: var(--warn); padding: 6px 16px; font-size: 12px; text-align: center; font-weight: 600; }
 .banner a { color: inherit; font-weight: 700; }
+.banner .btn-link { color: inherit; font-weight: 700; font-size: 12px; padding: 0 2px; text-decoration: underline; }
+.assinar-card h1 { font-size: 24px; }
+.assinar-preco { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; background: var(--accent-soft); border-radius: 14px; padding: 14px 16px; }
+.assinar-preco b { white-space: nowrap; font-family: "Space Grotesk", "Inter", sans-serif; font-size: 34px; letter-spacing: -.03em; color: var(--accent-forte); }
+.assinar-preco span { color: var(--text-2); font-weight: 600; font-size: 14px; }
+.assinar-lista { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--text-2); font-size: 14px; }
+#form-assinar label small { font-weight: 500; font-size: 12px; }
+#form-assinar a.btn-link { text-decoration: none; }
 .banner.offline { background: var(--neutral-bg); color: var(--text-2); }
 
 main {

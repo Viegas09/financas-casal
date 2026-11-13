@@ -12,6 +12,7 @@ async function iniciar() {
   ligarImportar();
   ligarCalendario();
   ligarFamilia();
+  ligarAssinatura();
 
   ligarOffline();
   ligarAtualizacaoAutomatica();
@@ -75,12 +76,20 @@ async function validarMembro() {
     if (ef && ehErroDeRede(ef)) throw ef;
     estado.familia = fam || null;
   }
+  await carregarAssinatura();
   estado.validado = true;
   definirPessoas(estado.familia?.pessoas);
   preencherSelects();
   if (pessoa !== "todos" && !PESSOAS.includes(pessoa)) pessoa = "todos";
   ligarAoVivo();
-  entrarNoApp();
+  const voltouDoCheckout = new URLSearchParams(location.search).get("assinatura") === "retorno";
+  if (precisaAssinar()) {
+    mostrarTelaAssinar();
+    if (voltouDoCheckout) esperarConfirmacao();
+    return;
+  }
+  await entrarNoApp();
+  if (voltouDoCheckout) { history.replaceState(null, "", location.pathname); toast("Assinatura confirmada. Obrigado!"); }
 }
 
 function esconderSplash() {

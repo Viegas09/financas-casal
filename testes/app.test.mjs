@@ -283,6 +283,85 @@ const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ u
   ok(p.erros.length === 0, "sem erros de JavaScript (ao vivo) " + p.erros.join(" | "));
 }
 
+// ================= ASSINATURA (migração 07) =================
+const FAM1 = () => ({ ...tabs(), membros: [{ user_id: "u-vini", nome: "Vinícius", familia_id: "f1", papel: "dono", admin: true, email: "vini@x.com" }],
+  familias: [{ id: "f1", nome: "Vinícius & Marcela", pessoas: ["Vinícius", "Marcela"] }], convites: [] });
+const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
+{
+  // criar conta pelo botão da página de venda (?cadastro)
+  const p = await pagina({ url: URL_APP + "?cadastro", mock: { usuarios: [], tabelas: FAM1() } });
+  ok((await p.innerText("#login-titulo")) === "Criar minha conta" && await p.isVisible("#lbl-nome"), "link ?cadastro abre “Criar minha conta” pedindo o nome");
+  await p.evaluate(() => (window.__MOCK.signUp = async () => ({ data: { session: null, user: {} }, error: null })));
+  await p.fill("#form-login [name=nome]", "Bia"); await p.fill("#form-login [name=email]", "bia@x.com");
+  await p.fill("#form-login [name=senha]", "123456"); await p.fill("#form-login [name=senha2]", "123456");
+  await p.click("#btn-login"); await p.waitForTimeout(400);
+  ok((await p.evaluate(() => window.__MOCK.ultimoSignUp?.options?.data?.nome)) === "Bia", "o nome vai junto no cadastro (vira o nome da família)");
+}
+{
+  // família nova que ainda não pagou
+  const BIA = { id: "u-bia", email: "bia@x.com", senha: "123456" };
+  const tb = { ...tabs(), contas: [], membros: [{ user_id: "u-bia", nome: "Bia", familia_id: "f9", papel: "dono", email: "bia@x.com" }], familias: [{ id: "f9", nome: "Família de Bia", pessoas: ["Bia"] }], convites: [] };
+  const p = await pagina({ mock: { usuarios: [BIA], tabelas: tb, assinatura: { status: "pendente", liberada: false, pago: false, valido_ate: null } } });
+  await entrar(p, "bia@x.com");
+  ok(await p.isVisible("#tela-assinar") && await p.isHidden("#app"), "família que não pagou vê a tela “Ative sua assinatura” (não o app)");
+  ok((await p.inputValue("#form-assinar [name=email]")) === "bia@x.com" && (await p.innerText("#tela-assinar")).includes("19,90"), "tela mostra o preço e já preenche o e-mail");
+  await p.evaluate(() => { window.__MOCK.funcoes = { assinatura: async (b) => ({ data: { url: "https://mp.exemplo/checkout?preapproval_id=x" }, error: null }) }; window.abrirCheckout = (u) => (window.__foiPara = u); });
+  await p.click("#form-assinar button[type=submit]"); await p.waitForTimeout(400);
+  const ch = await p.evaluate(() => window.__MOCK.chamadas.at(-1));
+  ok(ch?.nome === "assinatura" && ch.body.acao === "assinar" && ch.body.email === "bia@x.com" && (await p.evaluate(() => window.__foiPara)).includes("preapproval_id"), "“Assinar com Mercado Pago” pede a assinatura ao servidor e abre o checkout");
+  await p.evaluate(() => { window.__MOCK.funcoes.assinatura = async () => ({ data: null, error: { message: "x", context: { json: async () => ({ erro: "Confira o e-mail do pagamento." }) } } }); });
+  await p.click("#form-assinar button[type=submit]"); await p.waitForTimeout(300);
+  ok((await p.innerText("#assinar-msg")).includes("Confira o e-mail"), "erro do servidor aparece em português na tela");
+}
+{
+  // volta do checkout: espera o aviso do Mercado Pago e entra no app
+  const BIA = { id: "u-bia", email: "bia@x.com", senha: "123456" };
+  const tb = { ...tabs(), membros: [{ user_id: "u-bia", nome: "Bia", familia_id: "f9", papel: "dono", email: "bia@x.com" }], familias: [{ id: "f9", nome: "Família de Bia", pessoas: ["Bia"] }], convites: [] };
+  const p = await pagina({ url: URL_APP + "?assinatura=retorno", mock: { usuarios: [BIA], tabelas: tb, assinatura: { status: "pendente", liberada: false, pago: false } } });
+  await entrar(p, "bia@x.com");
+  ok((await p.innerText("#assinar-msg")).includes("Recebendo a confirmação"), "voltou do Mercado Pago: “Recebendo a confirmação…”");
+  await p.evaluate((v) => { window.__MOCK.assinatura = { status: "ativa", liberada: true, pago: false, valido_ate: v }; }, futuro(2));
+  await p.waitForFunction(() => !document.querySelector("#app").hidden, null, { timeout: 8000 }).catch(() => {});
+  ok(await p.isVisible("#app") && await p.isHidden("#tela-assinar"), "confirmação chegou: entra no app sozinho");
+  ok(!(await p.evaluate(() => location.search.includes("assinatura"))), "o endereço volta ao normal (sem ?assinatura=retorno)");
+}
+{
+  // assinatura vencida (passou a tolerância): só consulta
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: FAM1(), assinatura: { status: "atrasada", liberada: false, pago: true, valido_ate: futuro(-10), tolerancia_ate: futuro(-3) } } });
+  await entrar(p);
+  ok(await p.isVisible("#app") && (await p.innerText("#hero-total")).includes("2.200"), "vencida: o app abre e mostra os dados (só consulta)");
+  ok(await p.isVisible("#banner-assinatura") && (await p.innerText("#banner-assinatura")).includes("Renovar"), "vencida: aviso no topo com botão Renovar");
+  const antes = await p.evaluate(() => window.__MOCK.tabelas.gastos.length);
+  const msg = await p.evaluate(async () => { try { await db.inserir("gastos", { descricao: "x", valor: 1, data: hojeISO(), categoria: "Mercado" }); return "salvou"; } catch (e) { return e.message; } });
+  ok(msg.includes("assinatura") && antes === await p.evaluate(() => window.__MOCK.tabelas.gastos.length), "vencida: tentar lançar avisa da assinatura e não grava");
+  await aba(p, "mais"); await p.waitForTimeout(200);
+  ok((await p.innerText("#card-assinatura")).includes("Vencida") && await p.isVisible("#card-assinatura [data-acao=renovar-assinatura]"), "Mais → Sua assinatura: “Vencida” com botão para assinar de novo");
+  await p.click("#banner-assinatura [data-acao=renovar-assinatura]"); await p.waitForTimeout(200);
+  ok(await p.isVisible("#tela-assinar") && (await p.innerText("#btn-sair-assinar")) === "Voltar para o app", "Renovar abre a tela de assinar, com opção de voltar ao app");
+  await p.click("#btn-sair-assinar"); await p.waitForTimeout(200);
+  ok(await p.isVisible("#app"), "Voltar para o app funciona");
+}
+{
+  // assinatura ativa: cancelar
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: FAM1(), assinatura: { status: "ativa", liberada: true, pago: true, valido_ate: futuro(20) } } });
+  p.on("dialog", (d) => d.accept());
+  await entrar(p);
+  ok(await p.isHidden("#banner-assinatura"), "ativa: sem aviso no topo");
+  await aba(p, "mais"); await p.waitForTimeout(200);
+  ok((await p.innerText("#card-assinatura")).includes("Ativa") && (await p.innerText("#card-assinatura")).includes("próxima cobrança"), "Mais → Sua assinatura: “Ativa” com a próxima cobrança");
+  await p.evaluate((v) => { window.__MOCK.funcoes = { assinatura: async (b) => { window.__MOCK.assinatura = { status: "cancelada", liberada: true, pago: true, valido_ate: v }; return { data: { ok: true }, error: null }; } }; }, futuro(20));
+  await p.click("#card-assinatura [data-acao=cancelar-assinatura]"); await p.waitForTimeout(500);
+  ok((await p.evaluate(() => window.__MOCK.chamadas.at(-1)?.body?.acao)) === "cancelar" && (await p.innerText("#card-assinatura")).includes("Cancelada"), "cancelar: pede ao servidor e mostra “Cancelada · usa até…”");
+  ok(p.erros.length === 0, "sem erros de JavaScript (assinatura) " + p.erros.join(" | "));
+}
+{
+  // cortesia (vocês e a irmã): nada muda
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: FAM1(), assinatura: { status: "cortesia", liberada: true, pago: false } } });
+  await entrar(p);
+  await aba(p, "mais"); await p.waitForTimeout(200);
+  ok(await p.isVisible("#app") && await p.isHidden("#banner-assinatura") && (await p.innerText("#card-assinatura")).includes("Cortesia") && !(await p.locator("#card-assinatura button").count()), "cortesia: app normal, “Cortesia” em Mais, sem botões de cobrança");
+}
+
 // ================= DEMONSTRAÇÃO PÚBLICA (app?demo, link da página de venda) =================
 {
   const p = await pagina({ url: URL_APP + "?demo", mock: { usuarios: [VINI], tabelas: { ...tabs(), membros: [{ user_id: "u-vini", nome: "Vinícius" }] } } });
