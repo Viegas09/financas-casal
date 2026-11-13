@@ -1,1 +1,1 @@
-versão: d5b4b09 Fase 3: assinatura com Mercado Pago e cadastro aberto
+versão: de32e5f README: como ligar a assinatura (Mercado Pago)
