@@ -154,6 +154,9 @@ const ehErroDeRede = (e) => !navigator.onLine || e?.rede || e?.name === "AuthRet
 const exigirRede = () => { if (!navigator.onLine) throw Object.assign(new Error(MSG_SEM_REDE), { rede: true }); };
 const falhou = (error) => (ehErroDeRede(error) ? Object.assign(new Error(MSG_SEM_REDE), { rede: true }) : error);
 
+/** Depois de gravar no banco: atualiza a cópia do aparelho e avisa os outros celulares da família. */
+function depoisDeSalvar() { salvarCacheDepois(); avisarFamilia(); }
+
 const db = {
   async listar(tabela) {
     if (DEMO) return structuredClone(demoDB()[tabela] || []);
@@ -166,7 +169,7 @@ const db = {
     exigirRede();
     const { data, error } = await sb.from(tabela).insert(linha).select().single();
     if (error) throw falhou(error);
-    salvarCacheDepois();
+    depoisDeSalvar();
     return data;
   },
   async inserirVarios(tabela, linhas) {
@@ -175,7 +178,7 @@ const db = {
     exigirRede();
     const { data, error } = await sb.from(tabela).insert(linhas).select();
     if (error) throw falhou(error);
-    salvarCacheDepois();
+    depoisDeSalvar();
     return data;
   },
   async atualizar(tabela, id, campos) {
@@ -183,7 +186,7 @@ const db = {
     exigirRede();
     const { data, error } = await sb.from(tabela).update(campos).eq("id", id).select().single();
     if (error) throw falhou(error);
-    salvarCacheDepois();
+    depoisDeSalvar();
     return data;
   },
   async remover(tabela, id) {
@@ -191,7 +194,7 @@ const db = {
     exigirRede();
     const { error } = await sb.from(tabela).delete().eq("id", id);
     if (error) throw falhou(error);
-    salvarCacheDepois();
+    depoisDeSalvar();
   }
 };
 

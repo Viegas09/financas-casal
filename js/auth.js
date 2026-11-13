@@ -13,6 +13,7 @@ async function iniciar() {
   ligarFamilia();
 
   ligarOffline();
+  ligarAtualizacaoAutomatica();
   registrarSW();
 
   if (DEMO) {
@@ -25,7 +26,7 @@ async function iniciar() {
   await iniciarSessao();
 
   sb.auth.onAuthStateChange((evento) => {
-    if (evento === "SIGNED_OUT") { cacheLocal.limpar(); mostrarLogin(); }
+    if (evento === "SIGNED_OUT") { cacheLocal.limpar(); desligarAoVivo(); mostrarLogin(); }
     if (evento === "PASSWORD_RECOVERY") trocarSenha();
   });
 }
@@ -76,6 +77,7 @@ async function validarMembro() {
   definirPessoas(estado.familia?.pessoas);
   preencherSelects();
   if (pessoa !== "todos" && !PESSOAS.includes(pessoa)) pessoa = "todos";
+  ligarAoVivo();
   entrarNoApp();
 }
 

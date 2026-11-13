@@ -32,8 +32,20 @@ window.supabase = { createClient() {
     return b;
   }
   let sess = M.sessao || JSON.parse(localStorage.getItem(CHAVE) || "null");
+  // canais ao vivo: M.canais[nome] = funções que recebem; M.enviados = avisos mandados por este celular
+  M.canais ||= {}; M.enviados ||= [];
+  function channel(nome) {
+    const c = { nome,
+      on(tipo, filtro, cb) { if (tipo === "broadcast") (M.canais[nome] ||= []).push({ evento: filtro.event, cb }); return c; },
+      subscribe(cb) { cb?.("SUBSCRIBED"); return c; },
+      send(msg) { M.enviados.push({ canal: nome, ...msg }); return Promise.resolve("ok"); } };
+    return c;
+  }
+  // teste chama: __MOCK.receber("plinc-familia:f1") como se outro celular tivesse salvo
+  M.receber = (nome, evento = "mudou") => (M.canais[nome] || []).filter((x) => x.evento === evento).forEach((x) => x.cb({ event: evento, payload: {} }));
   return {
-    from,
+    from, channel,
+    removeChannel(c) { delete M.canais[c.nome]; return Promise.resolve("ok"); },
     auth: {
       async getSession() { return { data: { session: sess } }; },
       async getUser() { return semRede() ? { data: { user: null }, error: { name: "AuthRetryableFetchError", message: "Failed to fetch" } } : { data: { user: sess?.user } }; },
