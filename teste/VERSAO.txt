@@ -1,1 +1,1 @@
-versão: 5ea0c98 Fase 1.1: informar o valor do mês em contas variáveis
+versão: bf55de8 Marca Plinc no app: nome, ícones, favicon e fontes (Inter + Space Grotesk)

@@ -1,4 +1,4 @@
-/* Finanças do Casal — Login, cadastro e entrada no app. */
+/* Plinc — Login, cadastro e entrada no app. */
 "use strict";
 
 // ================================================================

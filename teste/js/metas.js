@@ -1,4 +1,4 @@
-/* Finanças do Casal — Metas e aportes. */
+/* Plinc — Metas e aportes. */
 "use strict";
 
 // ---------- Metas ----------

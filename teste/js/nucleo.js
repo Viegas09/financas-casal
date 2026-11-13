@@ -1,4 +1,4 @@
-/* Finanças do Casal — Configuração, utilidades, ícones, datas, camada de dados (Supabase / demonstração) e estado. */
+/* Plinc — Configuração, utilidades, ícones, datas, camada de dados (Supabase / demonstração) e estado. */
 "use strict";
 
 const CFG = window.CONFIG || {};
