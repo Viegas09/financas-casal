@@ -111,9 +111,10 @@ function ligarEventos() {
   });
 
   document.addEventListener("click", (ev) => {
-    const t = ev.target.closest("[data-pagar],[data-editar-conta],[data-editar-renda],[data-editar-gasto],[data-editar-orcamento],[data-editar-cartao],[data-editar-aporte],[data-abrir-meta],[data-abrir-fatura],[data-fechar],[data-ir],[data-acao]");
+    const t = ev.target.closest("[data-pagar],[data-pagar-fatura],[data-editar-conta],[data-editar-renda],[data-editar-gasto],[data-editar-orcamento],[data-editar-cartao],[data-editar-aporte],[data-abrir-meta],[data-abrir-fatura],[data-fechar],[data-ir],[data-acao]");
     if (!t) return;
     if (t.dataset.pagar) alternarPagamento(t.dataset.pagar);
+    else if (t.dataset.pagarFatura) alternarFaturaDe(t.dataset.pagarFatura);
     else if (t.dataset.editarConta) abrirConta(t.dataset.editarConta);
     else if (t.dataset.editarRenda) abrirRenda(t.dataset.editarRenda);
     else if (t.dataset.editarGasto) abrirGasto(t.dataset.editarGasto);

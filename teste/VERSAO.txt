@@ -1,1 +1,1 @@
-versão: de32e5f README: como ligar a assinatura (Mercado Pago)
+versão: 4dd93ef Faturas do cartão em Contas (A pagar/Pagas/Todas) e importação que move gastos para o cartão

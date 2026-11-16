@@ -550,7 +550,12 @@ async function salvarCartao(ev) {
   const dados = { nome: f.nome.value.trim(), dia_fechamento: Number(f.dia_fechamento.value), dia_vencimento: Number(f.dia_vencimento.value), limite: lim, responsavel: f.responsavel.value, ativo: f.ativo.checked };
   try {
     if (editandoCartao) Object.assign(editandoCartao, await db.atualizar("cartoes", editandoCartao.id, dados));
-    else estado.cartoes.push(await db.inserir("cartoes", dados));
+    else {
+      const novo = await db.inserir("cartoes", dados);
+      estado.cartoes.push(novo);
+      // cadastrou pela importação: já deixa o cartão novo escolhido
+      if ($("#modal-importar").open && importacao) { preencherFormaImp(novo.id); desenharImportacao(); }
+    }
     $("#modal-cartao").close(); toast("Cartão salvo"); render();
   } catch (e) { erro(e); }
 }
