@@ -50,8 +50,8 @@ jobs:
       - name: Publicar funções
         if: steps.seg.outputs.ok == '1'
         run: |
-          supabase functions deploy assinatura --project-ref "$PROJETO" --no-verify-jwt --use-api
-          supabase functions deploy mp-webhook --project-ref "$PROJETO" --no-verify-jwt --use-api
+          supabase functions deploy assinatura --project-ref "$PROJETO" --no-verify-jwt --use-api --yes
+          supabase functions deploy mp-webhook --project-ref "$PROJETO" --no-verify-jwt --use-api --yes
 
       - name: Guardar segredos do Mercado Pago nas funções
         if: steps.seg.outputs.ok == '1'
@@ -59,7 +59,7 @@ jobs:
           args="APP_URL=https://viegas09.github.io/financas-casal/"
           [ -n "$MP_ACCESS_TOKEN" ] && args="$args MP_ACCESS_TOKEN=$MP_ACCESS_TOKEN"
           [ -n "$MP_WEBHOOK_SECRET" ] && args="$args MP_WEBHOOK_SECRET=$MP_WEBHOOK_SECRET"
-          supabase secrets set --project-ref "$PROJETO" $args > /dev/null
+          supabase secrets set --project-ref "$PROJETO" --yes $args > /dev/null
           [ -z "$MP_ACCESS_TOKEN" ] && echo "::warning::Falta MP_ACCESS_TOKEN (Mercado Pago)." || true
           [ -z "$MP_WEBHOOK_SECRET" ] && echo "::warning::Falta MP_WEBHOOK_SECRET (assinatura secreta dos avisos do Mercado Pago)." || true
           echo "Funções publicadas. Endereço dos avisos: https://$PROJETO.supabase.co/functions/v1/mp-webhook"
