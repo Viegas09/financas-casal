@@ -97,10 +97,10 @@ function renderAlertas(lista) {
     if (f.status.chave === "vencida") itens.push(`<button class="alerta crit" data-abrir-fatura="${f.cartao.id}">! Fatura ${esc(f.cartao.nome)} vencida</button>`);
     else if (f.status.chave === "fechada" && f.status.dias <= DIAS_ALERTA) itens.push(`<button class="alerta warn" data-abrir-fatura="${f.cartao.id}">● Fatura ${esc(f.cartao.nome)} ${f.status.dias === 0 ? "vence hoje" : `vence em ${f.status.dias}d`}</button>`);
   });
-  if (lista.length && !pend.length) itens.push(`<span class="alerta good">✓ Tudo pago neste mês</span>`);
+  if (lista.length && !pend.length && !faturasNaLista(estado.mes).some((f) => !faturaPaga(f.cartao, f.comp))) itens.push(`<span class="alerta good">✓ Tudo pago neste mês</span>`);
   $("#alertas").innerHTML = itens.join("");
   const cont = $("#contador-pendentes");
-  const urg = atr.length + hoje.length;
+  const urg = atr.length + hoje.length + faturasNaLista(estado.mes).filter((f) => f.status.chave === "vencida" || (f.status.chave === "fechada" && f.status.dias === 0)).length;
   cont.hidden = !urg; cont.textContent = urg;
 }
 
@@ -127,9 +127,9 @@ function itemConta(c) {
 }
 
 function renderProximas(lista) {
-  const pend = lista.filter((c) => !c.pagamento).slice(0, 3);
+  const pend = itensAPagar(lista).filter((x) => !x.pago).slice(0, 3);
   $("#lista-proximas").innerHTML = pend.length
-    ? pend.map(itemConta).join("")
+    ? pend.map((x) => x.html()).join("")
     : estado.contas.length
       ? vazio("festa", "Tudo em dia!", "Nenhuma conta pendente neste mês.")
       : vazio("lista", "Comece cadastrando suas contas", "Aluguel, luz, internet… cadastre uma vez e acompanhe todo mês.", ["nova-conta", "Cadastrar primeira conta"]);
@@ -146,26 +146,29 @@ function renderResumoContas(lista) {
   const pct = total ? Math.round((pago / total) * 100) : 0;
   const atr = lista.filter((c) => c.status.chave === "atrasada");
   const npag = lista.filter((c) => c.pagamento).length;
-  $("#resumo-contas").hidden = !lista.length;
+  const fats = faturasNaLista(estado.mes);
+  const fatPend = fats.filter((x) => !faturaPaga(x.cartao, x.comp));
+  $("#resumo-contas").hidden = !lista.length && !fats.length;
   $("#resumo-contas").innerHTML = `
     <div class="rc-topo"><div><small>Contas fixas de ${esc(nomeMes(estado.mes, "mes"))}</small><b>${fmt(total)}</b>${lista.some((c) => c.aDefinir) ? `<em class="rc-def">+ ${lista.filter((c) => c.aDefinir).length} com valor a definir</em>` : ""}</div><span class="rc-pct">${pct}%<small>pago</small></span></div>
     <div class="meter-orc grande ${pct === 100 ? "bom" : "ok"}"><span style="width:${pct}%"></span></div>
     <div class="rc-duas">
       <div><small>Já pago</small><b class="bom-txt">${fmt(pago)}</b><em>${npag} de ${lista.length} conta${lista.length !== 1 ? "s" : ""}</em></div>
       <div><small>Falta pagar</small><b>${fmt(total - pago)}</b><em class="${atr.length ? "crit" : ""}">${atr.length ? `! ${atr.length} atrasada${atr.length > 1 ? "s" : ""}` : lista.length - npag ? `${lista.length - npag} pendente${lista.length - npag > 1 ? "s" : ""}` : "tudo pago ✓"}</em></div>
-    </div>`;
+    </div>
+    ${fats.length ? `<div class="rc-faturas"><span>${svg("cartao")} Faturas do cartão</span><b>${fatPend.length ? `${fmt(soma(fatPend, (x) => x.total))} a pagar` : "pagas ✓"}</b></div>` : ""}`;
 }
 
 function renderListaMes(lista) {
   renderAvisoContas();
   renderResumoContas(lista);
   const f = estado.filtro;
-  const itens = lista.filter((c) => f === "todas" || (f === "pagas" ? c.pagamento : !c.pagamento));
+  const itens = itensAPagar(lista).filter((x) => f === "todas" || (f === "pagas" ? x.pago : !x.pago));
   $("#lista-mes").innerHTML = itens.length
-    ? itens.map(itemConta).join("")
-    : !estado.contas.length
+    ? itens.map((x) => x.html()).join("")
+    : !estado.contas.length && !faturasNaLista(estado.mes).length
       ? vazio("lista", "Nenhuma conta cadastrada", "Cadastre as contas fixas e elas aparecem aqui todo mês.", ["nova-conta", "Nova conta"])
-      : f === "pendentes" ? vazio("festa", "Nada a pagar neste mês", "Todas as contas já foram pagas.")
+      : f === "pendentes" ? vazio("festa", "Nada a pagar neste mês", "Todas as contas e faturas já foram pagas.")
       : vazio("lista", "Nenhuma conta paga ainda", "Toque no quadrado de uma conta para marcar como paga.");
 }
 

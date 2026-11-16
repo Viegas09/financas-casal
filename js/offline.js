@@ -3,7 +3,7 @@
 
 // O que fica guardado no aparelho (só os dados da família de quem está logado; apagado ao sair da conta)
 const TABELAS_CACHE = ["contas", "pagamentos", "rendas", "gastos", "orcamentos", "metas", "aportes", "cartoes", "faturas_pagas", "valores_mes", "membrosFamilia", "convites"];
-const FLAGS_CACHE = ["migracao2", "migracao3", "migracao4", "migracao6"];
+const FLAGS_CACHE = ["migracao2", "migracao3", "migracao4", "migracao6", "migracao7", "assinatura"];
 
 const cacheLocal = {
   pre: "plinc-dados-v1:",
@@ -40,6 +40,7 @@ function abrirComDadosSalvos() {
   if (DEMO || !temSessaoSalva()) return false;
   const d = cacheLocal.ler();
   if (!d?.usuario?.id) return false;
+  if (d.assinatura && !d.assinatura.liberada && d.assinatura.status === "pendente") return false;   // ainda não assinou: não abre o app
   for (const k of [...TABELAS_CACHE, ...FLAGS_CACHE]) if (k in d) estado[k] = d[k];
   estado.usuario = d.usuario; estado.membro = d.membro; estado.familia = d.familia;
   estado.salvoEm = d.salvoEm; estado.doCache = true;

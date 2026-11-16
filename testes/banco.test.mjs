@@ -10,7 +10,7 @@ const exec = (sql) => db.exec(sql);
 // ---- simula o Supabase ----
 await exec(`
   create schema auth;
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text);
+  create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create role authenticated;
   grant usage on schema public to authenticated;
@@ -141,12 +141,79 @@ await como(ana.id, async () => {
 const dup06 = await tenta(() => exec(fs.readFileSync(R + "migracao-06-valor-do-mes.sql", "utf8")));
 ok(!dup06, "06: rodar de novo é seguro " + (dup06 || ""));
 
+// ---- migração 07: assinaturas e cadastro aberto ----
+await exec(fs.readFileSync(R + "migracao-07-assinaturas.sql", "utf8"));
+await exec(`grant all on all tables in schema public to authenticated;`);
+const ass = await q(`select status from assinaturas order by status`);
+ok(ass.length === 2 && ass.every((a) => a.status === "cortesia"), "07: as famílias que já existem (casal e Ana) viram cortesia");
+await como(vini.id, async () => {
+  const [m] = await q(`select minha_assinatura() a`);
+  ok(m.a.status === "cortesia" && m.a.liberada === true, "07: casal em cortesia, liberado " + JSON.stringify(m.a));
+  await q(`insert into gastos (descricao, valor, categoria, responsavel) values ('Feira',50,'Mercado','Vinícius')`);
+  const up = await q(`update gastos set valor = 51 where descricao = 'Feira' returning id`);
+  const del = await q(`delete from gastos where descricao = 'Feira' returning id`);
+  ok(up.length === 1 && del.length === 1, "07: casal continua criando, alterando e apagando normalmente");
+  const fura = await q(`update assinaturas set status = 'cortesia' returning familia_id`);
+  ok(fura.length === 0, "07: ninguém altera a própria assinatura pelo app");
+});
+// cadastro aberto (sem convite)
+const [bia] = await q(`insert into auth.users (email, raw_user_meta_data) values ('bia@x.com', '{"nome":"Bia"}') returning id`);
+const famBia = (await q(`select f.nome, f.pessoas, m.papel, a.status, (select count(*) from orcamentos o where o.familia_id=f.id) orc
+  from membros m join familias f on f.id=m.familia_id join assinaturas a on a.familia_id=f.id where m.user_id=$1`, [bia.id]))[0];
+ok(famBia && famBia.nome === "Família de Bia" && famBia.papel === "dono" && famBia.status === "pendente" && famBia.orc == 7,
+  "07: cadastro sem convite cria família nova pendente, com a pessoa como dona e categorias padrão " + JSON.stringify(famBia));
+const [semNome] = await q(`insert into auth.users (email) values ('joao@x.com') returning id`);
+ok((await q(`select nome from membros where user_id=$1`, [semNome.id]))[0]?.nome === "Joao", "07: sem nome informado, usa o começo do e-mail");
+const comoBia = (fn) => como(bia.id, fn);
+const podeGravar = async () => !(await tenta(() => q(`insert into contas (nome, categoria, valor, dia_vencimento) values ('Teste','Outros',10,5)`)));
+await comoBia(async () => {
+  const [m] = await q(`select minha_assinatura() a`);
+  ok(m.a.status === "pendente" && m.a.liberada === false, "07: família nova ainda não liberada " + JSON.stringify(m.a));
+  ok((await q(`select count(*) n from orcamentos`))[0].n == 7, "07: sem pagar, a família consegue VER os dados");
+  ok(!(await podeGravar()), "07: sem pagar, não consegue criar conta");
+  ok((await q(`update orcamentos set limite = 1 returning id`)).length === 0, "07: sem pagar, não consegue alterar");
+  ok((await q(`delete from orcamentos returning id`)).length === 0, "07: sem pagar, não consegue apagar");
+  ok((await q(`select count(*) n from assinaturas`))[0].n == 1, "07: cada família só vê a própria assinatura");
+  ok(!!(await tenta(() => q(`insert into assinaturas (familia_id, status) values (minha_familia(), 'cortesia')`))), "07: não consegue se dar cortesia");
+  await q(`insert into convites (email, nome, familia_id) values ('par@x.com', 'Duda', minha_familia())`);
+});
+const fBia = (await q(`select familia_id from membros where user_id=$1`, [bia.id]))[0].familia_id;
+const setAss = (campos) => q(`update assinaturas set ${campos} where familia_id = $1`, [fBia]);
+await setAss(`status='ativa', valido_ate = now() + interval '1 month', pago = true`);
+ok(await comoBia(podeGravar), "07: pagou (servidor marcou ativa): grava normalmente");
+await setAss(`status='atrasada', valido_ate = now() - interval '3 days', pago = true`);
+ok(await comoBia(podeGravar), "07: pagamento atrasado há 3 dias: ainda dentro da tolerância de 7 dias");
+await setAss(`status='atrasada', valido_ate = now() - interval '8 days', pago = true`);
+ok(!(await comoBia(podeGravar)) && (await comoBia(() => q(`select count(*) n from contas`)))[0].n >= 1, "07: passou da tolerância: só consulta (vê os dados, não grava)");
+await setAss(`status='ativa', valido_ate = now() - interval '1 hour', pago = false`);
+ok(!(await comoBia(podeGravar)), "07: nunca pagou e o prazo passou: sem tolerância");
+await setAss(`status='cancelada', valido_ate = now() + interval '10 days', pago = true`);
+ok(await comoBia(podeGravar), "07: cancelou: usa até o fim do período pago");
+await setAss(`status='cancelada', valido_ate = now() - interval '1 day', pago = true`);
+ok(!(await comoBia(podeGravar)), "07: cancelou e o período acabou: só consulta (sem tolerância)");
+// convidado entra na família pendente (não cria outra assinatura)
+const [duda] = await q(`insert into auth.users (email) values ('par@x.com') returning id`);
+ok((await q(`select familia_id from membros where user_id=$1`, [duda.id]))[0].familia_id === fBia && (await q(`select count(*) n from assinaturas where familia_id=$1`, [fBia]))[0].n == 1,
+  "07: convidado entra na família de quem convidou (mesma assinatura)");
+// convite de família nova feito pelo admin: cortesia
+await como(vini.id, () => q(`insert into convites (email, nome, familia_nome) values ('amiga@x.com','Lu','Família da Lu')`));
+const [lu] = await q(`insert into auth.users (email) values ('amiga@x.com') returning id`);
+ok((await q(`select a.status from membros m join assinaturas a on a.familia_id=m.familia_id where m.user_id=$1`, [lu.id]))[0]?.status === "cortesia", "07: família nova convidada pelo admin vem como cortesia");
+const dup07 = await tenta(() => exec(fs.readFileSync(R + "migracao-07-assinaturas.sql", "utf8")));
+ok(!dup07 && (await q(`select status from assinaturas where familia_id=$1`, [fBia]))[0].status === "cancelada", "07: rodar de novo é seguro e não mexe nas assinaturas " + (dup07 || ""));
+// desfazer 07
+await exec(fs.readFileSync(R + "migracao-07-desfazer.sql", "utf8"));
+ok(!!(await tenta(() => q(`insert into auth.users (email) values ('outro@x.com')`))), "07 DESFAZER: cadastro volta a ser só por convite");
+ok(await comoBia(podeGravar), "07 DESFAZER: sem bloqueio por assinatura");
+ok((await q(`select to_regclass('public.assinaturas') t`))[0].t === null, "07 DESFAZER: tabela de assinaturas removida");
+
 // reconvite: e-mail que já usou o convite não reaproveita
 const dup = await tenta(() => q(`insert into auth.users (email) values ('irma@x.com')`));
 ok(!!dup, "convite usado não vale de novo");
 // rodar a migração 2x não quebra nada
+const nFam = (await q(`select count(*) n from familias`))[0].n;
 await exec(fs.readFileSync(R + "migracao-05-familias.sql", "utf8"));
-ok((await q(`select count(*) n from familias`))[0].n == 2, "rodar a migração de novo é seguro (continua com 2 famílias)");
+ok((await q(`select count(*) n from familias`))[0].n == nFam, "rodar a migração de novo é seguro (mesmas famílias)");
 // desfazer
 await exec(fs.readFileSync(R + "migracao-05-desfazer.sql", "utf8"));
 await exec(`grant all on all tables in schema public to authenticated;`);
@@ -162,14 +229,16 @@ ok(!reaplica, "depois de desfazer, dá para aplicar a migração de novo " + (re
 // ---- instalação do zero (schema.sql) ----
 {
   const db2 = new PGlite(); const q2 = async (s, p) => (await db2.query(s, p)).rows;
-  await db2.exec(`create schema auth; create table auth.users (id uuid primary key default gen_random_uuid(), email text);
+  await db2.exec(`create schema auth; create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     create role authenticated; grant usage on schema public to authenticated; grant usage on schema auth to authenticated;`);
   await db2.exec(fs.readFileSync(R + "schema.sql", "utf8"));
   await q2(`insert into public.convites (email, nome, familia_nome) values ('eu@x.com', 'Eu', 'Nossa família')`);
   await q2(`insert into auth.users (email) values ('eu@x.com')`);
-  const m = await q2(`select m.papel, (select count(*) from orcamentos o where o.familia_id=m.familia_id) orc from membros m`);
-  ok(m.length === 1 && m[0].papel === "dono" && m[0].orc == 7, "instalação do zero: primeiro usuário vira dono com categorias padrão");
+  const m = await q2(`select m.papel, (select count(*) from orcamentos o where o.familia_id=m.familia_id) orc, (select status from assinaturas a where a.familia_id=m.familia_id) st from membros m`);
+  ok(m.length === 1 && m[0].papel === "dono" && m[0].orc == 7 && m[0].st === "cortesia", "instalação do zero: primeiro usuário vira dono, com categorias padrão e cortesia " + JSON.stringify(m[0]));
+  await q2(`insert into auth.users (email, raw_user_meta_data) values ('cliente@x.com', '{"nome":"Cliente"}')`);
+  ok((await q2(`select a.status from membros m join assinaturas a on a.familia_id=m.familia_id where m.email='cliente@x.com'`))[0]?.status === "pendente", "instalação do zero: cadastro aberto cria família pendente");
 }
 console.log(falhas ? `\n${falhas} FALHA(S) no banco` : "\nBanco: tudo certo");
 process.exit(falhas ? 1 : 0);

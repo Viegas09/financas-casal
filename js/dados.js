@@ -26,6 +26,7 @@ async function carregar({ silencioso = false } = {}) {
     cacheLocal.salvar();
     aoVivo.carregadoEm = Date.now();
     render();
+    renderCardAssinatura(); atualizarBannerAssinatura();
     esconderSplash();
     if (!silencioso && !lerPref("tutorial-visto", false)) setTimeout(() => abrirTutorial(0), 500);
     return true;

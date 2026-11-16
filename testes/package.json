@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node banco.test.mjs && node app.test.mjs"
+    "test": "node banco.test.mjs && node funcoes.test.mjs && node app.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.2.17",

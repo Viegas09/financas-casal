@@ -101,6 +101,7 @@ Quando uma versão nova precisar de tabelas novas, vem um arquivo `supabase/migr
 | `migracao-04-conta-unica.sql` | Contas “só neste mês” (uma fatura, IPVA) que não se repetem |
 | `migracao-05-familias.sql` | Várias famílias, convites e cadastro só por convite (desfazer: `migracao-05-desfazer.sql`) |
 | `migracao-06-valor-do-mes.sql` | Informar o valor de uma conta variável num mês, antes de pagar (desfazer: `migracao-06-desfazer.sql`) |
+| `migracao-07-assinaturas.sql` | Assinatura (Mercado Pago) e cadastro aberto; famílias que já existem viram cortesia (desfazer: `migracao-07-desfazer.sql`) |
 
 ## Como as mudanças chegam no app (link de teste)
 
@@ -110,6 +111,20 @@ Quando uma versão nova precisar de tabelas novas, vem um arquivo `supabase/migr
 4. Depois do “pode subir”, a mudança é levada para o ramo **`main`**, que é o app de verdade.
 
 Para rodar os testes no computador: `cd testes && npm install && npx playwright install chromium && npm test`.
+
+## Assinatura (Mercado Pago)
+
+R$ 19,90/mês por família. Quem se cadastra sem convite cria uma família nova que só lança dados depois de pagar; famílias convidadas por um admin e as que já existiam são **cortesia**. Assinatura vencida: 7 dias de tolerância (depois do primeiro pagamento) e então o app fica **só consulta** até renovar — a regra fica no banco, não só no app.
+
+Como funciona: o app chama a função `assinatura` (Supabase) → ela cria a assinatura no Mercado Pago e devolve o link do checkout → a pessoa paga lá → o Mercado Pago avisa a função `mp-webhook` → ela confere a assinatura secreta do aviso, busca a situação de verdade na API do Mercado Pago e libera a família.
+
+Para ligar (uma vez):
+1. **Mercado Pago** (mercadopago.com.br/developers → *Suas integrações* → criar aplicação de **Assinaturas**): copie o *Access Token* de produção e, em **Webhooks**, cadastre `https://SEU-PROJETO.supabase.co/functions/v1/mp-webhook` com os eventos de **planos e assinaturas**; copie a **assinatura secreta**.
+2. **GitHub → Settings → Secrets and variables → Actions**: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` e `SUPABASE_ACCESS_TOKEN` (supabase.com/dashboard/account/tokens).
+3. **Actions → Publicar funções do servidor → Run workflow** (publica as duas funções e guarda os segredos nelas).
+4. Rode `supabase/migracao-07-assinaturas.sql` no SQL Editor.
+
+Sem a migração 07, o app funciona como antes (só por convite, sem cobrança).
 
 ## Backup semanal
 
