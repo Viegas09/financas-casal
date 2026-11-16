@@ -362,6 +362,50 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   ok(await p.isVisible("#app") && await p.isHidden("#banner-assinatura") && (await p.innerText("#card-assinatura")).includes("Cortesia") && !(await p.locator("#card-assinatura button").count()), "cortesia: app normal, “Cortesia” em Mais, sem botões de cobrança");
 }
 
+// ================= FATURA DO CARTÃO EM CONTAS (caso da Marcela) =================
+{
+  // ela importou a fatura sem ter cartão cadastrado: os gastos entraram como Pix/débito
+  const g = (id, data, descricao, valor) => ({ id, data, descricao, valor, categoria: "Outros", responsavel: "Marcela", forma_pagamento: "Importado do extrato", cartao_id: null, parcelas: 1 });
+  const gastos = [g("g1", "2026-11-10", "Ifood *Restaurante Bom", 45.9), g("g2", "2026-11-09", "Supermercado Dia", 123.47), g("g3", "2026-11-08", "Uber *Trip", 18.3),
+    g("g4", "2026-11-07", "Drogasil 123", 56), g("g5", "2026-11-04", "Amazon Marketplace - Parcela 2/6", 89.9), g("g6", "2026-11-03", "Netflix.Com", 55.9)];
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: { ...FAM1(), gastos } } });
+  await entrar(p);
+  await aba(p, "gastos"); await p.waitForTimeout(200);
+  await p.click('#aba-gastos [data-acao="importar"]'); await p.waitForTimeout(250);
+  await p.setInputFiles("#imp-file", FIX("nubank-fatura.csv")); await p.waitForTimeout(450);
+  ok(await p.isVisible("#imp-aviso-cartao") && (await p.innerText("#imp-aviso-cartao")).includes("Parece uma fatura de cartão"), "importação: arquivo de fatura sem cartão cadastrado mostra aviso para cadastrar");
+  await p.click('#imp-aviso-cartao [data-acao="novo-cartao"]'); await p.waitForTimeout(300);
+  await p.fill("#form-cartao [name=nome]", "Nubank Marcela"); await p.fill("#form-cartao [name=dia_fechamento]", "3"); await p.fill("#form-cartao [name=dia_vencimento]", "10");
+  await p.click("#form-cartao button[type=submit]"); await p.waitForTimeout(400);
+  const forma = await p.$eval("#imp-forma", (s) => s.options[s.selectedIndex].text);
+  ok(await p.evaluate(() => document.querySelector("#modal-importar").open) && forma.includes("Nubank Marcela") && await p.isHidden("#imp-aviso-cartao"),
+    "cartão cadastrado pela importação já fica escolhido e o aviso some");
+  const mov = await p.locator("#imp-lista .badge", { hasText: "vai para o cartão" }).count();
+  ok(mov === 6 && (await p.innerText("#imp-confirmar")) === "Mover 6 para o cartão", "o que já tinha sido importado sem cartão aparece como “vai para o cartão”");
+  await p.click("#imp-confirmar"); await p.waitForTimeout(500);
+  const noCartao = await p.evaluate(() => window.__MOCK.tabelas.gastos.filter((x) => x.cartao_id).length);
+  ok(noCartao === 6 && (await p.evaluate(() => window.__MOCK.tabelas.gastos.length)) === 6, "confirmar move os 6 gastos para o cartão, sem duplicar");
+  // fatura de dezembro (compras de 4 a 10/11; fecha dia 3, vence dia 10) aparece em Contas
+  await p.evaluate(() => { estado.mes = "2026-12-01"; render(); });
+  await aba(p, "contas"); await p.click("#filtro-status [data-f=pendentes]"); await p.waitForTimeout(200);
+  const linha = p.locator("#lista-mes li.fatura-item");
+  ok(await linha.count() === 1 && (await linha.innerText()).includes("Fatura Nubank Marcela") && (await linha.innerText()).includes("333,57") && (await linha.innerText()).includes("Dia 10"),
+    "Contas → A pagar: fatura do cartão com valor e dia do vencimento");
+  ok((await p.innerText("#resumo-contas")).includes("Faturas do cartão"), "resumo de Contas mostra quanto falta das faturas");
+  await linha.locator("[data-pagar-fatura]").click(); await p.waitForTimeout(400);
+  const fp = await p.evaluate(() => window.__MOCK.tabelas.faturas_pagas);
+  ok(fp.length === 1 && fp[0].competencia === "2026-12-01" && Number(fp[0].valor_pago) === 333.57, "tocar no quadrado marca a fatura como paga");
+  ok(!(await p.locator("#lista-mes li.fatura-item").count()), "fatura paga sai de “A pagar”");
+  await p.click("#filtro-status [data-f=pagas]"); await p.waitForTimeout(200);
+  ok((await p.locator("#lista-mes li.fatura-item.paga").count()) === 1, "e aparece em “Pagas”");
+  await p.click("#toast button"); await p.waitForTimeout(400);
+  ok(!(await p.evaluate(() => window.__MOCK.tabelas.faturas_pagas.length)), "“Desfazer” desmarca o pagamento da fatura");
+  await p.click("#filtro-status [data-f=todas]"); await p.waitForTimeout(200);
+  await p.locator("#lista-mes li.fatura-item .info").click(); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => document.querySelector("#modal-fatura").open), "tocar na fatura abre o detalhe com as compras");
+  ok(p.erros.length === 0, "sem erros de JavaScript (fatura em Contas) " + p.erros.join(" | "));
+}
+
 // ================= DEMONSTRAÇÃO PÚBLICA (app?demo, link da página de venda) =================
 {
   const p = await pagina({ url: URL_APP + "?demo", mock: { usuarios: [VINI], tabelas: { ...tabs(), membros: [{ user_id: "u-vini", nome: "Vinícius" }] } } });

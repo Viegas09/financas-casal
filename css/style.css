@@ -832,3 +832,12 @@ dialog.sheet-alta .sheet-corpo { min-height: 100%; align-content: start; }
 .valor-btn .lapis { font-size: 12px; color: var(--accent); }
 .valor-btn.a-definir { color: var(--accent); font-style: normal; font-weight: 650; border-bottom: 1px dashed var(--accent); }
 .valor-btn:active { opacity: .6; }
+
+/* Faturas do cartão na lista de contas */
+.rc-faturas { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; background: var(--bg); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+.rc-faturas span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-3); font-weight: 600; }
+.rc-faturas svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rc-faturas b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Importação: arquivo de cartão sem cartão cadastrado */
+.imp-aviso-cartao { display: grid; gap: 8px; background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 12px; padding: 10px 12px; font-size: 13px; margin-bottom: 10px; }
+.imp-aviso-cartao .btn { justify-self: start; }

@@ -161,14 +161,13 @@ function montarImportacao(lido, nome) {
     if (dup) motivo.push("já lançado");
     const conta = contasAtivas.find((c) => { const cn = semAcento(c.nome); return cn.length >= 4 && (n.includes(cn) || cn.includes(n.slice(0, 8))); });
     if (conta) motivo.push(`parece a conta fixa “${conta.nome}”`);
-    return { i, ...l, valor, bruto: l.valor, motivo, categoria: sugerirCategoria(l.descricao, cats), dup: !!dup };
+    return { i, ...l, valor, bruto: l.valor, motivo, categoria: sugerirCategoria(l.descricao, cats), dup: !!dup, dupId: dup ? dup.id : null };
   });
-  importacao = { nome, cartao: lido.cartao, linhas, sinalGasto, cats };
+  // parece fatura de cartão? (OFX de cartão, nome do arquivo ou linha de pagamento de fatura)
+  const pareceCartao = lido.cartao || /fatura|cart[aã]o|credit/i.test(nome) || lido.linhas.some((l) => /pagamento (recebido|de fatura|da fatura)/.test(semAcento(l.descricao)));
+  importacao = { nome, cartao: pareceCartao, linhas, sinalGasto, cats };
   aplicarSinal();
-  // opções
-  const cartoes = estado.migracao3 ? estado.cartoes.filter((c) => c.ativo) : [];
-  $("#imp-forma").innerHTML = `<option value="">Pix ou débito</option>` + cartoes.map((c) => `<option value="cartao:${c.id}">💳 Cartão ${esc(c.nome)}</option>`).join("");
-  if (lido.cartao && cartoes.length === 1) $("#imp-forma").value = "cartao:" + cartoes[0].id;
+  preencherFormaImp();
   $("#imp-quem").innerHTML = RESPONSAVEIS.map((p) => `<option>${esc(p)}</option>`).join("");
   $("#imp-quem").value = estado.usuario.nome.replace(" (demo)", "");
   if (!RESPONSAVEIS.includes($("#imp-quem").value)) $("#imp-quem").value = PESSOAS[0];
@@ -185,6 +184,30 @@ function aplicarSinal() {
   });
 }
 
+/** Opções de "Esses gastos foram no" e o aviso para cadastrar o cartão quando ainda não há nenhum. */
+function preencherFormaImp(selecionar = null) {
+  const cartoes = estado.migracao3 ? estado.cartoes.filter((c) => c.ativo) : [];
+  $("#imp-forma").innerHTML = `<option value="">Pix ou débito</option>` + cartoes.map((c) => `<option value="cartao:${c.id}">💳 Cartão ${esc(c.nome)}</option>`).join("");
+  if (selecionar) $("#imp-forma").value = "cartao:" + selecionar;
+  else if (importacao.cartao && cartoes.length === 1) $("#imp-forma").value = "cartao:" + cartoes[0].id;
+  const aviso = $("#imp-aviso-cartao");
+  aviso.hidden = !estado.migracao3 || cartoes.length > 0;
+  aviso.innerHTML = `<span>${importacao.cartao ? "<b>Parece uma fatura de cartão.</b> " : "<b>É fatura de cartão?</b> "}Cadastre o cartão (dia de fechamento e vencimento) e escolha ele aqui: assim a fatura aparece em Contas para vocês marcarem como paga.</span>
+    <button type="button" class="btn btn-primary" data-acao="novo-cartao">Cadastrar cartão</button>`;
+  marcarMovidos();
+}
+
+const cartaoDaImportacao = () => { const f = $("#imp-forma").value; return f.startsWith("cartao:") ? estado.cartoes.find((c) => c.id === f.slice(7)) : null; };
+
+/** Com um cartão escolhido, o que já foi lançado como Pix/débito (ex.: importado antes sem cartão) vai para o cartão. */
+function marcarMovidos() {
+  const cartao = cartaoDaImportacao();
+  importacao.linhas.forEach((l) => {
+    const g = l.dupId && estado.gastos.find((x) => x.id === l.dupId);
+    l.mover = !!(cartao && g && !g.cartao_id && !l.entrada);
+  });
+}
+
 function desenharImportacao() {
   const L = importacao.linhas.slice().sort((a, b) => b.data.localeCompare(a.data));
   const opcoes = (atual) => importacao.cats.map((c) => `<option ${c === atual ? "selected" : ""}>${esc(c)}</option>`).join("");
@@ -193,7 +216,7 @@ function desenharImportacao() {
       <label class="imp-chk"><input type="checkbox" ${l.marcado ? "checked" : ""} data-imp-chk="${l.i}" aria-label="Importar ${esc(l.descricao)}" /></label>
       <div class="imp-meio">
         <div class="imp-desc">${esc(l.descricao)}</div>
-        <div class="imp-meta">${esc(fmtData(l.data, { day: "numeric", month: "short" }))}${l.entrada ? ' · <span class="badge futura">entrada</span>' : ""}${l.motivo.map((m) => ` · <span class="badge ${m === "já lançado" ? "paga" : "breve"}">${esc(m)}</span>`).join("")}</div>
+        <div class="imp-meta">${esc(fmtData(l.data, { day: "numeric", month: "short" }))}${l.entrada ? ' · <span class="badge futura">entrada</span>' : ""}${l.motivo.map((m) => m === "já lançado" && l.mover ? ` · <span class="badge futura">já lançado · vai para o cartão</span>` : ` · <span class="badge ${m === "já lançado" ? "paga" : "breve"}">${esc(m)}</span>`).join("")}</div>
         ${l.entrada ? "" : `<select class="imp-cat" data-imp-cat="${l.i}">${opcoes(l.categoria)}</select>`}
       </div>
       <span class="imp-valor ${l.entrada ? "bom-txt" : ""}">${l.entrada ? "+" : "−"}${brl.format(l.valor)}</span>
@@ -204,17 +227,30 @@ function desenharImportacao() {
 function atualizarResumoImp() {
   const sel = importacao.linhas.filter((l) => l.marcado);
   const ign = importacao.linhas.filter((l) => !l.marcado && !l.entrada);
+  const mov = movidosDaImportacao();
+  const cartao = cartaoDaImportacao();
   $("#imp-resumo").innerHTML = `<b>${sel.length}</b> gasto${sel.length !== 1 ? "s" : ""} selecionado${sel.length !== 1 ? "s" : ""} · <b>${brl.format(soma(sel, (l) => l.valor))}</b>
-    <small>${importacao.linhas.length} lançamentos no arquivo${ign.length ? ` · ${ign.length} desmarcado${ign.length > 1 ? "s" : ""} (repetidos, pagamentos ou contas fixas)` : ""}</small>`;
-  $("#imp-confirmar").textContent = sel.length ? `Importar ${sel.length} gasto${sel.length > 1 ? "s" : ""}` : "Nada selecionado";
-  $("#imp-confirmar").disabled = !sel.length;
+    <small>${importacao.linhas.length} lançamentos no arquivo${ign.length ? ` · ${ign.length} desmarcado${ign.length > 1 ? "s" : ""} (repetidos, pagamentos ou contas fixas)` : ""}</small>
+    ${mov.length ? `<small>↪ <b>${mov.length}</b> já lançado${mov.length > 1 ? "s" : ""} sem cartão ${mov.length > 1 ? "vão" : "vai"} para o cartão ${esc(cartao.nome)}</small>` : ""}`;
+  const partes = [];
+  if (sel.length) partes.push(`Importar ${sel.length} gasto${sel.length > 1 ? "s" : ""}`);
+  if (mov.length) partes.push(`${sel.length ? "mover" : "Mover"} ${mov.length} para o cartão`);
+  $("#imp-confirmar").textContent = partes.length ? partes.join(" e ") : "Nada selecionado";
+  $("#imp-confirmar").disabled = !partes.length;
+}
+
+/** Gastos já lançados (sem cartão) que serão movidos para o cartão escolhido — sem repetir o mesmo gasto. */
+function movidosDaImportacao() {
+  const ids = new Set();
+  importacao.linhas.forEach((l) => { if (l.mover && !l.marcado) ids.add(l.dupId); });
+  return [...ids].map((id) => estado.gastos.find((g) => g.id === id)).filter(Boolean);
 }
 
 async function confirmarImportacao() {
   const sel = importacao.linhas.filter((l) => l.marcado);
-  if (!sel.length) return;
-  const forma = $("#imp-forma").value;
-  const cartao = forma.startsWith("cartao:") ? estado.cartoes.find((c) => c.id === forma.slice(7)) : null;
+  const cartao = cartaoDaImportacao();
+  const mover = cartao ? movidosDaImportacao() : [];
+  if (!sel.length && !mover.length) return;
   const quem = $("#imp-quem").value;
   const linhas = sel.map((l) => {
     const g = { data: l.data, descricao: l.descricao.slice(0, 80), valor: Math.round(l.valor * 100) / 100, categoria: l.categoria, responsavel: quem,
@@ -226,15 +262,24 @@ async function confirmarImportacao() {
   try {
     const novos = await db.inserirVarios("gastos", linhas);
     estado.gastos.push(...novos);
+    // move para o cartão o que já estava lançado sem cartão
+    const antes = mover.map((g) => ({ g, forma_pagamento: g.forma_pagamento, parcelas: g.parcelas }));
+    for (const g of mover) Object.assign(g, await db.atualizar("gastos", g.id, { cartao_id: cartao.id, forma_pagamento: "Cartão " + cartao.nome }));
     $("#modal-importar").close();
     render();
     const meses = [...new Set(linhas.map((l) => l.data.slice(0, 7)))];
-    toast(`${novos.length} gasto${novos.length > 1 ? "s" : ""} importado${novos.length > 1 ? "s" : ""}${meses.length > 1 ? ` (${meses.length} meses)` : ""}`, { rotulo: "Desfazer", acao: async () => {
-      for (const g of novos) await db.remover("gastos", g.id);
-      const ids = new Set(novos.map((g) => g.id));
-      estado.gastos = estado.gastos.filter((g) => !ids.has(g.id)); render(); toast("Importação desfeita");
+    const msg = [novos.length ? `${novos.length} gasto${novos.length > 1 ? "s" : ""} importado${novos.length > 1 ? "s" : ""}${meses.length > 1 ? ` (${meses.length} meses)` : ""}` : "",
+      mover.length ? `${mover.length} movido${mover.length > 1 ? "s" : ""} para o cartão ${cartao.nome}` : ""].filter(Boolean).join(" · ");
+    toast(msg, { rotulo: "Desfazer", acao: async () => {
+      try {
+        for (const g of novos) await db.remover("gastos", g.id);
+        const ids = new Set(novos.map((g) => g.id));
+        estado.gastos = estado.gastos.filter((g) => !ids.has(g.id));
+        for (const a of antes) Object.assign(a.g, await db.atualizar("gastos", a.g.id, { cartao_id: null, forma_pagamento: a.forma_pagamento }));
+        render(); toast("Importação desfeita");
+      } catch (e) { erro(e); }
     } });
-    irPara("gastos"); mostrarSubGastos("extrato");
+    irPara("gastos"); mostrarSubGastos(cartao ? "cartoes" : "extrato");
   } catch (e) { erro(e); btn.disabled = false; atualizarResumoImp(); }
 }
 
@@ -242,6 +287,7 @@ function ligarImportar() {
   $("#imp-file").addEventListener("change", (ev) => arquivoEscolhido(ev.target.files[0]));
   $("#imp-voltar").addEventListener("click", () => { $("#imp-passo1").hidden = false; $("#imp-passo2").hidden = true; $("#imp-file").value = ""; });
   $("#imp-confirmar").addEventListener("click", confirmarImportacao);
+  $("#imp-forma").addEventListener("change", () => { if (!importacao) return; marcarMovidos(); desenharImportacao(); });
   $("#imp-marcar").addEventListener("click", () => { importacao.linhas.forEach((l) => { if (!l.entrada) l.marcado = true; }); desenharImportacao(); });
   $("#imp-desmarcar").addEventListener("click", () => { importacao.linhas.forEach((l) => (l.marcado = false)); desenharImportacao(); });
   $("#imp-inverter").addEventListener("click", () => { importacao.sinalGasto *= -1; aplicarSinal(); desenharImportacao(); });

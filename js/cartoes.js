@@ -123,17 +123,72 @@ function desenharFatura() {
   $("#btn-pagar-fatura").disabled = !pg && !total;
 }
 async function alternarFatura() {
-  const { cartao: c, comp } = faturaAberta;
+  await alternarFaturaDe(faturaAberta.cartao.id, faturaAberta.comp);
+}
+
+/** Marca/desmarca a fatura de um cartão como paga (usado na fatura aberta e no quadrado da lista de contas). */
+async function alternarFaturaDe(cartaoId, comp = estado.mes) {
+  const c = estado.cartoes.find((x) => x.id === cartaoId); if (!c) return;
   const pg = faturaPaga(c, comp);
+  const redesenhar = () => { render(); if (faturaAberta && $("#modal-fatura").open) desenharFatura(); };
+  const tirar = async (reg) => { await db.remover("faturas_pagas", reg.id); estado.faturas_pagas = estado.faturas_pagas.filter((x) => x.id !== reg.id); };
+  const por = async (dados) => { const r = await db.inserir("faturas_pagas", dados); estado.faturas_pagas.push(r); return r; };
+  const desfazer = (fn) => ({ rotulo: "Desfazer", acao: async () => { try { await fn(); redesenhar(); toast("Desfeito"); } catch (e) { erro(e); } } });
   try {
-    if (pg) { await db.remover("faturas_pagas", pg.id); estado.faturas_pagas = estado.faturas_pagas.filter((x) => x.id !== pg.id); toast("Pagamento da fatura desmarcado"); }
-    else {
-      const total = soma(itensFatura(c, comp), (i) => i.valor);
-      estado.faturas_pagas.push(await db.inserir("faturas_pagas", { cartao_id: c.id, competencia: comp, valor_pago: total, pago_em: hojeISO(), pago_por: estado.usuario.nome.replace(" (demo)", "") }));
-      toast(`Fatura ${c.nome} paga · ${fmt(total)}`);
+    if (pg) {
+      await tirar(pg); redesenhar();
+      const { cartao_id, competencia, valor_pago, pago_em, pago_por } = pg;
+      toast(`Fatura ${c.nome}: pagamento desmarcado`, desfazer(() => por({ cartao_id, competencia, valor_pago, pago_em, pago_por })));
+    } else {
+      const total = Math.round(soma(itensFatura(c, comp), (i) => i.valor) * 100) / 100;
+      if (!total) return toast(`A fatura ${c.nome} de ${nomeMes(comp, "mes")} está vazia`);
+      const novo = await por({ cartao_id: c.id, competencia: comp, valor_pago: total, pago_em: hojeISO(), pago_por: estado.usuario.nome.replace(" (demo)", "") });
+      redesenhar();
+      $$(`[data-pagar-fatura="${c.id}"]`).forEach((b) => { b.classList.add("pop"); b.closest("li")?.classList.add("brilho"); });
+      if (navigator.vibrate) try { navigator.vibrate(12); } catch {}
+      toast(`Fatura ${c.nome} paga · ${fmt(total)}`, desfazer(() => tirar(novo)));
     }
-    render(); desenharFatura();
   } catch (e) { erro(e); }
+}
+
+/** Faturas que entram na lista de contas do mês: as que têm lançamentos ou já foram pagas. */
+const faturasNaLista = (comp) => faturasDoMes(comp).filter((f) => f.total > 0 || faturaPaga(f.cartao, f.comp));
+
+/** Status curto da fatura para a lista de contas. */
+function statusCurtoFatura(f) {
+  const s = f.status;
+  if (s.chave === "paga") return "✓ Paga";
+  if (s.chave === "vencida") return "! Vencida";
+  if (s.chave === "aberta") return "Aberta";
+  return s.dias === 0 ? "● Vence hoje" : `● Vence em ${s.dias} dia${s.dias > 1 ? "s" : ""}`;
+}
+
+/** Linha da fatura na lista de contas (mesmo jeito de uma conta: quadrado para marcar como paga). */
+function itemFatura(f) {
+  const pg = faturaPaga(f.cartao, f.comp);
+  const n = f.itens.length;
+  const titulo = pg ? `Paga em ${fmtData(pg.pago_em, { day: "numeric", month: "long" })}${pg.pago_por ? " por " + pg.pago_por : ""}` : "Marcar fatura como paga";
+  const valor = pg ? Number(pg.valor_pago) || f.total : f.total;
+  return `
+    <li class="fatura-item ${pg ? "paga" : ""}">
+      <button class="pagar ${pg ? "on" : ""}" data-pagar-fatura="${f.cartao.id}" aria-label="${pg ? "Desmarcar pagamento da" : "Marcar como paga:"} fatura ${esc(f.cartao.nome)}" title="${esc(titulo)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7"/></svg></button>
+      <span class="bola-cat" aria-hidden="true">${svg("cartao")}</span>
+      <div class="info" data-abrir-fatura="${f.cartao.id}">
+        <div class="nome">Fatura ${esc(f.cartao.nome)}</div>
+        <div class="meta">Dia ${Number(f.vencimento.slice(8))} · ${n} lançamento${n !== 1 ? "s" : ""} · ${esc(f.cartao.responsavel)}</div>
+      </div>
+      <div class="dir">
+        <span class="valor">${fmt(valor)}</span>
+        <span class="badge ${f.status.cls}">${statusCurtoFatura(f)}</span>
+      </div>
+    </li>`;
+}
+
+/** Contas e faturas do mês numa lista só, pela data de vencimento. */
+function itensAPagar(lista, comp = estado.mes) {
+  const contas = lista.map((c) => ({ dia: c.dia_vencimento, pago: !!c.pagamento, html: () => itemConta(c) }));
+  const fats = faturasNaLista(comp).map((f) => ({ dia: Number(f.vencimento.slice(8)), pago: !!faturaPaga(f.cartao, f.comp), html: () => itemFatura(f) }));
+  return [...contas, ...fats].sort((a, b) => a.dia - b.dia);
 }
 
 function renderCadastroCartoes() {
