@@ -201,6 +201,23 @@ const [lu] = await q(`insert into auth.users (email) values ('amiga@x.com') retu
 ok((await q(`select a.status from membros m join assinaturas a on a.familia_id=m.familia_id where m.user_id=$1`, [lu.id]))[0]?.status === "cortesia", "07: família nova convidada pelo admin vem como cortesia");
 const dup07 = await tenta(() => exec(fs.readFileSync(R + "migracao-07-assinaturas.sql", "utf8")));
 ok(!dup07 && (await q(`select status from assinaturas where familia_id=$1`, [fBia]))[0].status === "cancelada", "07: rodar de novo é seguro e não mexe nas assinaturas " + (dup07 || ""));
+// ---- migração 08: avisos no celular ----
+await exec(fs.readFileSync(R + "migracao-08-avisos.sql", "utf8"));
+await exec(`grant all on all tables in schema public to authenticated;`);
+await exec(`revoke all on public.avisos_config from authenticated;`);
+await como(vini.id, () => q(`insert into avisos_inscricoes (endpoint, p256dh, auth) values ('https://push/vini', 'p', 'a')`));
+await como(marcela.id, () => q(`insert into avisos_inscricoes (endpoint, p256dh, auth) values ('https://push/marcela', 'p', 'a')`));
+const subVini = await como(vini.id, () => q(`select endpoint, familia_id from avisos_inscricoes`));
+ok(subVini.length === 1 && subVini[0].endpoint === "https://push/vini" && !!subVini[0].familia_id, "08: cada pessoa só vê o próprio aparelho (com a família preenchida sozinha)");
+ok((await como(vini.id, () => q(`delete from avisos_inscricoes where endpoint = 'https://push/marcela' returning id`))).length === 0, "08: ninguém apaga o aparelho de outra pessoa");
+ok(!!(await tenta(() => como(vini.id, () => q(`select token from avisos_config`)))), "08: o código do agendador não é lido pelo app");
+ok((await q(`select count(*) n from avisos_config`))[0].n == 1, "08: código do agendador criado");
+const tok = (await q(`select token from avisos_config`))[0].token;
+const dup08 = await tenta(() => exec(fs.readFileSync(R + "migracao-08-avisos.sql", "utf8")));
+ok(!dup08 && (await q(`select token from avisos_config`))[0].token === tok && (await q(`select count(*) n from avisos_inscricoes`))[0].n == 2, "08: rodar de novo é seguro (mantém aparelhos e código) " + (dup08 || ""));
+await exec(fs.readFileSync(R + "migracao-08-desfazer.sql", "utf8"));
+ok((await q(`select to_regclass('public.avisos_inscricoes') t`))[0].t === null, "08 DESFAZER: avisos removidos");
+
 // desfazer 07
 await exec(fs.readFileSync(R + "migracao-07-desfazer.sql", "utf8"));
 ok(!!(await tenta(() => q(`insert into auth.users (email) values ('outro@x.com')`))), "07 DESFAZER: cadastro volta a ser só por convite");

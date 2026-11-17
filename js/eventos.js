@@ -122,12 +122,13 @@ function ligarEventos() {
     else if (t.dataset.editarCartao) abrirCartao(t.dataset.editarCartao);
     else if (t.dataset.editarAporte) abrirAporte({ id: t.dataset.editarAporte });
     else if (t.dataset.abrirMeta) abrirMetaDetalhe(t.dataset.abrirMeta);
-    else if (t.dataset.abrirFatura) abrirFatura(t.dataset.abrirFatura);
+    else if (t.dataset.abrirFatura) abrirFatura(t.dataset.abrirFatura, t.dataset.comp);
     else if (t.dataset.acao === "novo-gasto") abrirGasto();
     else if (t.dataset.acao === "nova-meta") abrirMeta();
     else if (t.dataset.acao === "novo-aporte") abrirAporte();
     else if (t.dataset.acao === "novo-cartao") abrirCartao();
     else if (t.dataset.acao === "tutorial") abrirTutorial(0);
+    else if (t.dataset.acao === "guia") abrirGuia();
     else if (t.dataset.acao === "importar") abrirImportar();
     else if (t.dataset.acao === "trocar-para-gasto") {
       const f = $("#form-conta").elements;
@@ -142,6 +143,7 @@ function ligarEventos() {
     else if (t.dataset.ir) irPara(t.dataset.ir);
     else if (t.dataset.acao === "nova-conta") abrirConta();
     else if (t.dataset.acao === "nova-renda") abrirRenda();
+    else if (t.dataset.acao === "mover-cartao") abrirMoverCartao();
     else if (t.hasAttribute("data-fechar")) t.closest("dialog").close();
   });
 
@@ -197,6 +199,8 @@ function ligarEventos() {
   $("#btn-excluir-aporte").addEventListener("click", excluirAporte);
   $("#btn-excluir-cartao").addEventListener("click", excluirCartao);
   $("#btn-pagar-fatura").addEventListener("click", alternarFatura);
+  $("#mover-cartao-lista").addEventListener("change", atualizarMoverCartao);
+  $("#btn-mover-cartao").addEventListener("click", travar(confirmarMoverCartao));
   $("#btn-editar-meta").addEventListener("click", () => abrirMeta(metaAberta.id));
   $("#btn-guardar-meta").addEventListener("click", () => abrirAporte({ metaId: metaAberta.id, tipo: "guardar" }));
   $("#btn-retirar-meta").addEventListener("click", () => abrirAporte({ metaId: metaAberta.id, tipo: "retirar" }));

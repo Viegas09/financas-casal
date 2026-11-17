@@ -841,3 +841,58 @@ dialog.sheet-alta .sheet-corpo { min-height: 100%; align-content: start; }
 /* Importação: arquivo de cartão sem cartão cadastrado */
 .imp-aviso-cartao { display: grid; gap: 8px; background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 12px; padding: 10px 12px; font-size: 13px; margin-bottom: 10px; }
 .imp-aviso-cartao .btn { justify-self: start; }
+
+/* Gastos: Pix/débito × crédito e faturas que vão ser pagas depois */
+.credito-mes { display: grid; gap: 12px; }
+.credito-mes .cm-topo { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+.credito-mes .cm-topo b { display: block; margin-bottom: 4px; }
+.credito-mes .cm-topo small { color: var(--text-3); font-size: 13px; line-height: 1.4; display: block; }
+.credito-mes .cm-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.cm-divisao { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cm-divisao > div { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
+.cm-divisao small, .cm-divisao span { font-size: 12px; color: var(--text-3); }
+.cm-divisao b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.cm-faturas { list-style: none; margin: 0; padding: 0; display: grid; }
+.cm-faturas li + li { border-top: 1px solid var(--grid); }
+.cm-fatura { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 0; }
+.cm-fatura .nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-fatura .meta { font-size: 12.5px; color: var(--text-3); }
+.cm-fatura > div:nth-child(2) { min-width: 0; }
+.cm-fatura .dir { display: grid; gap: 3px; justify-items: end; }
+.cm-fatura .valor { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cm-mover { justify-self: start; font-size: 13.5px; }
+.tag-fatura { color: var(--accent); font-weight: 500; }
+.mover-lista { max-height: 46vh; overflow: auto; margin: 8px 0; }
+.mover-item { display: grid; grid-template-columns: auto auto 1fr auto; gap: 10px; align-items: center; padding: 8px 0; cursor: pointer; }
+.mover-item input { width: 20px; height: 20px; accent-color: var(--accent); }
+.mover-meio { display: grid; min-width: 0; }
+.mover-meio .nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mover-meio .meta { font-size: 12.5px; color: var(--text-3); }
+/* Início: mês que vem e acerto do casal */
+.card-proximo-mes .pm-linhas, .acerto-casal .ac-pessoas { display: grid; gap: 8px; margin-top: 10px; }
+.pm-linha { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.pm-linha span:first-child { color: var(--text-2); }
+.pm-linha b, .pm-total b { font-variant-numeric: tabular-nums; }
+.pm-total { display: flex; justify-content: space-between; border-top: 1px solid var(--grid); padding-top: 8px; font-weight: 600; }
+.ac-titulo { margin: 6px 0 0; font-size: 15.5px; line-height: 1.45; }
+.ac-pessoa { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
+.ac-av { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; }
+.ac-pessoa .nome { font-weight: 600; }
+.ac-pessoa .meta { font-size: 12.5px; color: var(--text-3); }
+.ac-saldo { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-3); }
+.ac-saldo.pos { color: var(--good); }
+.ac-saldo.neg { color: var(--crit); }
+.ac-regra { margin: 10px 0 0; line-height: 1.45; }
+/* Primeiro acesso guiado */
+.guia-topo { display: flex; justify-content: space-between; align-items: center; }
+.guia-pontos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0 14px; }
+.guia-pontos span { height: 4px; border-radius: 4px; background: var(--grid); }
+.guia-pontos span.ativo { background: var(--accent); }
+.guia-campos { display: grid; gap: 12px; margin-top: 12px; }
+.guia-contas { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; max-height: 52vh; overflow: auto; }
+.guia-conta { display: grid; grid-template-columns: auto 1fr 96px 58px; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--grid); }
+.guia-conta:first-child { border-top: 0; }
+.guia-conta .gc-nome { font-weight: 600; font-size: 14px; display: grid; }
+.guia-conta .gc-nome small { font-weight: 400; font-size: 11.5px; }
+.guia-conta input { min-width: 0; padding: 8px; }
+.menu-item .menu-dir { display: inline-flex; align-items: center; gap: 8px; }

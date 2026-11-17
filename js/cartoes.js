@@ -71,7 +71,7 @@ const fmtData = (d, opts = { day: "numeric", month: "short" }) => new Date(d + "
 
 function renderFaturas() {
   const el = $("#faturas");
-  const usaCartao = estado.migracao3 && estado.cartoes.length > 0;
+  const usaCartao = estado.migracao3;
   const segCartoes = $('#seg-gastos [data-g="cartoes"]');
   segCartoes.hidden = !usaCartao;
   if (!usaCartao && segCartoes.classList.contains("ativo")) { mostrarSubGastos("orcamento"); }
@@ -96,9 +96,9 @@ function renderFaturas() {
 }
 
 let faturaAberta = null;
-function abrirFatura(cartaoId) {
+function abrirFatura(cartaoId, comp = estado.mes) {
   const c = estado.cartoes.find((x) => x.id === cartaoId); if (!c) return;
-  faturaAberta = { cartao: c, comp: estado.mes };
+  faturaAberta = { cartao: c, comp: comp || estado.mes };
   desenharFatura();
   $("#modal-fatura").showModal();
 }

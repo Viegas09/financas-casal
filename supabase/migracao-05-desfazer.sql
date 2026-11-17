@@ -4,6 +4,7 @@
 -- ATENÇÃO: apaga as outras famílias e os convites. Os dados da primeira família ficam.
 -- =====================================================================
 begin;
+drop table if exists public.avisos_inscricoes;   -- avisos no celular (migração 08) dependem das famílias
 
 drop trigger if exists ao_criar_usuario on auth.users;
 drop function if exists public.ao_criar_usuario();

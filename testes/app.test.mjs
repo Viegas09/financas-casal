@@ -152,8 +152,10 @@ const aba = (p, a) => p.click(`.tabbar [data-aba=${a}]`);
 const VINI = { id: "u-vini", email: "vini@x.com", senha: "123456" };
 const tabs = () => ({ contas: [{ id: "c1", nome: "Aluguel", categoria: "Moradia", valor: 2200, dia_vencimento: 5, responsavel: "Casal", ativa: true, inicio: "2026-01-01", variavel: false, fim: null, cartao_id: null }],
   pagamentos: [], rendas: [], gastos: [], orcamentos: [{ id: "o1", categoria: "Mercado", limite: 1000, ativa: true }], metas: [], aportes: [], cartoes: [], faturas_pagas: [] });
-const entrar = async (p, email = "vini@x.com") => {
+const entrar = async (p, email = "vini@x.com", { manterGuia = false } = {}) => {
   await p.fill("#form-login [name=email]", email); await p.fill("#form-login [name=senha]", "123456"); await p.click("#btn-login"); await p.waitForTimeout(800);
+  // família vazia abre a configuração inicial; nos testes que não são sobre ela, fecha
+  if (!manterGuia && await p.evaluate(() => document.querySelector("#modal-guia")?.open)) { await p.click("#guia-fechar"); await p.waitForTimeout(200); }
 };
 {
   const p = await pagina({ mock: { usuarios: [VINI], tabelas: { ...tabs(), membros: [{ user_id: "u-vini", nome: "Vinícius" }] } } });
@@ -362,6 +364,92 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   ok(await p.isVisible("#app") && await p.isHidden("#banner-assinatura") && (await p.innerText("#card-assinatura")).includes("Cortesia") && !(await p.locator("#card-assinatura button").count()), "cortesia: app normal, “Cortesia” em Mais, sem botões de cobrança");
 }
 
+// ================= PRIMEIRO ACESSO GUIADO =================
+{
+  const vazia = { ...FAM1(), contas: [], orcamentos: [] };
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: vazia } });
+  await entrar(p, undefined, { manterGuia: true }); await p.waitForTimeout(600);
+  ok(await p.evaluate(() => document.querySelector("#modal-guia").open), "família nova: abre a configuração inicial");
+  ok((await p.innerText("#guia-rendas")).includes("Marcela"), "guia: pede a renda de cada pessoa da família");
+  await p.fill('[data-guia-renda="0"]', "6.000"); await p.fill('[data-guia-renda="1"]', "4000");
+  await p.click("#guia-proximo"); await p.waitForTimeout(150);
+  await p.fill('[data-guia-valor="2"]', "200"); await p.fill('[data-guia-dia="2"]', "15");
+  await p.fill('[data-guia-valor="4"]', "119,90");
+  await p.click("#guia-proximo"); await p.waitForTimeout(150);
+  ok((await p.innerText("#guia-proximo")) === "Concluir", "guia: 3º passo é o cartão, com botão Concluir");
+  await p.fill("#guia-cartao-nome", "Nubank"); await p.selectOption("#guia-cartao-dono", "Marcela");
+  await p.fill("#guia-cartao-fech", "3"); await p.fill("#guia-cartao-venc", "10");
+  await p.click("#guia-proximo"); await p.waitForTimeout(600);
+  const t = await p.evaluate(() => window.__MOCK.tabelas);
+  const luz = t.contas.find((c) => c.nome === "Luz"), net = t.contas.find((c) => c.nome === "Internet");
+  ok(t.rendas.length === 2 && t.rendas.some((r) => r.responsavel === "Marcela" && Number(r.valor) === 4000) && t.rendas.some((r) => Number(r.valor) === 6000), "guia: grava a renda de cada um");
+  ok(t.contas.length === 2 && luz?.dia_vencimento === 15 && luz.variavel === true && net?.dia_vencimento === 10 && Number(net.valor) === 119.9, "guia: grava só as contas preenchidas (luz variável dia 15, internet no dia 10 padrão)");
+  ok(t.cartoes.length === 1 && t.cartoes[0].responsavel === "Marcela" && t.cartoes[0].dia_vencimento === 10, "guia: grava o cartão");
+  ok(!(await p.evaluate(() => document.querySelector("#modal-guia").open)) && (await p.innerText("#hero-total")).includes("319,90"), "guia: fecha e o mês já aparece montado");
+  await p.reload(); await p.waitForTimeout(900);
+  ok(!(await p.evaluate(() => document.querySelector("#modal-guia").open)), "guia: não aparece de novo depois de feito");
+  ok(p.erros.length === 0, "sem erros de JavaScript (guia) " + p.erros.join(" | "));
+}
+{
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: { ...FAM1(), contas: [], orcamentos: [] } } });
+  await entrar(p, undefined, { manterGuia: true }); await p.waitForTimeout(600);
+  await p.click("#guia-fechar"); await p.waitForTimeout(300);
+  ok(!(await p.evaluate(() => document.querySelector("#modal-guia").open)) && (await p.evaluate(() => window.__MOCK.tabelas.contas.length)) === 0, "guia: “Fazer depois” fecha sem gravar nada");
+  await aba(p, "mais"); await p.click('[data-acao="guia"]'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => document.querySelector("#modal-guia").open), "guia: dá para abrir de novo em Mais → Configuração inicial");
+}
+
+// ================= CRÉDITO → FATURA DO MÊS QUE VEM, MÊS QUE VEM NO INÍCIO E ACERTO DO CASAL =================
+{
+  const hoje = new Date(), pad2 = (n) => String(n).padStart(2, "0");
+  const mes = `${hoje.getFullYear()}-${pad2(hoje.getMonth() + 1)}`;
+  const prox = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+  const nomeProx = prox.toLocaleDateString("pt-BR", { month: "long" });
+  const g = (id, dia, descricao, valor, extra) => ({ id, data: `${mes}-${dia}`, descricao, valor, categoria: "Outros", responsavel: "Casal", forma_pagamento: null, cartao_id: null, parcelas: 1, ...extra });
+  const tab = { ...FAM1(),
+    membros: [...FAM1().membros, { user_id: "u-marcela", nome: "Marcela", familia_id: "f1", papel: "membro", admin: false, email: "marcela@x.com" }],
+    contas: [{ id: "c1", nome: "Aluguel", categoria: "Moradia", valor: 2000, dia_vencimento: 5, responsavel: "Casal", ativa: true, inicio: "2026-01-01", variavel: false, fim: null, cartao_id: null }],
+    pagamentos: [{ id: "p1", conta_id: "c1", competencia: `${mes}-01`, valor_pago: 2000, pago_em: `${mes}-05`, pago_por: "Vinícius" }],
+    rendas: [{ id: "r1", descricao: "Salário", valor: 6000, responsavel: "Vinícius", ativa: true }, { id: "r2", descricao: "Salário", valor: 4000, responsavel: "Marcela", ativa: true }],
+    cartoes: [{ id: "k1", nome: "Nubank", dia_fechamento: 3, dia_vencimento: 10, limite: null, responsavel: "Marcela", ativo: true }],
+    gastos: [g("g1", 15, "Mercado Extra", 300, { cartao_id: "k1", forma_pagamento: "Cartão Nubank", created_by: "u-marcela" }),
+      g("g2", 16, "Farmácia", 100, { forma_pagamento: "Pix", created_by: "u-vini" }),
+      g("g3", 17, "Uber", 50, { responsavel: "Vinícius", forma_pagamento: "Importado do extrato", created_by: "u-vini" })] };
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: tab } });
+  await entrar(p);
+  const ac = (await p.innerText("#acerto-casal")).replace(/\u00a0/g, " ");
+  ok(ac.includes("Marcela passa R$ 840,00 para Vinícius") && ac.includes("60%") && ac.includes("40%"), "acerto: Vinícius pagou aluguel + farmácia (2.100), parte dele 60% → Marcela passa 840 " + ac.replace(/\n/g, " / "));
+  const pm = await p.innerText("#proximo-mes");
+  ok(pm.includes("Fatura Nubank") && pm.includes("300,00") && pm.includes("2.300,00"), "Início: o mês que vem já mostra a fatura (300) + contas fixas (total 2.300) " + pm.replace(/\n/g, " / "));
+  await aba(p, "gastos"); await p.waitForTimeout(200);
+  const cm = await p.innerText("#credito-mes");
+  ok(cm.includes("Pix ou débito") && cm.includes("150,00") && cm.includes("No crédito") && cm.includes("300,00") && cm.toLowerCase().includes(`fatura de ${nomeProx}`) && cm.includes("Nubank · vence") && cm.includes("A pagar"),
+    "Gastos: separa o que já saiu (Pix/débito 150) do que vai na fatura do mês que vem (300, a pagar) " + cm.replace(/\n/g, " / "));
+  await p.click('#seg-gastos [data-g="extrato"]'); await p.waitForTimeout(150);
+  ok((await p.innerText("#extrato")).includes("Nubank · fatura " + prox.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").toLowerCase()), "extrato: compra no crédito mostra em qual fatura entra");
+  await p.click('#seg-gastos [data-g="orcamento"]'); await p.waitForTimeout(150);
+  await p.click('[data-acao="mover-cartao"]'); await p.waitForTimeout(250);
+  ok((await p.locator("#mover-cartao-lista input").count()) === 2, "mover para o cartão: lista os gastos sem cartão do mês");
+  await p.locator("#mover-cartao-lista label", { hasText: "Uber" }).locator("input").check();
+  ok((await p.innerText("#btn-mover-cartao")) === "Mover 1 gasto", "mover: botão mostra quantos vão");
+  await p.click("#btn-mover-cartao"); await p.waitForTimeout(400);
+  const uber = await p.evaluate(() => window.__MOCK.tabelas.gastos.find((x) => x.id === "g3"));
+  ok(uber.cartao_id === "k1" && uber.forma_pagamento === "Cartão Nubank", "mover: o gasto passa para o cartão");
+  ok((await p.innerText("#credito-mes")).includes("350,00"), "depois de mover, a fatura do mês que vem soma 350");
+  await p.click("#toast button"); await p.waitForTimeout(400);
+  ok(!(await p.evaluate(() => window.__MOCK.tabelas.gastos.find((x) => x.id === "g3").cartao_id)), "mover: “Desfazer” devolve o gasto para Pix/débito");
+  await p.locator('#credito-mes [data-abrir-fatura]').click(); await p.waitForTimeout(300);
+  ok((await p.innerText("#fatura-detalhe")).toLowerCase().includes(nomeProx), "tocar na fatura abre a fatura do mês que vem (não a do mês atual)");
+  ok(p.erros.length === 0, "sem erros de JavaScript (crédito e acerto) " + p.erros.join(" | "));
+}
+{
+  // sem cartão cadastrado: convite para cadastrar, e a aba Cartões aparece mesmo assim
+  const t = { ...FAM1(), gastos: [{ id: "x1", data: new Date().toISOString().slice(0, 10), descricao: "Mercado", valor: 80, categoria: "Mercado", responsavel: "Casal", forma_pagamento: "Importado do extrato", cartao_id: null, parcelas: 1 }] };
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: t } });
+  await entrar(p); await aba(p, "gastos"); await p.waitForTimeout(200);
+  ok((await p.innerText("#credito-mes")).includes("Algum gasto foi no cartão de crédito?") && await p.isVisible('#seg-gastos [data-g="cartoes"]'), "sem cartão: Gastos convida a cadastrar e a aba Cartões fica visível");
+}
+
 // ================= FATURA DO CARTÃO EM CONTAS (caso da Marcela) =================
 {
   // ela importou a fatura sem ter cartão cadastrado: os gastos entraram como Pix/débito
@@ -404,6 +492,15 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   await p.locator("#lista-mes li.fatura-item .info").click(); await p.waitForTimeout(300);
   ok(await p.evaluate(() => document.querySelector("#modal-fatura").open), "tocar na fatura abre o detalhe com as compras");
   ok(p.erros.length === 0, "sem erros de JavaScript (fatura em Contas) " + p.erros.join(" | "));
+}
+
+// ================= AVISOS NO CELULAR (na demonstração só explica) =================
+{
+  const p = await pagina();
+  await aba(p, "mais"); await p.waitForTimeout(200);
+  ok((await p.innerText("#avisos-estado")) === "no app real", "avisos: na demonstração o item mostra que é só no app real");
+  await p.click("#btn-avisos"); await p.waitForTimeout(200);
+  ok((await p.innerText("#toast")).includes("demonstração"), "avisos: na demonstração explica em vez de pedir permissão");
 }
 
 // ================= DEMONSTRAÇÃO PÚBLICA (app?demo, link da página de venda) =================

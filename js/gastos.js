@@ -35,6 +35,7 @@ function renderGastos() {
   if (!estado.migracao2) { $("#resumo-orc").innerHTML = ""; $("#lista-orc").innerHTML = ""; $("#extrato").innerHTML = ""; return; }
 
   const gastos = gastosFiltrados();
+  renderCredito(gastos);
   if (pessoa !== "todos") { renderGastosPessoa(gastos); renderExtrato(gastos); return; }
   const total = soma(gastos, (g) => g.valor);
   const limite = soma(estado.orcamentos.filter((o) => o.ativa), (o) => o.limite);
@@ -93,7 +94,98 @@ function renderGastosPessoa(gastos) {
   }).join("") : vazio("carrinho", `${esc(pessoa)} não lançou gastos neste mês`, "Os gastos marcados como “Casal” aparecem só em Todos.");
 }
 
+// ---------- Crédito: o que vai para a fatura (pago depois) ----------
+/** Valor que uma compra no cartão põe na 1ª fatura (a 1ª parcela, se for parcelada). */
+const primeiraParcela = (g) => { const n = Math.max(1, Number(g.parcelas) || 1); return n === 1 ? Number(g.valor) : Math.floor((Number(g.valor) / n) * 100) / 100; };
+
+/** Compras no crédito agrupadas pela fatura em que entram: { cartao, comp, valor, compras, parcelado } */
+function creditoPorFatura(gastos) {
+  const grupos = new Map();
+  gastos.filter((g) => g.cartao_id).forEach((g) => {
+    const c = estado.cartoes.find((x) => x.id === g.cartao_id); if (!c) return;
+    const comp = competenciaFatura(c, g.data), k = c.id + "|" + comp;
+    const gr = grupos.get(k) || { cartao: c, comp, valor: 0, compras: 0, futuro: 0 };
+    const p1 = primeiraParcela(g);
+    gr.valor += p1; gr.futuro += Number(g.valor) - p1; gr.compras++;
+    grupos.set(k, gr);
+  });
+  return [...grupos.values()].sort((a, b) => a.comp.localeCompare(b.comp) || a.cartao.nome.localeCompare(b.cartao.nome));
+}
+
+/** Bloco em Gastos: quanto já saiu da conta (Pix/débito) e quanto vai ser pago nas faturas. */
+function renderCredito(gastos) {
+  const el = $("#credito-mes"); if (!el) return;
+  if (!estado.migracao3 || !gastos.length) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  const ativos = estado.cartoes.filter((c) => c.ativo);
+  const semCartao = gastos.filter((g) => !g.cartao_id);
+  const noCredito = soma(gastos.filter((g) => g.cartao_id), (g) => g.valor), naHora = soma(semCartao, (g) => g.valor);
+  if (!ativos.length) {
+    el.innerHTML = `
+      <div class="cm-topo"><span class="bola-cat">${svg("cartao")}</span><div><b>Algum gasto foi no cartão de crédito?</b>
+      <small>Cadastre o cartão e mova esses gastos para ele: o Plinc mostra o que vai para a fatura do mês que vem, para vocês darem baixa quando pagarem.</small></div></div>
+      <div class="cm-botoes"><button class="btn btn-primary" data-acao="novo-cartao">Cadastrar cartão</button></div>`;
+    return;
+  }
+  const grupos = creditoPorFatura(gastos);
+  el.innerHTML = `
+    <div class="cm-divisao">
+      <div><small>Pix ou débito</small><b>${fmt(naHora)}</b><span>já saiu da conta</span></div>
+      <div><small>No crédito</small><b>${fmt(noCredito)}</b><span>pago na fatura</span></div>
+    </div>
+    ${grupos.length ? `<ul class="cm-faturas">${grupos.map((g) => {
+      const st = statusFatura(g.cartao, g.comp), dt = datasFatura(g.cartao, g.comp);
+      return `<li><button class="cm-fatura" data-abrir-fatura="${g.cartao.id}" data-comp="${g.comp}">
+        <span class="bola-cat">${svg("cartao")}</span>
+        <div><div class="nome">Fatura de ${esc(nomeMes(g.comp, "mes"))}</div>
+        <div class="meta">${esc(g.cartao.nome)} · vence ${esc(fmtData(dt.vencimento))} · ${g.compras} compra${g.compras > 1 ? "s" : ""}${g.futuro > 0.004 ? ` · +${fmt(g.futuro)} em parcelas futuras` : ""}</div></div>
+        <div class="dir"><span class="valor">${fmt(g.valor)}</span><span class="badge ${st.cls}">${st.chave === "paga" ? "✓ Paga" : "A pagar"}</span></div>
+      </button></li>`;
+    }).join("")}</ul>` : ""}
+    ${semCartao.length ? `<button class="btn-link cm-mover" data-acao="mover-cartao">Algum gasto foi no crédito? Mover para o cartão</button>` : ""}`;
+}
+
+// ---------- Mover gastos para o cartão ----------
+function abrirMoverCartao() {
+  const cartoes = estado.cartoes.filter((c) => c.ativo);
+  if (!cartoes.length) return abrirCartao();
+  const lista = gastosFiltrados().filter((g) => !g.cartao_id).sort((a, b) => b.data.localeCompare(a.data));
+  $("#mover-cartao-sel").innerHTML = cartoes.map((c) => `<option value="${c.id}">💳 ${esc(c.nome)} (${esc(c.responsavel)})</option>`).join("");
+  $("#mover-cartao-lista").innerHTML = lista.length ? lista.map((g) => `
+    <li><label class="mover-item"><input type="checkbox" value="${g.id}">
+      <span class="bola-cat">${svg(iconeDe(g.categoria, g.descricao))}</span>
+      <span class="mover-meio"><span class="nome">${esc(g.descricao)}</span><span class="meta">${esc(fmtData(g.data))} · ${esc(g.responsavel)}</span></span>
+      <span class="valor">${fmt(g.valor)}</span></label></li>`).join("")
+    : `<li class="muted pequeno">Nenhum gasto sem cartão neste mês.</li>`;
+  atualizarMoverCartao();
+  $("#modal-mover-cartao").showModal();
+}
+function atualizarMoverCartao() {
+  const n = $$("#mover-cartao-lista input:checked").length;
+  $("#btn-mover-cartao").textContent = n ? `Mover ${n} gasto${n > 1 ? "s" : ""}` : "Escolha os gastos";
+  $("#btn-mover-cartao").disabled = !n;
+}
+async function confirmarMoverCartao() {
+  const c = estado.cartoes.find((x) => x.id === $("#mover-cartao-sel").value); if (!c) return;
+  const ids = $$("#mover-cartao-lista input:checked").map((i) => i.value);
+  const alvos = ids.map((id) => estado.gastos.find((g) => g.id === id)).filter(Boolean);
+  const antes = alvos.map((g) => ({ g, forma_pagamento: g.forma_pagamento }));
+  try {
+    for (const g of alvos) Object.assign(g, await db.atualizar("gastos", g.id, { cartao_id: c.id, forma_pagamento: "Cartão " + c.nome }));
+    $("#modal-mover-cartao").close(); render();
+    toast(`${alvos.length} gasto${alvos.length > 1 ? "s" : ""} no cartão ${c.nome}`, { rotulo: "Desfazer", acao: async () => {
+      try { for (const a of antes) Object.assign(a.g, await db.atualizar("gastos", a.g.id, { cartao_id: null, forma_pagamento: a.forma_pagamento })); render(); toast("Desfeito"); } catch (e) { erro(e); }
+    } });
+  } catch (e) { erro(e); }
+}
+
 let filtroCatGasto = null;
+/** No extrato: compra no cartão mostra em qual fatura entra. */
+function metaPagamento(g) {
+  const c = g.cartao_id && estado.cartoes.find((x) => x.id === g.cartao_id);
+  if (c) return ` · <span class="tag-fatura">💳 ${esc(c.nome)} · fatura ${esc(nomeMes(competenciaFatura(c, g.data), "curto").toLowerCase())}</span>`;
+  return g.forma_pagamento ? " · " + esc(g.forma_pagamento) : "";
+}
 function renderExtrato(gastos) {
   const lista = (filtroCatGasto ? gastos.filter((g) => g.categoria === filtroCatGasto) : gastos)
     .slice().sort((a, b) => b.data.localeCompare(a.data) || String(b.created_at || "").localeCompare(String(a.created_at || "")));
@@ -109,7 +201,7 @@ function renderExtrato(gastos) {
     <article class="card card-lista"><ul class="lista-cadastro">${gr.itens.map((g) => `
       <li class="swipe" data-swipe="gasto" data-id="${g.id}">${ACAO_EXCLUIR()}<button class="item" data-editar-gasto="${g.id}">
         <span class="bola-cat">${svg(iconeDe(g.categoria, g.descricao))}</span>
-        <div><div class="nome">${esc(g.descricao)}</div><div class="meta">${esc(g.categoria)} · ${esc(g.responsavel)}${g.forma_pagamento ? " · " + esc(g.forma_pagamento) : ""}${g.parcelas > 1 ? ` · ${g.parcelas}x` : ""}</div></div>
+        <div><div class="nome">${esc(g.descricao)}</div><div class="meta">${esc(g.categoria)} · ${esc(g.responsavel)}${metaPagamento(g)}${g.parcelas > 1 ? ` · ${g.parcelas}x` : ""}</div></div>
         <span class="valor">−${fmt(g.valor)}</span><span class="seta">›</span>
       </button></li>`).join("")}</ul></article>`).join("") + `<p class="dica">Arraste um gasto para a esquerda para excluir.</p>`
     : `<article class="card card-lista"><ul class="lista-cadastro">${vazio("carrinho", "Nenhum gasto neste mês", "Registre mercado, delivery, lazer… e acompanhe o limite de cada categoria.", ["novo-gasto", "Registrar gasto"])}</ul></article>`);
