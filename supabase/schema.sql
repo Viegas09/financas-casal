@@ -621,3 +621,13 @@ begin
     $cron$);
   end if;
 end $$;
+
+-- ======== moeda da família (igual à migração 09) ========
+begin;
+alter table public.familias add column if not exists moeda text not null default 'BRL';
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'familias_moeda_codigo') then
+    alter table public.familias add constraint familias_moeda_codigo check (moeda ~ '^[A-Z]{3}$');
+  end if;
+end $$;
+commit;

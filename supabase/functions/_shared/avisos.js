@@ -6,7 +6,13 @@ const diasNoMes = (a, m) => new Date(Date.UTC(a, m, 0)).getUTCDate();
 const compDe = (iso) => iso.slice(0, 7) + "-01";
 const somaMes = (comp, n) => { const [a, m] = comp.split("-").map(Number); const d = new Date(Date.UTC(a, m - 1 + n, 1)); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-01`; };
 const diaEfetivo = (comp, dia) => { const [a, m] = comp.split("-").map(Number); return Math.min(dia, diasNoMes(a, m)); };
-const brl = (v) => "R$ " + Number(v).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+// moeda da família → formato do país (mesma lista do app, js/nucleo.js)
+const LOCAIS = { BRL: "pt-BR", SEK: "sv-SE", EUR: "pt-PT", USD: "en-US", GBP: "en-GB", NOK: "nb-NO", DKK: "da-DK", CHF: "de-CH", CAD: "en-CA",
+  AUD: "en-AU", JPY: "ja-JP", ARS: "es-AR", CLP: "es-CL", MXN: "es-MX", UYU: "es-UY", PYG: "es-PY", COP: "es-CO", PEN: "es-PE" };
+export const dinheiro = (v, moeda = "BRL") => {
+  const m = LOCAIS[moeda] ? moeda : "BRL";
+  return new Intl.NumberFormat(LOCAIS[m], { style: "currency", currency: m }).format(Number(v) || 0).replace(/\u00a0|\u202f/g, " ");
+};
 
 /** Data de hoje no horário de Brasília (AAAA-MM-DD). */
 export const hojeBrasil = (agora = new Date()) => new Date(agora.getTime() - 3 * 3600e3).toISOString().slice(0, 10);
@@ -74,7 +80,8 @@ export function vencimentosAmanha(dados, hoje) {
 const juntar = (nomes) => nomes.length <= 1 ? nomes.join("") : nomes.slice(0, -1).join(", ") + " e " + nomes.at(-1);
 
 /** Texto da notificação. */
-export function mensagem(itens) {
+export function mensagem(itens, moeda = "BRL") {
+  const brl = (v) => dinheiro(v, moeda);
   const comValor = itens.filter((i) => i.valor !== null), total = comValor.reduce((s, i) => s + i.valor, 0);
   if (itens.length === 1) {
     const i = itens[0];

@@ -494,6 +494,29 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   ok(p.erros.length === 0, "sem erros de JavaScript (fatura em Contas) " + p.erros.join(" | "));
 }
 
+// ================= MOEDA DA FAMÍLIA (irmã na Suécia) =================
+{
+  const t = FAM1(); t.familias = [{ ...t.familias[0], moeda: "SEK" }];
+  t.contas = [{ ...t.contas[0], nome: "Hyra", valor: 8500 }];
+  const p = await pagina({ mock: { usuarios: [VINI], tabelas: t } });
+  await entrar(p);
+  const hero = (await p.innerText("#hero-total")).replace(/\u00a0|\u202f/g, " ");
+  ok(hero.includes("8 500,00 kr") && !hero.includes("R$"), "moeda: família em coroa sueca vê os valores em kr " + hero);
+  await aba(p, "gastos"); await p.click('#aba-gastos [data-acao="novo-gasto"]'); await p.waitForTimeout(250);
+  ok((await p.innerText("#modal-gasto .campo-rs span")).trim() === "kr", "moeda: o campo de valor mostra kr em vez de R$");
+  await p.fill("#modal-gasto [name=valor]", "1 234,50"); await p.fill("#modal-gasto [name=descricao]", "ICA");
+  await p.evaluate(() => { const f = document.querySelector("#form-gasto"); f.categoria.value = "Mercado"; });
+  await p.click("#form-gasto button[type=submit]"); await p.waitForTimeout(400);
+  const ica = await p.evaluate(() => window.__MOCK.tabelas.gastos.find((g) => g.descricao === "ICA"));
+  ok(ica && Number(ica.valor) === 1234.5, "moeda: aceita o número no jeito sueco (1 234,50) " + JSON.stringify(ica && ica.valor));
+  await aba(p, "mais"); await p.waitForTimeout(200);
+  ok(await p.isVisible("#sel-moeda-familia") && (await p.$eval("#sel-moeda-familia", (s) => s.value)) === "SEK", "moeda: dono vê a moeda da família em Mais → Família");
+  p.once("dialog", (d) => d.accept());
+  await p.selectOption("#sel-moeda-familia", "EUR"); await p.waitForTimeout(400);
+  ok((await p.evaluate(() => window.__MOCK.tabelas.familias[0].moeda)) === "EUR" && (await p.innerText("#hero-total")).includes("€"), "moeda: trocar grava na família e o app passa a mostrar €");
+  ok(p.erros.length === 0, "sem erros de JavaScript (moeda) " + p.erros.join(" | "));
+}
+
 // ================= AVISOS NO CELULAR (na demonstração só explica) =================
 {
   const p = await pagina();

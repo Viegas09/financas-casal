@@ -161,3 +161,7 @@ supabase/migracao-*   atualizações do banco para quem já instalou
 3. No app: **Mais → Avisos de vencimento no celular**. No iPhone, o Plinc precisa estar na Tela de Início (Compartilhar → Adicionar à Tela de Início).
 
 Todo dia às 8h o banco chama a função, que avisa cada família do que vence amanhã e ainda não foi pago (contas fixas e faturas). Desfazer: `migracao-08-desfazer.sql`.
+
+## Moeda da família
+
+Cada família tem a sua moeda (real, coroa sueca, euro, dólar…). Rode `supabase/migracao-09-moeda.sql` uma vez; depois quem é dono escolhe em **Mais → Família → Moeda da família**. Os valores não são convertidos: só o símbolo e o formato mudam (ex.: `8 500,00 kr`). Os avisos no celular também saem na moeda da família.

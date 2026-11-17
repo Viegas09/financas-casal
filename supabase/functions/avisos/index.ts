@@ -61,8 +61,10 @@ Deno.serve(async (req) => {
         rest(`gastos?${em}&cartao_id=not.is.null&select=id,familia_id,cartao_id,data,valor,parcelas`).catch(() => [])
       ]);
       const venc = vencimentosAmanha({ contas, pagamentos, valores_mes, cartoes, faturas_pagas, gastos }, hojeBrasil());
+      const fams = (await rest(`familias?id=in.(${familias.join(",")})&select=id,moeda`).catch(() => [])) || [];
+      const moedaDe = (id: string) => fams.find((f: any) => f.id === id)?.moeda || "BRL";
       let enviados = 0;
-      for (const [fam, itens] of venc) enviados += await mandar(subs.filter((s: any) => s.familia_id === fam), mensagem(itens));
+      for (const [fam, itens] of venc) enviados += await mandar(subs.filter((s: any) => s.familia_id === fam), mensagem(itens, moedaDe(fam)));
       return json(req, { familias: venc.size, enviados });
     }
     return json(req, { erro: "ação desconhecida" }, 400);
