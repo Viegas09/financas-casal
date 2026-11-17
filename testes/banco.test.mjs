@@ -218,6 +218,20 @@ ok(!dup08 && (await q(`select token from avisos_config`))[0].token === tok && (a
 await exec(fs.readFileSync(R + "migracao-08-desfazer.sql", "utf8"));
 ok((await q(`select to_regclass('public.avisos_inscricoes') t`))[0].t === null, "08 DESFAZER: avisos removidos");
 
+// ---- migração 09: moeda da família ----
+await exec(fs.readFileSync(R + "migracao-09-moeda.sql", "utf8"));
+ok((await q(`select count(*) n from familias where moeda <> 'BRL'`))[0].n == 0, "09: todas as famílias continuam em real");
+const papelVini = (await q(`select papel from membros where user_id=$1`, [vini.id]))[0].papel;
+const mudouVini = await como(vini.id, () => q(`update familias set moeda = 'SEK' where id = minha_familia() returning moeda`));
+ok(papelVini === "dono" && mudouVini.length === 1 && mudouVini[0].moeda === "SEK", "09: quem é dono troca a moeda da família");
+const papelDuda = (await q(`select papel from membros where user_id=$1`, [duda.id]))[0].papel;
+const mudouDuda = await como(duda.id, () => q(`update familias set moeda = 'EUR' where id = minha_familia() returning moeda`));
+ok(papelDuda === "membro" && mudouDuda.length === 0, "09: quem não é dono (convidado) não troca a moeda");
+ok(!!(await tenta(() => q(`update familias set moeda = 'real'`))), "09: só aceita código de 3 letras (BRL, SEK…)");
+const dup09 = await tenta(() => exec(fs.readFileSync(R + "migracao-09-moeda.sql", "utf8")));
+ok(!dup09, "09: rodar de novo é seguro " + (dup09 || ""));
+await q(`update familias set moeda = 'BRL'`);
+
 // desfazer 07
 await exec(fs.readFileSync(R + "migracao-07-desfazer.sql", "utf8"));
 ok(!!(await tenta(() => q(`insert into auth.users (email) values ('outro@x.com')`))), "07 DESFAZER: cadastro volta a ser só por convite");

@@ -29,7 +29,7 @@ function abrirGuia() {
     <li class="guia-conta">
       <span class="bola-cat">${svg(iconeDe(c.categoria, c.nome))}</span>
       <span class="gc-nome">${esc(c.nome)}${c.variavel ? '<small class="muted">valor muda todo mês</small>' : ""}</span>
-      <input data-guia-valor="${i}" type="text" inputmode="decimal" placeholder="R$ 0,00" aria-label="Valor de ${esc(c.nome)}" autocomplete="off" />
+      <input data-guia-valor="${i}" type="text" inputmode="decimal" placeholder="${SIMBOLO} 0,00" aria-label="Valor de ${esc(c.nome)}" autocomplete="off" />
       <input data-guia-dia="${i}" type="number" min="1" max="31" placeholder="dia" aria-label="Dia do vencimento de ${esc(c.nome)}" />
     </li>`).join("");
   $("#guia-cartao-dono").innerHTML = PESSOAS.map((p) => `<option>${esc(p)}</option>`).join("");

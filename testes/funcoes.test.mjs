@@ -2,7 +2,7 @@
 import crypto from "node:crypto";
 import { avisoAutentico, manifesto, mudancaPorPreapproval, mudancaPorPagamento, corpoPreapproval, PRECO } from "../supabase/functions/_shared/regras.js";
 import { processarAviso, pedidoDoApp } from "../supabase/functions/_shared/acoes.js";
-import { vencimentosAmanha, mensagem, hojeBrasil, amanhaDe, totalFatura } from "../supabase/functions/_shared/avisos.js";
+import { vencimentosAmanha, mensagem, hojeBrasil, amanhaDe, totalFatura, dinheiro } from "../supabase/functions/_shared/avisos.js";
 
 let falhas = 0;
 const ok = (c, m) => { if (!c) falhas++; console.log((c ? "✅ " : "❌ ") + m); };
@@ -130,6 +130,10 @@ function banco(inicial) {
   ok(m1.titulo === "Amanhã vence: Luz" && m1.corpo.startsWith("R$ 215,40"), "avisos: texto de uma conta " + JSON.stringify(m1));
   const m3 = mensagem([{ nome: "Luz", valor: null }, { nome: "Internet", valor: 120 }, { nome: "Fatura Nubank", valor: 1222 }]);
   ok(m3.titulo === "Amanhã vencem 3 contas" && m3.corpo === "Luz, Internet e Fatura Nubank · R$ 1.342,00", "avisos: texto de várias contas " + JSON.stringify(m3));
+  const sek = mensagem([{ nome: "Hyra", valor: 8500 }], "SEK");
+  ok(sek.corpo.startsWith("8 500,00 kr"), "avisos: família na Suécia recebe o valor em coroas " + JSON.stringify(sek));
+  ok(mensagem([{ nome: "Rent", valor: 1200.5 }], "EUR").corpo.startsWith("1200,50 €") || mensagem([{ nome: "Rent", valor: 1200.5 }], "EUR").corpo.startsWith("1 200,50 €"), "avisos: euro no formato europeu");
+  ok(mensagem([{ nome: "Luz", valor: 10 }], "XYZ").corpo.startsWith("R$ 10,00"), "avisos: moeda desconhecida cai para real");
 }
 
 console.log(falhas ? `\n${falhas} FALHA(S) nas funções` : "\nFunções: tudo certo");
