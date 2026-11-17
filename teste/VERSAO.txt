@@ -1,1 +1,1 @@
-versão: 63a6742 Crédito e fatura do mês que vem, acerto do casal, primeiro acesso guiado e avisos de vencimento
+versão: 9001b89 Moeda por família (real, coroa sueca, euro…)

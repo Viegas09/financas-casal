@@ -219,5 +219,5 @@ function renderCadastroOrcamentos() {
         <span class="valor">${fmt(o.limite)}</span><span class="seta">›</span>
       </button>
     </li>`).join("") + `<li class="total"><span>Total planejado por mês</span><span>${fmt(soma(orcs.filter((o) => o.ativa), (o) => o.limite))}</span></li>`
-    : vazio("carrinho", "Nenhuma categoria de gasto", "Ex.: Mercado R$ 1.200, Lazer R$ 300.", ["novo-orcamento", "Nova categoria"]);
+    : vazio("carrinho", "Nenhuma categoria de gasto", `Ex.: Mercado ${fmt(1200)}, Lazer ${fmt(300)}.`, ["novo-orcamento", "Nova categoria"]);
 }

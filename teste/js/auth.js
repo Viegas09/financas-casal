@@ -81,6 +81,7 @@ async function validarMembro() {
   await carregarAssinatura();
   estado.validado = true;
   definirPessoas(estado.familia?.pessoas);
+  definirMoeda(estado.familia?.moeda);
   preencherSelects();
   if (pessoa !== "todos" && !PESSOAS.includes(pessoa)) pessoa = "todos";
   ligarAoVivo();

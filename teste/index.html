@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="css/style.css?v=202611171600" />
+  <link rel="stylesheet" href="css/style.css?v=202611171730" />
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -295,7 +295,7 @@
         <input name="nome" required maxlength="80" placeholder="Ex.: Aluguel, Luz, Internet" autocomplete="off" />
       </label>
       <div class="linha">
-        <label>Valor por mês (R$)
+        <label>Valor por mês (<span data-moeda>R$</span>)
           <input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
         </label>
         <label>Dia do vencimento
@@ -357,7 +357,7 @@
         <input name="descricao" required maxlength="80" placeholder="Ex.: Salário, Freela" />
       </label>
       <div class="linha">
-        <label>Valor mensal (R$)
+        <label>Valor mensal (<span data-moeda>R$</span>)
           <input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
         </label>
         <label>De quem
@@ -382,7 +382,7 @@
       <h2 id="titulo-modal-gasto">Novo gasto</h2>
       <p class="explica" id="explica-gasto">Algo pago agora, uma vez só (mercado, cabeleireiro, delivery). Tem vencimento (aluguel, luz, fatura)? Cadastre como <button type="button" class="btn-link" data-acao="trocar-para-conta">conta →</button></p>
       <label class="valor-grande">Valor
-        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
+        <span class="campo-rs"><span data-moeda>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
       </label>
       <label>Descrição
         <input name="descricao" required maxlength="80" placeholder="Ex.: Mercado do mês, iFood, cinema" />
@@ -422,7 +422,7 @@
       <label>Categoria
         <input name="categoria" required maxlength="40" placeholder="Ex.: Mercado, Lazer, Farmácia" />
       </label>
-      <label>Limite por mês (R$)
+      <label>Limite por mês (<span data-moeda>R$</span>)
         <input name="limite" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
       </label>
       <input type="checkbox" name="ativa" checked hidden />
@@ -443,7 +443,7 @@
       <h2 id="titulo-valor-mes">Valor do mês</h2>
       <p class="muted pequeno" id="dica-valor-mes"></p>
       <label class="valor-grande">Valor deste mês
-        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
+        <span class="campo-rs"><span data-moeda>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
       </label>
       <div class="modal-acoes">
         <button type="button" class="btn btn-perigo" id="btn-remover-valor-mes" hidden>Remover</button>
@@ -461,7 +461,7 @@
       <h2 id="titulo-modal-pagar">Quanto veio a conta?</h2>
       <p class="muted pequeno" id="dica-pagar"></p>
       <label class="valor-grande">Valor pago
-        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" autocomplete="off" /></span>
+        <span class="campo-rs"><span data-moeda>R$</span><input name="valor" type="text" required inputmode="decimal" autocomplete="off" /></span>
       </label>
       <label>Pago em
         <input name="pago_em" type="date" required />
@@ -483,7 +483,7 @@
         <input name="nome" required maxlength="60" placeholder="Ex.: Reserva de emergência, Viagem, Casa própria" />
       </label>
       <div class="linha">
-        <label>Quanto querem juntar (R$)
+        <label>Quanto querem juntar (<span data-moeda>R$</span>)
           <input name="valor_alvo" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" />
         </label>
         <label>Até quando (opcional)
@@ -528,7 +528,7 @@
         <button type="button" data-t="retirar">Retirar</button>
       </div>
       <label class="valor-grande">Valor
-        <span class="campo-rs"><span>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
+        <span class="campo-rs"><span data-moeda>R$</span><input name="valor" type="text" required inputmode="decimal" placeholder="0,00" autocomplete="off" /></span>
       </label>
       <div class="chips-cat" id="chips-meta" role="group" aria-label="Meta"></div>
       <input type="hidden" name="meta_id" />
@@ -783,28 +783,28 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=202611171600"></script>
-  <script src="js/nucleo.js?v=202611171600"></script>
-  <script src="js/offline.js?v=202611171600"></script>
-  <script src="js/aovivo.js?v=202611171600"></script>
-  <script src="js/auth.js?v=202611171600"></script>
-  <script src="js/dados.js?v=202611171600"></script>
-  <script src="js/telas.js?v=202611171600"></script>
-  <script src="js/gastos.js?v=202611171600"></script>
-  <script src="js/cartoes.js?v=202611171600"></script>
-  <script src="js/casal.js?v=202611171600"></script>
-  <script src="js/metas.js?v=202611171600"></script>
-  <script src="js/acoes.js?v=202611171600"></script>
-  <script src="js/eventos.js?v=202611171600"></script>
-  <script src="js/tutorial.js?v=202611171600"></script>
-  <script src="js/guia.js?v=202611171600"></script>
-  <script src="js/avisos.js?v=202611171600"></script>
-  <script src="js/familia.js?v=202611171600"></script>
-  <script src="js/assinatura.js?v=202611171600"></script>
-  <script src="js/importar.js?v=202611171600"></script>
-  <script src="js/calendario.js?v=202611171600"></script>
-  <script src="js/arrastar.js?v=202611171600"></script>
-  <script src="js/demo.js?v=202611171600"></script>
-  <script src="js/inicio.js?v=202611171600"></script>
+  <script src="js/config.js?v=202611171730"></script>
+  <script src="js/nucleo.js?v=202611171730"></script>
+  <script src="js/offline.js?v=202611171730"></script>
+  <script src="js/aovivo.js?v=202611171730"></script>
+  <script src="js/auth.js?v=202611171730"></script>
+  <script src="js/dados.js?v=202611171730"></script>
+  <script src="js/telas.js?v=202611171730"></script>
+  <script src="js/gastos.js?v=202611171730"></script>
+  <script src="js/cartoes.js?v=202611171730"></script>
+  <script src="js/casal.js?v=202611171730"></script>
+  <script src="js/metas.js?v=202611171730"></script>
+  <script src="js/acoes.js?v=202611171730"></script>
+  <script src="js/eventos.js?v=202611171730"></script>
+  <script src="js/tutorial.js?v=202611171730"></script>
+  <script src="js/guia.js?v=202611171730"></script>
+  <script src="js/avisos.js?v=202611171730"></script>
+  <script src="js/familia.js?v=202611171730"></script>
+  <script src="js/assinatura.js?v=202611171730"></script>
+  <script src="js/importar.js?v=202611171730"></script>
+  <script src="js/calendario.js?v=202611171730"></script>
+  <script src="js/arrastar.js?v=202611171730"></script>
+  <script src="js/demo.js?v=202611171730"></script>
+  <script src="js/inicio.js?v=202611171730"></script>
 </body>
 </html>

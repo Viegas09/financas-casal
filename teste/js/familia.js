@@ -22,6 +22,11 @@ function renderFamilia() {
       <div><small>Sua família</small><h2>${esc(estado.familia.nome)}</h2></div>
       ${souDono ? `<button type="button" class="btn-link" id="btn-renomear-familia">Renomear</button>` : ""}
     </div>
+    <div class="cf-moeda">
+      <span>Moeda da família</span>
+      ${souDono ? `<select id="sel-moeda-familia" aria-label="Moeda da família">${Object.keys(MOEDAS).map((m) => `<option value="${m}" ${m === MOEDA ? "selected" : ""}>${esc(nomeMoeda(m))}</option>`).join("")}</select>`
+        : `<b>${esc(nomeMoeda(MOEDA))}</b>`}
+    </div>
     <ul class="cf-lista">
       ${membros.map((m) => `
         <li><span class="mini-avatar">${esc(m.nome.charAt(0))}</span>
@@ -126,5 +131,21 @@ function ligarFamilia() {
         renderFamilia(); toast("Família renomeada");
       }
     } catch (e) { erro(e); }
+  });
+  document.addEventListener("change", async (ev) => {
+    if (ev.target.id !== "sel-moeda-familia") return;
+    const nova = ev.target.value;
+    if (nova === MOEDA) return;
+    if (!confirm(`Mudar a moeda da família para ${nomeMoeda(nova)}?\n\nOs valores já lançados não são convertidos: só o símbolo e o formato mudam.`)) { ev.target.value = MOEDA; return; }
+    try {
+      estado.familia = await db.atualizar("familias", estado.familia.id, { moeda: nova });
+      definirMoeda(estado.familia.moeda || nova);
+      cacheLocal.salvar(); render(); renderFamilia();
+      toast(`Moeda da família: ${nomeMoeda(MOEDA)}`);
+    } catch (e) {
+      ev.target.value = MOEDA;
+      if (/moeda|column|schema cache/i.test(e.message || "")) toast("Falta um passo no banco: rodar a migração 09 no Supabase.");
+      else erro(e);
+    }
   });
 }

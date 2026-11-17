@@ -43,6 +43,7 @@ function abrirComDadosSalvos() {
   if (d.assinatura && !d.assinatura.liberada && d.assinatura.status === "pendente") return false;   // ainda não assinou: não abre o app
   for (const k of [...TABELAS_CACHE, ...FLAGS_CACHE]) if (k in d) estado[k] = d[k];
   estado.usuario = d.usuario; estado.membro = d.membro; estado.familia = d.familia;
+  definirMoeda(d.familia?.moeda);
   estado.salvoEm = d.salvoEm; estado.doCache = true;
   definirPessoas(estado.familia?.pessoas);
   preencherSelects();

@@ -18,13 +18,33 @@ const DIAS_ALERTA = CFG.DIAS_ALERTA ?? 5;
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
-const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const brlCurtoFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+// ---------- Moeda da família (cada família escolhe a sua; os valores não são convertidos) ----------
+const MOEDAS = {
+  BRL: { nome: "Real brasileiro", local: "pt-BR" }, SEK: { nome: "Coroa sueca", local: "sv-SE" },
+  EUR: { nome: "Euro", local: "pt-PT" }, USD: { nome: "Dólar americano", local: "en-US" },
+  GBP: { nome: "Libra esterlina", local: "en-GB" }, NOK: { nome: "Coroa norueguesa", local: "nb-NO" },
+  DKK: { nome: "Coroa dinamarquesa", local: "da-DK" }, CHF: { nome: "Franco suíço", local: "de-CH" },
+  CAD: { nome: "Dólar canadense", local: "en-CA" }, AUD: { nome: "Dólar australiano", local: "en-AU" },
+  JPY: { nome: "Iene", local: "ja-JP" }, ARS: { nome: "Peso argentino", local: "es-AR" },
+  CLP: { nome: "Peso chileno", local: "es-CL" }, MXN: { nome: "Peso mexicano", local: "es-MX" },
+  UYU: { nome: "Peso uruguaio", local: "es-UY" }, PYG: { nome: "Guarani", local: "es-PY" },
+  COP: { nome: "Peso colombiano", local: "es-CO" }, PEN: { nome: "Sol peruano", local: "es-PE" }
+};
+let MOEDA = "BRL", SIMBOLO = "R$", brl, brlCurtoFmt;
+function definirMoeda(m) {
+  MOEDA = MOEDAS[m] ? m : "BRL";
+  const local = MOEDAS[MOEDA].local;
+  brl = new Intl.NumberFormat(local, { style: "currency", currency: MOEDA });
+  brlCurtoFmt = new Intl.NumberFormat(local, { style: "currency", currency: MOEDA, notation: "compact", maximumFractionDigits: 1 });
+  SIMBOLO = (brl.formatToParts(0).find((x) => x.type === "currency") || {}).value || MOEDA;
+  if (typeof document !== "undefined") document.querySelectorAll("[data-moeda]").forEach((el) => (el.textContent = SIMBOLO));
+}
+const nomeMoeda = (m) => `${MOEDAS[m]?.nome || m} (${new Intl.NumberFormat(MOEDAS[m]?.local || "pt-BR", { style: "currency", currency: m }).formatToParts(0).find((x) => x.type === "currency")?.value || m})`;
+definirMoeda("BRL");
 const lerPref = (k, padrao) => { try { const v = localStorage.getItem("fc-" + k); return v === null ? padrao : JSON.parse(v); } catch { return padrao; } };
 const gravarPref = (k, v) => { try { localStorage.setItem("fc-" + k, JSON.stringify(v)); } catch {} };
 let ocultar = lerPref("ocultar", false);
-const OCULTO = "R$ •••••";
-const fmt = (v) => (ocultar ? OCULTO : brl.format(Number(v) || 0));
+const fmt = (v) => (ocultar ? `${SIMBOLO} •••••` : brl.format(Number(v) || 0));
 const brlCurto = { format: (v) => (ocultar ? "•••" : brlCurtoFmt.format(v)) };
 
 // ---------- Ícones por categoria ----------
@@ -101,9 +121,9 @@ const vazio = (icone, titulo, texto, acao) => `
     ${texto ? `<span>${texto}</span>` : ""}
     ${acao ? `<button class="btn btn-primary" data-acao="${acao[0]}">${acao[1]}</button>` : ""}
   </li>`;
-/** Aceita "1.234,56", "1234,56", "1234.56", "R$ 50" */
+/** Aceita "1.234,56", "1234,56", "1234.56", "R$ 50", "1 234,56 kr" */
 const parseValor = (t) => {
-  let v = String(t ?? "").replace(/[R$\s]/g, "");
+  let v = String(t ?? "").replace(/[^\d.,-]/g, "");
   if (v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
   else if (/^\d{1,3}(\.\d{3})+$/.test(v)) v = v.replace(/\./g, "");   // "1.000" = mil
   const n = Number(v);
