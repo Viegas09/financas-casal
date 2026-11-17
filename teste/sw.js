@@ -7,7 +7,7 @@
  */
 "use strict";
 
-const VERSAO = "2";
+const VERSAO = "3";
 const BASE = new URL("./", self.location).pathname;              // ex.: /financas-casal/ ou /financas-casal/teste/
 const PREFIXO = "plinc:" + BASE + ":";
 const CACHE = PREFIXO + VERSAO;
@@ -104,4 +104,25 @@ self.addEventListener("fetch", (ev) => {
   if (resto === "" || resto === "index.html") return ev.respondWith(pagina(req));
   if (req.mode === "navigate" || resto.startsWith("plinc/")) return;                // página de venda e outras páginas: direto
   if (/\.(js|css|png|svg|woff2|webmanifest)$/.test(u.pathname)) return ev.respondWith(arquivo(req));
+});
+
+// ---------- Avisos de vencimento (notificação push) ----------
+self.addEventListener("push", (ev) => {
+  let d = {};
+  try { d = ev.data ? ev.data.json() : {}; } catch { d = { titulo: "Plinc", corpo: ev.data ? ev.data.text() : "" }; }
+  ev.waitUntil(self.registration.showNotification(d.titulo || "Plinc", {
+    body: d.corpo || "", icon: BASE + "icons/icon-192.png", badge: BASE + "icons/icon-192.png",
+    tag: "plinc-vencimentos", renotify: true, data: { url: d.url || BASE }
+  }));
+});
+
+self.addEventListener("notificationclick", (ev) => {
+  ev.notification.close();
+  const url = new URL((ev.notification.data && ev.notification.data.url) || BASE, self.location.origin).href;
+  ev.waitUntil((async () => {
+    const abertas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const app = abertas.find((c) => c.url.startsWith(self.location.origin + BASE));
+    if (app) { await app.focus(); return; }
+    await self.clients.openWindow(url);
+  })());
 });

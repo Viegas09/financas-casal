@@ -1,1 +1,1 @@
-versão: 73d5266 Funções: confirma a publicação (--yes)
+versão: 63a6742 Crédito e fatura do mês que vem, acerto do casal, primeiro acesso guiado e avisos de vencimento

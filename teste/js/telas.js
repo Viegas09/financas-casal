@@ -11,6 +11,8 @@ function render() {
   renderAlertas(lista);
   renderResumoGastos();
   renderProximas(lista);
+  renderProximoMes();
+  if (typeof renderAcertoCasal === "function") renderAcertoCasal();
   renderListaMes(lista);
   renderCategorias(lista);
   renderDivisao(lista);
@@ -200,6 +202,25 @@ function renderDivisao(lista) {
     const metade = casal / PESSOAS.length;
     return `<div class="pessoa"><div><div class="n">${esc(p)}</div><div class="d">${fmt(ind)} só dele(a) + ${fmt(metade)} do casal</div></div><div class="t">${fmt(ind + metade)}</div></div>`;
   }).join("") + (outros.length ? `<p class="muted pequeno">${outros.length} conta(s) com responsável não reconhecido ficaram de fora.</p>` : "");
+}
+
+/** Início: o que o mês que vem já tem de compromisso (contas fixas + faturas do que foi comprado no crédito). */
+function renderProximoMes() {
+  const el = $("#proximo-mes"); if (!el) return;
+  const prox = somaMes(estado.mes, 1);
+  const fats = faturasDoMes(prox).filter((f) => f.total > 0 && !faturaPaga(f.cartao, f.comp));
+  if (!fats.length) { el.hidden = true; el.innerHTML = ""; return; }
+  const fixas = soma(contasDoMes(prox).filter((c) => !c.cartao_id), (c) => c.valorMes);
+  const totFat = soma(fats, (f) => f.total);
+  el.hidden = false;
+  el.innerHTML = `
+    <div class="card-topo"><h2>${esc(nomeMes(prox, "mes").replace(/^./, (l) => l.toUpperCase()))} já tem ${fmt(fixas + totFat)}</h2><button class="btn-link" data-ir="gastos">Ver gastos</button></div>
+    <p class="muted pequeno" style="margin:2px 0 0">O que vocês compraram no crédito agora é pago no mês que vem.</p>
+    <div class="pm-linhas">
+      ${fats.map((f) => `<div class="pm-linha"><span>Fatura ${esc(f.cartao.nome)} · vence ${esc(fmtData(f.vencimento))}</span><b>${fmt(f.total)}</b></div>`).join("")}
+      ${fixas ? `<div class="pm-linha"><span>Contas fixas</span><b>${fmt(fixas)}</b></div>` : ""}
+      <div class="pm-total"><span>Total previsto</span><b>${fmt(fixas + totFat)}</b></div>
+    </div>`;
 }
 
 function renderHistorico() {

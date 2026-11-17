@@ -13,6 +13,8 @@ async function iniciar() {
   ligarCalendario();
   ligarFamilia();
   ligarAssinatura();
+  ligarGuia();
+  if (typeof ligarAvisos === "function") ligarAvisos();
 
   ligarOffline();
   ligarAtualizacaoAutomatica();
