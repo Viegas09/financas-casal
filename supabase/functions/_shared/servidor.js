@@ -68,3 +68,12 @@ export function cors(req) {
     Vary: "Origin"
   };
 }
+
+/** Chamada genérica à API do banco com a chave de serviço (só no servidor). */
+export async function rest(caminho, { method = "GET", body, prefer } = {}) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${caminho}`, {
+    method, headers: { ...cabecalhosServico(), ...(prefer ? { Prefer: prefer } : {}) }, body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok) throw new Error(`banco ${method} ${caminho.split("?")[0]}: ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return r.status === 204 ? null : r.json().catch(() => null);
+}

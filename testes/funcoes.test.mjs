@@ -2,6 +2,7 @@
 import crypto from "node:crypto";
 import { avisoAutentico, manifesto, mudancaPorPreapproval, mudancaPorPagamento, corpoPreapproval, PRECO } from "../supabase/functions/_shared/regras.js";
 import { processarAviso, pedidoDoApp } from "../supabase/functions/_shared/acoes.js";
+import { vencimentosAmanha, mensagem, hojeBrasil, amanhaDe, totalFatura } from "../supabase/functions/_shared/avisos.js";
 
 let falhas = 0;
 const ok = (c, m) => { if (!c) falhas++; console.log((c ? "✅ " : "❌ ") + m); };
@@ -87,6 +88,48 @@ function banco(inicial) {
   ok(c.status === 200 && pedidos.some((p) => p.method === "PUT" && p.cam === "/preapproval/pre-9" && p.body.status === "cancelled") && b.tab[FAM].status === "cancelada", "cancelar: cancela no Mercado Pago e mantém o acesso até o fim do período");
   const bc = banco({ status: "cortesia" });
   ok((await pedidoDoApp({ acao: "assinar" }, { ...deps({ id: "u1", email: "a@b.com" }), ...bc })).status === 409, "família cortesia não precisa assinar");
+}
+
+// ---------- avisos de vencimento ----------
+{
+  ok(hojeBrasil(new Date("2026-11-17T02:30:00Z")) === "2026-11-16", "avisos: 23h30 de Brasília ainda é o dia anterior");
+  ok(amanhaDe("2026-11-30") === "2026-12-01" && amanhaDe("2026-12-31") === "2027-01-01", "avisos: amanhã vira o mês e o ano");
+  const F1 = "fam-1", F2 = "fam-2";
+  const dados = {
+    contas: [
+      { id: "luz", familia_id: F1, nome: "Luz", valor: 200, dia_vencimento: 18, variavel: true, ativa: true, inicio: "2026-01-01" },
+      { id: "net", familia_id: F1, nome: "Internet", valor: 120, dia_vencimento: 18, ativa: true, inicio: "2026-01-01" },
+      { id: "agua", familia_id: F1, nome: "Água", valor: 90, dia_vencimento: 18, ativa: true, inicio: "2026-01-01" },
+      { id: "alug", familia_id: F1, nome: "Aluguel", valor: 2000, dia_vencimento: 5, ativa: true, inicio: "2026-01-01" },
+      { id: "velha", familia_id: F1, nome: "Academia", valor: 99, dia_vencimento: 18, ativa: false, inicio: "2026-01-01" },
+      { id: "spot", familia_id: F1, nome: "Spotify", valor: 22, dia_vencimento: 8, ativa: true, inicio: "2026-01-01", cartao_id: "nu" },
+      { id: "cond", familia_id: F2, nome: "Condomínio", valor: 600, dia_vencimento: 18, ativa: true, inicio: "2026-01-01" }
+    ],
+    pagamentos: [{ conta_id: "agua", competencia: "2026-11-01" }],
+    valores_mes: [{ conta_id: "luz", competencia: "2026-11-01", valor: 215.4 }],
+    cartoes: [{ id: "nu", familia_id: F1, nome: "Nubank", dia_fechamento: 11, dia_vencimento: 18, ativo: true }],
+    faturas_pagas: [],
+    gastos: [
+      { id: "g1", familia_id: F1, cartao_id: "nu", data: "2026-11-03", valor: 100, parcelas: 1 },
+      { id: "g2", familia_id: F1, cartao_id: "nu", data: "2026-09-20", valor: 300, parcelas: 3 },
+      { id: "g3", familia_id: F1, cartao_id: "nu", data: "2026-11-15", valor: 50, parcelas: 1 }
+    ]
+  };
+  ok(totalFatura(dados.cartoes[0], "2026-11-01", dados) === 222, "avisos: total da fatura = compras do ciclo + parcela + conta fixa no cartão (100 + 100 + 22)");
+  const v = vencimentosAmanha(dados, "2026-11-17");
+  const f1 = v.get(F1) || [];
+  ok(f1.length === 3 && f1.some((i) => i.nome === "Luz" && i.valor === 215.4) && f1.some((i) => i.nome === "Internet") && f1.some((i) => i.nome === "Fatura Nubank" && i.valor === 222),
+    "avisos: vence amanhã e não foi pago (luz com o valor do mês, internet, fatura) " + JSON.stringify(f1));
+  ok(!f1.some((i) => ["Água", "Aluguel", "Academia", "Spotify"].includes(i.nome)), "avisos: fora o que já foi pago, o que vence outro dia, o encerrado e o que é cobrado no cartão");
+  ok((v.get(F2) || []).length === 1 && v.get(F2)[0].nome === "Condomínio", "avisos: cada família recebe só o que é dela");
+  const pago = vencimentosAmanha({ ...dados, faturas_pagas: [{ cartao_id: "nu", competencia: "2026-11-01" }] }, "2026-11-17");
+  ok(!(pago.get(F1) || []).some((i) => i.nome === "Fatura Nubank"), "avisos: fatura já paga não é avisada");
+  const fev = vencimentosAmanha({ contas: [{ id: "x", familia_id: F1, nome: "Escola", valor: 800, dia_vencimento: 31, ativa: true, inicio: "2026-01-01" }] }, "2027-02-27");
+  ok((fev.get(F1) || []).length === 1, "avisos: conta do dia 31 avisa no último dia de fevereiro");
+  const m1 = mensagem([{ nome: "Luz", valor: 215.4 }]);
+  ok(m1.titulo === "Amanhã vence: Luz" && m1.corpo.startsWith("R$ 215,40"), "avisos: texto de uma conta " + JSON.stringify(m1));
+  const m3 = mensagem([{ nome: "Luz", valor: null }, { nome: "Internet", valor: 120 }, { nome: "Fatura Nubank", valor: 1222 }]);
+  ok(m3.titulo === "Amanhã vencem 3 contas" && m3.corpo === "Luz, Internet e Fatura Nubank · R$ 1.342,00", "avisos: texto de várias contas " + JSON.stringify(m3));
 }
 
 console.log(falhas ? `\n${falhas} FALHA(S) nas funções` : "\nFunções: tudo certo");

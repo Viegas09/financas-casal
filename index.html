@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="css/style.css?v=202611161100" />
+  <link rel="stylesheet" href="css/style.css?v=202611171600" />
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -121,6 +121,8 @@
           </article>
 
         </div>
+        <article class="card card-proximo-mes" id="proximo-mes" hidden></article>
+        <article class="card acerto-casal" id="acerto-casal" hidden></article>
       </section>
 
       <!-- ---------- CONTAS DO MÊS ---------- -->
@@ -164,6 +166,7 @@
         <div id="aviso-migracao" class="card aviso" hidden></div>
         <div class="painel-gastos" data-painel="orcamento">
           <div class="resumo-orc" id="resumo-orc"></div>
+          <div class="card credito-mes" id="credito-mes" hidden></div>
           <article class="card card-lista"><ul class="lista-orc" id="lista-orc"></ul></article>
         </div>
         <div class="painel-gastos" data-painel="extrato" hidden>
@@ -242,6 +245,8 @@
         <article class="card card-familia" id="card-familia" hidden></article>
 
         <article class="card card-lista menu">
+          <button class="menu-item" id="btn-avisos"><span>Avisos de vencimento no celular</span><span class="menu-dir"><small class="muted" id="avisos-estado"></small><span class="seta">›</span></span></button>
+          <button class="menu-item" data-acao="guia"><span>Configuração inicial</span><span class="seta">›</span></button>
           <button class="menu-item" data-acao="tutorial"><span>Tutorial do app</span><span class="seta">›</span></button>
           <button class="menu-item" data-acao="importar"><span>Importar extrato do banco</span><span class="seta">›</span></button>
           <button class="menu-item" data-ir="analises"><span>Análises e gráficos</span><span class="seta">›</span></button>
@@ -595,6 +600,22 @@
     </div>
   </dialog>
 
+  <!-- ============ MOVER GASTOS PARA O CARTÃO ============ -->
+  <dialog id="modal-mover-cartao" class="sheet">
+    <div class="sheet-corpo">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2>Mover para o cartão</h2>
+      <p class="muted pequeno">Marque os gastos que foram no crédito. Eles entram na fatura do cartão e aparecem em Contas para vocês darem baixa.</p>
+      <label>Cartão<select id="mover-cartao-sel"></select></label>
+      <ul class="lista-cadastro mover-lista" id="mover-cartao-lista"></ul>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-mover-cartao" disabled>Escolha os gastos</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- ============ CONVIDAR ============ -->
   <dialog id="modal-calendario" class="sheet">
     <form id="form-calendario" method="dialog">
@@ -699,6 +720,41 @@
     </div>
   </dialog>
 
+  <!-- ============ PRIMEIRO ACESSO ============ -->
+  <dialog id="modal-guia" class="sheet guia" aria-label="Configuração inicial">
+    <form class="sheet-corpo" id="form-guia" autocomplete="off">
+      <div class="guia-topo"><span class="muted pequeno" id="guia-contador"></span><button type="button" class="tut-pular" id="guia-fechar">Fazer depois</button></div>
+      <div class="guia-pontos" id="guia-pontos" aria-hidden="true"><span></span><span></span><span></span></div>
+      <section class="guia-passo">
+        <h2>Quanto entra por mês?</h2>
+        <p class="muted pequeno">Com a renda, o Plinc mostra quanto já está comprometido e divide as despesas do casal de forma justa. Pode deixar em branco.</p>
+        <div id="guia-rendas" class="guia-campos"></div>
+      </section>
+      <section class="guia-passo" hidden>
+        <h2>Quais contas chegam todo mês?</h2>
+        <p class="muted pequeno">Preencha o valor das que vocês têm (o dia do vencimento é opcional, padrão dia 10). Dá para incluir outras depois.</p>
+        <ul class="guia-contas" id="guia-contas"></ul>
+      </section>
+      <section class="guia-passo" hidden>
+        <h2>Vocês usam cartão de crédito?</h2>
+        <p class="muted pequeno">Com o cartão cadastrado, o Plinc monta a fatura sozinho e mostra o que vai ser pago no mês que vem. Se não usam, é só concluir.</p>
+        <div class="guia-campos">
+          <label>Nome do cartão<input id="guia-cartao-nome" maxlength="40" placeholder="Ex.: Nubank" /></label>
+          <label>De quem é<select id="guia-cartao-dono"></select></label>
+          <div class="linha">
+            <label>Fecha dia<input id="guia-cartao-fech" type="number" min="1" max="31" placeholder="Ex.: 3" /></label>
+            <label>Vence dia<input id="guia-cartao-venc" type="number" min="1" max="31" placeholder="Ex.: 10" /></label>
+          </div>
+        </div>
+      </section>
+      <div class="modal-acoes">
+        <button type="button" class="btn btn-ghost" id="guia-voltar">Voltar</button>
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-primary" id="guia-proximo">Próximo</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- ============ TUTORIAL ============ -->
   <dialog id="modal-tutorial" class="tutorial" aria-label="Tutorial do app">
     <div class="tut-topo">
@@ -727,25 +783,28 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=202611161100"></script>
-  <script src="js/nucleo.js?v=202611161100"></script>
-  <script src="js/offline.js?v=202611161100"></script>
-  <script src="js/aovivo.js?v=202611161100"></script>
-  <script src="js/auth.js?v=202611161100"></script>
-  <script src="js/dados.js?v=202611161100"></script>
-  <script src="js/telas.js?v=202611161100"></script>
-  <script src="js/gastos.js?v=202611161100"></script>
-  <script src="js/cartoes.js?v=202611161100"></script>
-  <script src="js/metas.js?v=202611161100"></script>
-  <script src="js/acoes.js?v=202611161100"></script>
-  <script src="js/eventos.js?v=202611161100"></script>
-  <script src="js/tutorial.js?v=202611161100"></script>
-  <script src="js/familia.js?v=202611161100"></script>
-  <script src="js/assinatura.js?v=202611161100"></script>
-  <script src="js/importar.js?v=202611161100"></script>
-  <script src="js/calendario.js?v=202611161100"></script>
-  <script src="js/arrastar.js?v=202611161100"></script>
-  <script src="js/demo.js?v=202611161100"></script>
-  <script src="js/inicio.js?v=202611161100"></script>
+  <script src="js/config.js?v=202611171600"></script>
+  <script src="js/nucleo.js?v=202611171600"></script>
+  <script src="js/offline.js?v=202611171600"></script>
+  <script src="js/aovivo.js?v=202611171600"></script>
+  <script src="js/auth.js?v=202611171600"></script>
+  <script src="js/dados.js?v=202611171600"></script>
+  <script src="js/telas.js?v=202611171600"></script>
+  <script src="js/gastos.js?v=202611171600"></script>
+  <script src="js/cartoes.js?v=202611171600"></script>
+  <script src="js/casal.js?v=202611171600"></script>
+  <script src="js/metas.js?v=202611171600"></script>
+  <script src="js/acoes.js?v=202611171600"></script>
+  <script src="js/eventos.js?v=202611171600"></script>
+  <script src="js/tutorial.js?v=202611171600"></script>
+  <script src="js/guia.js?v=202611171600"></script>
+  <script src="js/avisos.js?v=202611171600"></script>
+  <script src="js/familia.js?v=202611171600"></script>
+  <script src="js/assinatura.js?v=202611171600"></script>
+  <script src="js/importar.js?v=202611171600"></script>
+  <script src="js/calendario.js?v=202611171600"></script>
+  <script src="js/arrastar.js?v=202611171600"></script>
+  <script src="js/demo.js?v=202611171600"></script>
+  <script src="js/inicio.js?v=202611171600"></script>
 </body>
 </html>

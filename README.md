@@ -153,3 +153,11 @@ supabase/migracao-*   atualizações do banco para quem já instalou
 
 ## Próximos passos possíveis
 - Avisos de vencimento por e-mail
+
+## Avisos de vencimento no celular
+
+1. Rode `supabase/migracao-08-avisos.sql` no SQL Editor do Supabase (cria a tabela dos aparelhos e o agendamento diário às 8h de Brasília).
+2. A rotina **Publicar funções do servidor** publica a função `avisos` e cria as chaves dos avisos (VAPID) uma vez só.
+3. No app: **Mais → Avisos de vencimento no celular**. No iPhone, o Plinc precisa estar na Tela de Início (Compartilhar → Adicionar à Tela de Início).
+
+Todo dia às 8h o banco chama a função, que avisa cada família do que vence amanhã e ainda não foi pago (contas fixas e faturas). Desfazer: `migracao-08-desfazer.sql`.

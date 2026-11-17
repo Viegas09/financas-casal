@@ -28,7 +28,8 @@ async function carregar({ silencioso = false } = {}) {
     render();
     renderCardAssinatura(); atualizarBannerAssinatura();
     esconderSplash();
-    if (!silencioso && !lerPref("tutorial-visto", false)) setTimeout(() => abrirTutorial(0), 500);
+    if (!silencioso && precisaGuia()) setTimeout(abrirGuia, 400);
+    else if (!silencioso && !lerPref("tutorial-visto", false)) setTimeout(() => abrirTutorial(0), 500);
     return true;
   } catch (e) {
     esconderSplash();

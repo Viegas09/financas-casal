@@ -1,4 +1,4 @@
-# Publica as funções do servidor (assinatura com Mercado Pago) no Supabase.
+# Publica as funções do servidor (assinatura com Mercado Pago e avisos de vencimento) no Supabase.
 # Roda quando as funções mudam (ramo teste ou main) ou pelo botão "Run workflow".
 # Precisa dos segredos do repositório: SUPABASE_ACCESS_TOKEN (obrigatório),
 # MP_ACCESS_TOKEN e MP_WEBHOOK_SECRET (do Mercado Pago). Sem eles, só avisa e não faz nada.
@@ -52,6 +52,21 @@ jobs:
         run: |
           supabase functions deploy assinatura --project-ref "$PROJETO" --no-verify-jwt --use-api --yes
           supabase functions deploy mp-webhook --project-ref "$PROJETO" --no-verify-jwt --use-api --yes
+          supabase functions deploy avisos --project-ref "$PROJETO" --no-verify-jwt --use-api --yes
+
+      - name: Chaves dos avisos no celular (cria uma vez só)
+        if: steps.seg.outputs.ok == '1'
+        run: |
+          if supabase secrets list --project-ref "$PROJETO" 2>/dev/null | grep -q VAPID_PRIVATE_KEY; then
+            echo "Chaves dos avisos já existem: nada a fazer."
+          else
+            chaves=$(npx --yes web-push@3.6.7 generate-vapid-keys --json)
+            pub=$(echo "$chaves" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).publicKey))')
+            priv=$(echo "$chaves" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).privateKey))')
+            echo "::add-mask::$priv"
+            supabase secrets set --project-ref "$PROJETO" --yes "VAPID_PUBLIC_KEY=$pub" "VAPID_PRIVATE_KEY=$priv" > /dev/null
+            echo "Chaves dos avisos criadas."
+          fi
 
       - name: Guardar segredos do Mercado Pago nas funções
         if: steps.seg.outputs.ok == '1'
