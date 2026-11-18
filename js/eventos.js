@@ -108,6 +108,10 @@ function ligarEventos() {
     const fc = ev.target.closest("[data-filtrar-cat]");
     if (fc) { filtroCatGasto = fc.dataset.filtrarCat; renderExtrato(gastosFiltrados()); mostrarExtrato(); window.scrollTo({ top: 0 }); }
     if (ev.target.closest("[data-limpar-filtro]")) { filtroCatGasto = null; renderExtrato(gastosFiltrados()); }
+    const vp = ev.target.closest("[data-ver-pag]");
+    if (vp) { filtroPagGasto = vp.dataset.verPag; filtroCatGasto = null; renderExtrato(gastosFiltrados()); mostrarExtrato(); window.scrollTo({ top: 0 }); }
+    const fp = ev.target.closest("[data-fp],[data-filtro-pag]");
+    if (fp) { const v = fp.dataset.fp || fp.dataset.filtroPag; filtroPagGasto = filtroPagGasto === v && fp.dataset.filtroPag ? "todos" : v; renderExtrato(gastosFiltrados()); }
   });
 
   document.addEventListener("click", (ev) => {
