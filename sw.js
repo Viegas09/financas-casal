@@ -1,5 +1,6 @@
 /* Plinc — Service worker: guarda as telas e arquivos do app no celular.
- * • Página (index.html): tenta a internet primeiro (até 3 s); sem resposta, usa a cópia guardada.
+ * • Página (index.html): abre na hora com a cópia guardada e busca a nova por trás. Se mudou,
+ *   avisa o app, que recarrega sozinho na próxima vez que for para segundo plano (sem atrapalhar).
  * • Arquivos com ?v= (js/css), ícones e fontes: usa a cópia guardada (abre rápido).
  * • Biblioteca do Supabase (CDN): usa a cópia e atualiza por trás.
  * • Dados (Supabase): nunca passam por aqui — sempre direto do servidor.
@@ -7,7 +8,7 @@
  */
 "use strict";
 
-const VERSAO = "3";
+const VERSAO = "4";
 const BASE = new URL("./", self.location).pathname;              // ex.: /financas-casal/ ou /financas-casal/teste/
 const PREFIXO = "plinc:" + BASE + ":";
 const CACHE = PREFIXO + VERSAO;
@@ -56,24 +57,28 @@ self.addEventListener("activate", (ev) => {
   })());
 });
 
-const comPrazo = (p, ms) => Promise.race([p, new Promise((_, ko) => setTimeout(() => ko(new Error("demorou")), ms))]);
+async function avisarNovaVersao() {
+  for (const c of await self.clients.matchAll({ type: "window" })) c.postMessage({ tipo: "nova-versao" });
+}
 
-async function pagina(req) {
+async function pagina(ev) {
   const c = await caches.open(CACHE);
-  const rede = fetch(req, { cache: "no-store" }).then(async (r) => {
+  const guardada = await c.match("./");
+  const antigo = guardada ? await guardada.clone().text().catch(() => null) : null;
+  const rede = fetch(ev.request, { cache: "no-store" }).then(async (r) => {
     if (r.ok) {
       const html = await r.clone().text();
       await c.put("./", r.clone());
-      guardarTudo(html).then(() => limparAntigos(html)).catch(() => {});
+      await guardarTudo(html).then(() => limparAntigos(html)).catch(() => {});
+      if (antigo !== null && antigo !== html) await avisarNovaVersao();
     }
     return r;
   });
-  rede.catch(() => {});
-  try { return await comPrazo(rede, 3000); }
-  catch {
-    const guardada = await c.match("./");
-    return guardada || rede;   // nunca abriu antes: espera a internet mesmo
+  if (guardada) {                       // abre na hora; a atualização segue por trás
+    ev.waitUntil(rede.catch(() => {}));
+    return guardada;
   }
+  return rede;                          // primeira vez: espera a internet
 }
 
 async function arquivo(req) {
@@ -101,7 +106,7 @@ self.addEventListener("fetch", (ev) => {
   if (u.origin !== self.location.origin || !u.pathname.startsWith(BASE)) return;   // Supabase e outros sites: direto
   const resto = u.pathname.slice(BASE.length);
   if (resto.startsWith("teste/")) return;                                          // o link de teste tem o próprio
-  if (resto === "" || resto === "index.html") return ev.respondWith(pagina(req));
+  if (resto === "" || resto === "index.html") return ev.respondWith(pagina(ev));
   if (req.mode === "navigate" || resto.startsWith("plinc/")) return;                // página de venda e outras páginas: direto
   if (/\.(js|css|png|svg|woff2|webmanifest)$/.test(u.pathname)) return ev.respondWith(arquivo(req));
 });

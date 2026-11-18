@@ -82,4 +82,11 @@ function ligarOffline() {
 function registrarSW() {
   if (!("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) return;
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch((e) => console.warn("service worker", e)));
+  // versão nova do app chegou por trás: recarrega quando o app for para segundo plano
+  // (ninguém vê) — mas nunca com um formulário aberto, para não perder o que foi digitado
+  let novaVersao = false;
+  navigator.serviceWorker.addEventListener("message", (ev) => { if (ev.data?.tipo === "nova-versao") novaVersao = true; });
+  document.addEventListener("visibilitychange", () => {
+    if (novaVersao && document.visibilityState === "hidden" && !document.querySelector("dialog[open]:not(#tela-bloqueio)")) location.reload();
+  });
 }

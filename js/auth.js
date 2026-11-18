@@ -14,6 +14,7 @@ async function iniciar() {
   ligarFamilia();
   ligarAssinatura();
   ligarGuia();
+  ligarBloqueio();
   if (typeof ligarAvisos === "function") ligarAvisos();
 
   ligarOffline();
@@ -27,11 +28,12 @@ async function iniciar() {
     return entrarNoApp();
   }
 
+  if (temSessaoSalva()) travarApp();   // bloqueio com Face ID (se ligado neste aparelho)
   abrirComDadosSalvos();   // abre na hora com os dados da última vez (se houver)
   await iniciarSessao();
 
   sb.auth.onAuthStateChange((evento) => {
-    if (evento === "SIGNED_OUT") { cacheLocal.limpar(); desligarAoVivo(); mostrarLogin(); }
+    if (evento === "SIGNED_OUT") { esquecerBloqueio(); cacheLocal.limpar(); desligarAoVivo(); mostrarLogin(); }
     if (evento === "PASSWORD_RECOVERY") trocarSenha();
   });
 }
@@ -53,6 +55,7 @@ async function iniciarSessao() {
 }
 
 function mostrarLogin() {
+  if (typeof bloqueio !== "undefined" && bloqueio.travado) liberarApp();   // vai digitar a senha mesmo
   esconderSplash();
   $("#app").hidden = true;
   $("#tela-login").hidden = false;
@@ -95,9 +98,23 @@ async function validarMembro() {
   if (voltouDoCheckout) { history.replaceState(null, "", location.pathname); toast("Assinatura confirmada. Obrigado!"); }
 }
 
+// A entrada (logo animado) fica pelo menos o tempo da animação; se o app ficar pronto antes, espera ela terminar.
+const SPLASH_MINIMO = navigator.webdriver ? 0 : 1000;
+let splashSaiu; const promessaSplash = new Promise((ok) => { splashSaiu = ok; });
+const esperarSplash = () => promessaSplash;
+
 function esconderSplash() {
-  const s = $("#splash"); if (!s || s.classList.contains("sai")) return;
-  s.classList.add("sai"); setTimeout(() => s.remove(), 400);
+  const s = $("#splash");
+  if (!s) return splashSaiu();
+  if (s.classList.contains("sai")) return;
+  s.classList.add("sai");   // marca já, para não agendar duas vezes
+  const falta = Math.max(0, SPLASH_MINIMO - performance.now());
+  setTimeout(() => {
+    s.classList.add("saindo");
+    document.documentElement.classList.remove("abrindo");
+    splashSaiu();
+    setTimeout(() => s.remove(), 450);
+  }, falta);
 }
 
 function mostrarApp() {
