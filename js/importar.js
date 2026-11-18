@@ -187,9 +187,11 @@ function aplicarSinal() {
 /** Opções de "Esses gastos foram no" e o aviso para cadastrar o cartão quando ainda não há nenhum. */
 function preencherFormaImp(selecionar = null) {
   const cartoes = estado.migracao3 ? estado.cartoes.filter((c) => c.ativo) : [];
-  $("#imp-forma").innerHTML = `<option value="">Pix ou débito</option>` + cartoes.map((c) => `<option value="cartao:${c.id}">💳 Cartão ${esc(c.nome)}</option>`).join("");
+  $("#imp-forma").innerHTML = `<option value="">Pix ou débito (já pago)</option>` + (cartoes.length ? "" : `<option value="credito">💳 Crédito (paga no mês seguinte)</option>`)
+    + cartoes.map((c) => `<option value="cartao:${c.id}">💳 Cartão ${esc(c.nome)}</option>`).join("");
   if (selecionar) $("#imp-forma").value = "cartao:" + selecionar;
   else if (importacao.cartao && cartoes.length === 1) $("#imp-forma").value = "cartao:" + cartoes[0].id;
+  else if (importacao.cartao && !cartoes.length) $("#imp-forma").value = "credito";
   const aviso = $("#imp-aviso-cartao");
   aviso.hidden = !estado.migracao3 || cartoes.length > 0;
   aviso.innerHTML = `<span>${importacao.cartao ? "<b>Parece uma fatura de cartão.</b> " : "<b>É fatura de cartão?</b> "}Cadastre o cartão (dia de fechamento e vencimento) e escolha ele aqui: assim a fatura aparece em Contas para vocês marcarem como paga.</span>
@@ -254,7 +256,7 @@ async function confirmarImportacao() {
   const quem = $("#imp-quem").value;
   const linhas = sel.map((l) => {
     const g = { data: l.data, descricao: l.descricao.slice(0, 80), valor: Math.round(l.valor * 100) / 100, categoria: l.categoria, responsavel: quem,
-      forma_pagamento: cartao ? "Cartão " + cartao.nome : "Importado do extrato" };
+      forma_pagamento: cartao ? "Cartão " + cartao.nome : $("#imp-forma").value === "credito" ? "Cartão de crédito" : "Importado do extrato" };
     if (estado.migracao3) { g.cartao_id = cartao ? cartao.id : null; g.parcelas = 1; }
     return g;
   });

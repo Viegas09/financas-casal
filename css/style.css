@@ -527,6 +527,11 @@ dialog.bloqueio.sai { opacity: 0; }
 .orc-linha small { color: var(--text-3); font-weight: 500; }
 .orc-st { font-size: 12px; font-weight: 600; }
 
+.secao-extrato { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 15px; padding: 14px 4px 6px; margin-top: 4px; border-top: 1px solid var(--border); }
+.secao-extrato:first-child, .filtro-ativo + .secao-extrato { border-top: 0; margin-top: 0; }
+.secao-extrato span { color: var(--text-2); }
+.secao-extrato.credito b:last-child { color: var(--warn); }
+.secao-extrato.debito b:last-child { color: var(--good); }
 .dia-extrato { display: flex; justify-content: space-between; font-size: 13px; font-weight: 650; color: var(--text-3); padding: 4px 4px 8px; }
 .lista-cadastro .valor { white-space: nowrap; }
 .filtro-ativo { display: flex; align-items: center; gap: 8px; background: var(--accent-soft); color: var(--accent); border-radius: 12px; padding: 8px 8px 8px 14px; font-size: 13px; margin-bottom: 12px; }

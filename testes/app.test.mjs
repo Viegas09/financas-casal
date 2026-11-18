@@ -616,6 +616,30 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   ok(p.erros.length === 0, "sem erros de JavaScript (demonstração pública) " + p.erros.join(" | "));
 }
 
+// ================= GASTOS: CRÉDITO × DÉBITO =================
+{
+  const p = await pagina();
+  await p.evaluate(() => {
+    estado.cartoes = []; const h = hojeISO();
+    estado.gastos = [
+      { id: "g1", data: h, descricao: "Mercado débito", categoria: "Mercado", valor: 100, responsavel: PESSOAS[0], forma_pagamento: "Débito", cartao_id: null, parcelas: 1, created_at: "" },
+      { id: "g2", data: h, descricao: "Loja crédito", categoria: "Lazer", valor: 250, responsavel: PESSOAS[0], forma_pagamento: "Cartão de crédito", cartao_id: null, parcelas: 1, created_at: "" },
+      { id: "g3", data: h, descricao: "Pix padaria", categoria: "Mercado", valor: 30, responsavel: PESSOAS[0], forma_pagamento: "Pix", cartao_id: null, parcelas: 1, created_at: "" }];
+    render(); irPara("gastos"); mostrarSubGastos("extrato");
+  });
+  await p.waitForTimeout(300);
+  const prox = await p.evaluate(() => nomeMes(somaMes(compDe(new Date()), 1), "mes").toLowerCase());
+  const secoes = await p.$$eval("#extrato .secao-extrato", (els) => els.map((e) => e.innerText.replace(/\s+/g, " ")));
+  await p.screenshot({ path: "/tmp/credito-debito.png", fullPage: true });
+  ok(secoes.length === 2 && /Crédito/.test(secoes[0]) && /Débito/.test(secoes[1]), "extrato separa Crédito e Débito/Pix " + JSON.stringify(secoes));
+  ok(secoes[0].includes("paga em " + prox) && /250/.test(secoes[0]), "crédito sem cartão é pago no mês seguinte");
+  ok(/já pago/.test(secoes[1]) && /130/.test(secoes[1]), "débito e Pix contam como já pagos");
+  const aPagar = await p.innerText("#resumo-pag-gastos");
+  ok(/250/.test(aPagar), "resumo mostra o crédito em A pagar");
+  ok(p.erros.length === 0, "sem erro de JavaScript (crédito × débito) " + p.erros.join(" | "));
+  await p.context().close();
+}
+
 await browser.close();
 console.log(falhas ? `\n${falhas} FALHA(S) nas telas` : "\nTelas: tudo certo");
 process.exit(falhas ? 1 : 0);

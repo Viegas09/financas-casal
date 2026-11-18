@@ -118,9 +118,10 @@ function renderCredito(gastos) {
   if (!estado.migracao3 || !gastos.length) { el.hidden = true; el.innerHTML = ""; return; }
   el.hidden = false;
   const ativos = estado.cartoes.filter((c) => c.ativo);
-  const semCartao = gastos.filter((g) => !g.cartao_id);
-  const noCredito = soma(gastos.filter((g) => g.cartao_id), (g) => g.valor), naHora = soma(semCartao, (g) => g.valor);
-  if (!ativos.length) {
+  const semCartao = gastos.filter((g) => !ehCredito(g));
+  const credSemCartao = gastos.filter((g) => ehCredito(g) && !g.cartao_id);
+  const noCredito = soma(gastos.filter(ehCredito), (g) => g.valor), naHora = soma(semCartao, (g) => g.valor);
+  if (!ativos.length && !credSemCartao.length) {
     el.innerHTML = `
       <div class="cm-topo"><span class="bola-cat">${svg("cartao")}</span><div><b>Algum gasto foi no cartão de crédito?</b>
       <small>Cadastre o cartão e mova esses gastos para ele: o Plinc mostra o que vai para a fatura do mês que vem, para vocês darem baixa quando pagarem.</small></div></div>
@@ -142,7 +143,13 @@ function renderCredito(gastos) {
         <div class="dir"><span class="valor">${fmt(g.valor)}</span><span class="badge ${st.cls}">${st.chave === "paga" ? "✓ Paga" : "A pagar"}</span></div>
       </button></li>`;
     }).join("")}</ul>` : ""}
-    ${semCartao.length ? `<button class="btn-link cm-mover" data-acao="mover-cartao">Algum gasto foi no crédito? Mover para o cartão</button>` : ""}`;
+    ${credSemCartao.length ? (() => { const comp = mesPagamentoCredito(credSemCartao[0]); return `<ul class="cm-faturas"><li><button class="cm-fatura" data-ver-pag="apagar">
+        <span class="bola-cat">${svg("cartao")}</span>
+        <div><div class="nome">Crédito · paga em ${esc(nomeMes(comp, "mes").toLowerCase())}</div>
+        <div class="meta">${credSemCartao.length} compra${credSemCartao.length > 1 ? "s" : ""} no crédito</div></div>
+        <div class="dir"><span class="valor">${fmt(soma(credSemCartao, (g) => g.valor))}</span><span class="badge futura">A pagar</span></div>
+      </button></li></ul>`; })() : ""}
+    ${semCartao.length && ativos.length ? `<button class="btn-link cm-mover" data-acao="mover-cartao">Algum gasto foi no crédito? Mover para o cartão</button>` : ""}`;
 }
 
 // ---------- Mover gastos para o cartão ----------
@@ -185,8 +192,19 @@ const dataCurta = (d) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { da
 
 /** Pix/débito: pago na hora. Crédito: pago quando a fatura (de cada parcela) for marcada como paga.
  *  { pago, pendente (quanto falta), proxVenc (vencimento da próxima fatura em aberto), cartao, comp } */
+/** Crédito = pago depois (na fatura do mês seguinte). Débito/Pix/dinheiro = já saiu da conta. */
+const ehCredito = (g) => !!g.cartao_id || (/cr[eé]dito/i.test(g.forma_pagamento || "") && !/d[eé]bito/i.test(g.forma_pagamento || ""));
+/** Crédito sem cartão cadastrado: compra de novembro é paga em dezembro (mês seguinte ao da compra). */
+const mesPagamentoCredito = (g) => somaMes(g.data.slice(0, 8) + "01", 1);
+
 function situacaoGasto(g) {
   const c = g.cartao_id && estado.cartoes.find((x) => x.id === g.cartao_id);
+  if (!c && ehCredito(g)) {
+    const comp = mesPagamentoCredito(g);
+    // já passou o mês do pagamento → considera pago
+    if (compDe(new Date()) > comp) return { pago: true, pendente: 0, credito: true };
+    return { pago: false, pendente: Number(g.valor), cartao: null, credito: true, comp, proxVenc: null };
+  }
   if (!c) return { pago: true, pendente: 0 };
   const n = Math.max(1, Number(g.parcelas) || 1), total = Number(g.valor);
   const parcela = Math.floor((total / n) * 100) / 100, comp0 = competenciaFatura(c, g.data);
@@ -205,6 +223,7 @@ function situacaoGasto(g) {
 /** Selo de cada gasto no extrato. */
 function seloGasto(s, g) {
   if (s.pago) return `<span class="badge paga">✓ Pago</span>`;
+  if (!s.cartao) return `<span class="badge futura" title="Crédito: paga na fatura de ${esc(nomeMes(s.comp, "mes"))}">Paga em ${esc(nomeMes(s.comp, "curto").toLowerCase())}</span>`;
   const d = diasEntre(hojeISO(), s.proxVenc);
   const cls = d < 0 ? "atrasada" : d <= DIAS_ALERTA ? "breve" : "futura";
   return `<span class="badge ${cls}" title="Entra na fatura ${esc(s.cartao.nome)} de ${esc(nomeMes(s.comp, "mes"))}">${d < 0 ? "! Fatura vencida" : `Paga em ${dataCurta(s.proxVenc)}`}</span>`;
@@ -223,18 +242,20 @@ function renderResumoPagGastos(gastos) {
   const pend = sit.filter((x) => !x.s.pago);
   // agrupa o que falta pagar pela fatura (cartão + vencimento)
   const porFatura = new Map();
-  pend.forEach(({ s }) => { const k = s.cartao.id + "|" + s.comp; const f = porFatura.get(k) || { cartao: s.cartao, comp: s.comp, venc: s.proxVenc, valor: 0 }; f.valor += s.pendente; porFatura.set(k, f); });
+  pend.forEach(({ s }) => { const k = (s.cartao ? s.cartao.id : "credito") + "|" + s.comp; const f = porFatura.get(k) || { cartao: s.cartao, comp: s.comp, venc: s.proxVenc || s.comp, valor: 0 }; f.valor += s.pendente; porFatura.set(k, f); });
   const fats = [...porFatura.values()].sort((a, b) => a.venc.localeCompare(b.venc));
+  const quando = (f) => f.cartao ? `${fats.length > 1 ? "próxima fatura" : "fatura"} vence ${dataCurta(f.venc)}` : `paga em ${nomeMes(f.comp, "mes").toLowerCase()}`;
   const prox = fats[0];
   el.innerHTML = `
     <div class="rc-topo"><div><small>Gastos de ${esc(nomeMes(estado.mes, "mes"))}</small><b>${fmt(total)}</b></div><span class="rc-pct">${pct}%<small>pago</small></span></div>
     <div class="meter-orc grande ${pct === 100 ? "bom" : "ok"}"><span style="width:${pct}%"></span></div>
     <div class="rc-duas">
       <button type="button" data-filtro-pag="pagos"><small>Já pago</small><b class="bom-txt">${fmt(pago)}</b><em>já saiu da conta</em></button>
-      <button type="button" data-filtro-pag="apagar"><small>A pagar</small><b>${fmt(aPagar)}</b><em>${prox ? `${fats.length > 1 ? "próxima fatura" : "fatura"} vence ${dataCurta(prox.venc)}` : "nada no crédito em aberto ✓"}</em></button>
+      <button type="button" data-filtro-pag="apagar"><small>A pagar</small><b>${fmt(aPagar)}</b><em>${prox ? quando(prox) : "nada no crédito em aberto ✓"}</em></button>
     </div>
-    ${fats.length ? `<ul class="rpg-faturas">${fats.map((f) => `<li><button type="button" data-abrir-fatura="${f.cartao.id}" data-comp="${f.comp}">
-      <span>${svg("cartao")} ${esc(f.cartao.nome)} · fatura de ${esc(nomeMes(f.comp, "mes").toLowerCase())}</span><b>${fmt(f.valor)} <small>em ${dataCurta(f.venc)}</small></b></button></li>`).join("")}</ul>` : ""}`;
+    ${fats.length ? `<ul class="rpg-faturas">${fats.map((f) => f.cartao ? `<li><button type="button" data-abrir-fatura="${f.cartao.id}" data-comp="${f.comp}">
+      <span>${svg("cartao")} ${esc(f.cartao.nome)} · fatura de ${esc(nomeMes(f.comp, "mes").toLowerCase())}</span><b>${fmt(f.valor)} <small>em ${dataCurta(f.venc)}</small></b></button></li>`
+      : `<li><button type="button" data-filtro-pag="apagar"><span>${svg("cartao")} Crédito · fatura de ${esc(nomeMes(f.comp, "mes").toLowerCase())}</span><b>${fmt(f.valor)} <small>em ${esc(nomeMes(f.comp, "curto").toLowerCase())}</small></b></button></li>`).join("")}</ul>` : ""}`;
 }
 
 let filtroCatGasto = null;
@@ -255,10 +276,19 @@ function renderExtrato(gastos) {
   const ontem = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; })();
   const rotuloDia = (d) => d === hoje ? "Hoje" : d === ontem ? "Ontem"
     : (() => { const t = new Date(d + "T12:00").toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" }).replace(/\./g, ""); return t.charAt(0).toUpperCase() + t.slice(1); })();
-  const grupos = [];
-  lista.forEach((g) => { const u = grupos[grupos.length - 1]; if (u && u.dia === g.data) u.itens.push(g); else grupos.push({ dia: g.data, itens: [g] }); });
+  const porDia = (itens) => { const gs = []; itens.forEach((g) => { const u = gs[gs.length - 1]; if (u && u.dia === g.data) u.itens.push(g); else gs.push({ dia: g.data, itens: [g] }); }); return gs; };
   const filtro = filtroCatGasto ? `<div class="filtro-ativo">Mostrando <b>${esc(filtroCatGasto)}</b> · ${fmt(soma(lista, (g) => g.valor))}<button data-limpar-filtro aria-label="Limpar filtro">✕</button></div>` : "";
+  // Separa em duas seções: Crédito (paga depois) e Débito/Pix (já pago)
+  const cred = lista.filter(ehCredito), deb = lista.filter((g) => !ehCredito(g));
+  const credAberto = cred.filter((g) => !sit.get(g.id).pago);
+  const compCred = credAberto.length ? sit.get(credAberto[0].id).comp : null;
+  const secoes = [
+    cred.length && { titulo: "💳 Crédito", sub: credAberto.length ? `paga em ${nomeMes(compCred, "mes").toLowerCase()}` : "fatura paga", itens: cred, cls: "credito" },
+    deb.length && { titulo: "✓ Débito / Pix", sub: "já pago", itens: deb, cls: "debito" }
+  ].filter(Boolean);
+  const grupos = secoes.flatMap((sec) => porDia(sec.itens).map((gr, i) => ({ ...gr, sec: i === 0 ? sec : null })));
   $("#extrato").innerHTML = filtro + (grupos.length ? grupos.map((gr) => `
+    ${gr.sec ? `<div class="secao-extrato ${gr.sec.cls}"><span><b>${gr.sec.titulo}</b> · ${esc(gr.sec.sub)}</span><b>${fmt(soma(gr.sec.itens, (g) => g.valor))}</b></div>` : ""}
     <div class="dia-extrato"><span>${esc(rotuloDia(gr.dia))}</span><span>${fmt(soma(gr.itens, (g) => g.valor))}</span></div>
     <article class="card card-lista"><ul class="lista-cadastro">${gr.itens.map((g) => `
       <li class="swipe" data-swipe="gasto" data-id="${g.id}">${ACAO_EXCLUIR()}<button class="item" data-editar-gasto="${g.id}">
