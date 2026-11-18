@@ -1,1 +1,1 @@
-versão: e88dcb5 Entrada animada (moeda caindo na fenda), bloqueio com Face ID e app abrindo na hora
+versão: 4bf4d1b Gastos: filtro A pagar / Pagos / Todos no extrato
