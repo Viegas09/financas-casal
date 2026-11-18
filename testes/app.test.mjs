@@ -16,7 +16,7 @@ let falhas = 0;
 const ok = (c, m) => { if (!c) falhas++; console.log((c ? "✅ " : "❌ ") + m); };
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 
-async function pagina({ mock = null, limpar = true, armazenar = null, url = URL_APP } = {}) {
+async function pagina({ mock = null, limpar = true, armazenar = null, url = URL_APP, antes = null } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p = await ctx.newPage();
   p.erros = [];
@@ -29,6 +29,7 @@ async function pagina({ mock = null, limpar = true, armazenar = null, url = URL_
     if (l && !sessionStorage.getItem("ja")) { localStorage.clear(); sessionStorage.setItem("ja", "1"); }
     localStorage.setItem("fc-tutorial-visto", "true"); localStorage.setItem("fc-aviso-contas-ok", "true");
   }, [mock, limpar, armazenar]);
+  if (antes) await p.addInitScript(antes);
   await p.goto(url);
   await p.waitForTimeout(1200);
   return p;
@@ -245,6 +246,62 @@ const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ u
   const p = await pagina({ limpar: false, mock: MOCK_VINI(), armazenar: { "teste-semRede": "1", "sb-simulado-auth-token": JSON.stringify({ user: { id: "u-vini" } }) } });
   await p.waitForFunction(() => document.querySelector("#login-erro")?.textContent.includes("Sem internet"), null, { timeout: 4000 }).catch(() => {});
   ok(await p.isVisible("#tela-login") && (await p.innerText("#login-erro")).includes("Sem internet"), "sem internet e sem dados guardados: login avisa “Sem internet”");
+}
+
+// ================= ENTRADA (logo animado) =================
+{
+  const p = await pagina();
+  ok(await p.evaluate(() => !document.querySelector("#splash") && !document.documentElement.classList.contains("abrindo")), "entrada: o logo animado some quando o app fica pronto");
+}
+
+// ================= BLOQUEIO COM FACE ID (biometria simulada) =================
+{
+  const faceFalso = () => {
+    window.__face = { criou: 0, pediu: 0, ok: false };
+    if (!navigator.credentials) Object.defineProperty(navigator, "credentials", { value: {}, configurable: true });
+    window.PublicKeyCredential = window.PublicKeyCredential || function () {};
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true;
+    navigator.credentials.create = async () => { __face.criou++; return { rawId: new Uint8Array([1, 2, 3, 4]).buffer }; };
+    navigator.credentials.get = async () => { __face.pediu++; if (__face.ok) return {}; throw new DOMException("cancelou", "NotAllowedError"); };
+  };
+  const p1 = await pagina({ mock: MOCK_VINI(), antes: faceFalso });
+  await entrar(p1);
+  await aba(p1, "mais"); await p1.waitForTimeout(200);
+  ok((await p1.innerText("#bloqueio-estado")) === "desligado", "bloqueio: começa desligado " + await p1.innerText("#bloqueio-estado"));
+  await p1.click("#btn-bloqueio"); await p1.waitForTimeout(300);
+  ok((await p1.innerText("#bloqueio-estado")) === "ligado" && await p1.evaluate(() => __face.criou === 1 && !!JSON.parse(localStorage.getItem("plinc-bloqueio")).id),
+    "bloqueio: ligar cria a chave do aparelho e o item mostra “ligado”");
+  const ls = await p1.evaluate(() => ({ ...localStorage }));
+  p1.once("dialog", (d) => d.accept());
+  await p1.click("#btn-bloqueio"); await p1.waitForTimeout(300);
+  ok((await p1.innerText("#bloqueio-estado")) === "desligado" && await p1.evaluate(() => !localStorage.getItem("plinc-bloqueio")), "bloqueio: dá para desligar em Mais");
+
+  // abre o app de novo com o bloqueio ligado: cobre tudo e pede o Face ID
+  const p = await pagina({ limpar: false, mock: MOCK_VINI(), armazenar: ls, antes: faceFalso });
+  await p.waitForTimeout(300);
+  ok(await p.evaluate(() => document.querySelector("#tela-bloqueio").open && __face.pediu >= 1), "bloqueio: ao abrir, aparece a tela de bloqueio e o Face ID é pedido sozinho");
+  ok(!(await p.isVisible("#app")), "bloqueio: os valores ficam escondidos enquanto não desbloqueia");
+  await p.evaluate(() => { __face.ok = true; }); await p.click("#btn-desbloquear"); await p.waitForTimeout(400);
+  ok(await p.evaluate(() => !document.querySelector("#tela-bloqueio").open) && await p.isVisible("#app"), "bloqueio: Face ID confirmado libera o app");
+  // voltou depois de mais de 1 minuto fora
+  await p.evaluate(() => { __face.ok = false; bloqueio.foraDesde = Date.now() - 61000; document.dispatchEvent(new Event("visibilitychange")); }); await p.waitForTimeout(400);
+  ok(await p.evaluate(() => document.querySelector("#tela-bloqueio").open), "bloqueio: voltar depois de 1 minuto fora bloqueia de novo");
+  await p.evaluate(() => { bloqueio.foraDesde = 0; });
+  await p.evaluate(() => { __face.ok = true; }); await p.click("#btn-desbloquear"); await p.waitForTimeout(400);
+  await p.evaluate(() => { bloqueio.foraDesde = Date.now() - 5000; document.dispatchEvent(new Event("visibilitychange")); }); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => !document.querySelector("#tela-bloqueio").open), "bloqueio: sair só uns segundos não bloqueia");
+  // não consegue o Face ID: entra com e-mail e senha
+  await p.evaluate(() => { __face.ok = false; bloqueio.foraDesde = Date.now() - 61000; document.dispatchEvent(new Event("visibilitychange")); }); await p.waitForTimeout(400);
+  p.once("dialog", (d) => d.accept());
+  await p.click("#btn-bloqueio-senha"); await p.waitForTimeout(500);
+  ok(await p.isVisible("#tela-login") && await p.evaluate(() => !localStorage.getItem("plinc-bloqueio") && !document.querySelector("#tela-bloqueio").open),
+    "bloqueio: “Entrar com e-mail e senha” sai da conta, desliga o bloqueio e mostra o login");
+  ok(p.erros.length === 0 && p1.erros.length === 0, "sem erros de JavaScript (bloqueio) " + [...p.erros, ...p1.erros].join(" | "));
+}
+{
+  const p = await pagina();
+  await aba(p, "mais"); await p.waitForTimeout(200);
+  ok((await p.innerText("#bloqueio-estado")) === "no app real", "bloqueio: na demonstração o item mostra que é só no app real");
 }
 
 // ================= AO VIVO (dois celulares da mesma família) =================
