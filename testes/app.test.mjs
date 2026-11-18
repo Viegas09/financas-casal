@@ -484,6 +484,30 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
     "Gastos: separa o que já saiu (Pix/débito 150) do que vai na fatura do mês que vem (300, a pagar) " + cm.replace(/\n/g, " / "));
   await p.click('#seg-gastos [data-g="extrato"]'); await p.waitForTimeout(150);
   ok((await p.innerText("#extrato")).includes("Nubank · fatura " + prox.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "").toLowerCase()), "extrato: compra no crédito mostra em qual fatura entra");
+  {
+    const venc = `${String(10).padStart(2, "0")}/${String(prox.getMonth() + 1).padStart(2, "0")}`;
+    const rp = (await p.innerText("#resumo-pag-gastos")).replace(/ /g, " ");
+    ok(rp.includes("Já pago") && rp.includes("R$ 150,00") && rp.includes("A pagar") && rp.includes("R$ 300,00") && rp.includes("vence " + venc) && rp.includes("33%"),
+      "extrato: resumo já pago (Pix/débito 150) × a pagar (crédito 300, vence " + venc + ") " + rp.replace(/\n/g, " / "));
+    const li = p.locator("#extrato li", { hasText: "Mercado Extra" });
+    ok((await li.innerText()).includes("Paga em " + venc), "extrato: compra no crédito diz quando será paga");
+    ok((await p.locator("#extrato li", { hasText: "Farmácia" }).innerText()).includes("✓ Pago"), "extrato: Pix/débito aparece como pago");
+    await p.click('#filtro-pag-gastos [data-fp="apagar"]'); await p.waitForTimeout(120);
+    const ap = await p.innerText("#extrato");
+    ok(ap.includes("Mercado Extra") && !ap.includes("Farmácia") && !ap.includes("Uber"), "filtro A pagar: só o que vai na fatura");
+    await p.click('#filtro-pag-gastos [data-fp="pagos"]'); await p.waitForTimeout(120);
+    const pg = await p.innerText("#extrato");
+    ok(!pg.includes("Mercado Extra") && pg.includes("Farmácia") && pg.includes("Uber"), "filtro Pagos: só o que já saiu da conta");
+    // marca a fatura como paga direto no banco simulado → a compra vira paga
+    await p.evaluate((c) => { estado.faturas_pagas.push({ id: "fp1", cartao_id: "k1", competencia: c, pago_em: hojeISO() }); renderExtrato(gastosFiltrados()); }, `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}-01`);
+    ok((await p.innerText("#extrato")).includes("Mercado Extra") && (await p.innerText("#resumo-pag-gastos")).includes("100%"), "fatura paga: a compra no crédito passa para Pagos");
+    await p.evaluate(() => { estado.faturas_pagas.length = 0; });
+    await p.click('#filtro-pag-gastos [data-fp="todos"]'); await p.waitForTimeout(120);
+    await p.click('#seg-gastos [data-g="orcamento"]'); await p.waitForTimeout(120);
+    await p.click('#credito-mes [data-ver-pag="apagar"]'); await p.waitForTimeout(150);
+    ok(await p.isVisible("#extrato") && (await p.getAttribute('#filtro-pag-gastos [data-fp="apagar"]', "class")).includes("ativo"), "Orçamento: tocar em “No crédito” abre o extrato em A pagar");
+    await p.click('#filtro-pag-gastos [data-fp="todos"]'); await p.waitForTimeout(120);
+  }
   await p.click('#seg-gastos [data-g="orcamento"]'); await p.waitForTimeout(150);
   await p.click('[data-acao="mover-cartao"]'); await p.waitForTimeout(250);
   ok((await p.locator("#mover-cartao-lista input").count()) === 2, "mover para o cartão: lista os gastos sem cartão do mês");
