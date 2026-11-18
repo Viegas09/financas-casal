@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="abrindo">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -14,14 +14,67 @@
   <link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="fonts/space-grotesk-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="css/style.css?v=202611171730" />
+  <style>
+    /* Entrada do app (fica aqui no topo para aparecer antes de qualquer outro arquivo carregar).
+       A moeda cai na fenda, o "plinc" sobe e, se ainda estiver carregando, a moeda gira. */
+    html.abrindo, html.abrindo body { background: #2a78d6; }
+    html.travado #app, html.travado #tela-login, html.travado #tela-assinar { visibility: hidden; }
+    .splash {
+      position: fixed; inset: 0; z-index: 200; display: grid; place-content: center; justify-items: center; gap: 6px;
+      background: #2a78d6; color: #fff; -webkit-user-select: none; user-select: none;
+      transition: opacity .38s ease, visibility .38s;
+    }
+    .splash-logo { width: 120px; height: 120px; overflow: visible; transition: transform .38s cubic-bezier(.4,0,.2,1); }
+    .sp-moeda { transform-box: fill-box; transform-origin: center;
+      animation: sp-cai .62s cubic-bezier(.33,0,.2,1) both, sp-gira 1.5s 1.35s ease-in-out infinite; }
+    .sp-fenda { transform-box: fill-box; transform-origin: center; animation: sp-aperta .32s .36s ease-out both; }
+    .sp-brilho { fill: none; stroke: #fff; stroke-width: 4.5; stroke-linecap: round; stroke-dasharray: 10; stroke-dashoffset: 10;
+      animation: sp-brilha .28s .5s ease-out forwards; }
+    .splash .sp-nome { font: 700 38px/1 "Space Grotesk", "Inter", -apple-system, sans-serif; letter-spacing: -.045em;
+      margin-top: 4px; animation: sp-sobe .45s .38s cubic-bezier(.2,.8,.2,1) both; }
+    .splash .sp-frase { font: 500 14px/1.2 "Inter", -apple-system, sans-serif; opacity: .85; animation: sp-sobe .45s .55s cubic-bezier(.2,.8,.2,1) both; }
+    .splash.saindo { opacity: 0; visibility: hidden; pointer-events: none; }
+    .splash.saindo .splash-logo { transform: scale(1.35); }
+    @keyframes sp-cai { 0% { transform: translateY(-80px); opacity: 0; } 30% { opacity: 1; }
+      60% { transform: translateY(5px); } 80% { transform: translateY(-3px); } 100% { transform: none; opacity: 1; } }
+    @keyframes sp-aperta { 50% { transform: scale(1.1, .78); } }
+    @keyframes sp-brilha { to { stroke-dashoffset: 0; } }
+    @keyframes sp-sobe { from { opacity: 0; transform: translateY(10px); } }
+    @keyframes sp-gira { 0%, 70%, 100% { transform: none; } 35% { transform: scaleX(.12); } }
+    @media (prefers-reduced-motion: reduce) {
+      .sp-moeda, .sp-fenda, .sp-brilho, .splash .sp-nome, .splash .sp-frase { animation: none; stroke-dashoffset: 0; }
+      .splash.saindo .splash-logo { transform: none; }
+    }
+  </style>
+  <link rel="stylesheet" href="css/style.css?v=202611171900" />
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
-    <img src="icons/icon-192.png" alt="" />
-    <span class="marca">plinc</span>
+    <svg class="splash-logo" viewBox="0 0 100 100">
+      <path class="sp-brilho" d="M28 27 L21 21 M72 27 L79 21" />
+      <g class="sp-moeda"><circle cx="50" cy="36" r="17" fill="#fff" /><circle cx="50" cy="36" r="9.5" fill="none" stroke="#2a78d6" stroke-width="3.5" /></g>
+      <rect class="sp-fenda" x="22" y="64" width="56" height="11" rx="5.5" fill="#0b0b0b" />
+    </svg>
+    <span class="sp-nome">plinc</span>
+    <span class="sp-frase">Toda moeda conta.</span>
   </div>
+
+  <!-- ============ BLOQUEIO COM FACE ID (só se ligado em Mais) ============ -->
+  <dialog id="tela-bloqueio" class="bloqueio" aria-labelledby="bloqueio-h">
+    <div class="bloqueio-card">
+      <img src="icons/icon-192.png" alt="" class="login-logo" />
+      <h1 id="bloqueio-h" class="marca">plinc</h1>
+      <p class="bloqueio-sub">O Plinc está bloqueado</p>
+      <button type="button" class="btn btn-primary btn-bloco" id="btn-desbloquear">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 9.5v1M15 9.5v1M12 9.5v3.5h-1M9.5 15.5c1.4 1.2 3.6 1.2 5 0"/></svg>
+        <span id="btn-desbloquear-txt">Desbloquear</span>
+      </button>
+      <p id="bloqueio-erro" class="bloqueio-erro" role="alert"></p>
+      <button type="button" id="btn-bloqueio-senha" class="btn-link">Entrar com e-mail e senha</button>
+    </div>
+  </dialog>
   <!-- ============ LOGIN ============ -->
   <section id="tela-login" class="login" hidden>
     <form id="form-login" class="login-card">
@@ -245,6 +298,7 @@
         <article class="card card-familia" id="card-familia" hidden></article>
 
         <article class="card card-lista menu">
+          <button class="menu-item" id="btn-bloqueio"><span id="bloqueio-titulo">Bloqueio com Face ID</span><span class="menu-dir"><small class="muted" id="bloqueio-estado"></small><span class="seta">›</span></span></button>
           <button class="menu-item" id="btn-avisos"><span>Avisos de vencimento no celular</span><span class="menu-dir"><small class="muted" id="avisos-estado"></small><span class="seta">›</span></span></button>
           <button class="menu-item" data-acao="guia"><span>Configuração inicial</span><span class="seta">›</span></button>
           <button class="menu-item" data-acao="tutorial"><span>Tutorial do app</span><span class="seta">›</span></button>
@@ -783,28 +837,29 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=202611171730"></script>
-  <script src="js/nucleo.js?v=202611171730"></script>
-  <script src="js/offline.js?v=202611171730"></script>
-  <script src="js/aovivo.js?v=202611171730"></script>
-  <script src="js/auth.js?v=202611171730"></script>
-  <script src="js/dados.js?v=202611171730"></script>
-  <script src="js/telas.js?v=202611171730"></script>
-  <script src="js/gastos.js?v=202611171730"></script>
-  <script src="js/cartoes.js?v=202611171730"></script>
-  <script src="js/casal.js?v=202611171730"></script>
-  <script src="js/metas.js?v=202611171730"></script>
-  <script src="js/acoes.js?v=202611171730"></script>
-  <script src="js/eventos.js?v=202611171730"></script>
-  <script src="js/tutorial.js?v=202611171730"></script>
-  <script src="js/guia.js?v=202611171730"></script>
-  <script src="js/avisos.js?v=202611171730"></script>
-  <script src="js/familia.js?v=202611171730"></script>
-  <script src="js/assinatura.js?v=202611171730"></script>
-  <script src="js/importar.js?v=202611171730"></script>
-  <script src="js/calendario.js?v=202611171730"></script>
-  <script src="js/arrastar.js?v=202611171730"></script>
-  <script src="js/demo.js?v=202611171730"></script>
-  <script src="js/inicio.js?v=202611171730"></script>
+  <script src="js/config.js?v=202611171900"></script>
+  <script src="js/nucleo.js?v=202611171900"></script>
+  <script src="js/offline.js?v=202611171900"></script>
+  <script src="js/aovivo.js?v=202611171900"></script>
+  <script src="js/auth.js?v=202611171900"></script>
+  <script src="js/dados.js?v=202611171900"></script>
+  <script src="js/telas.js?v=202611171900"></script>
+  <script src="js/gastos.js?v=202611171900"></script>
+  <script src="js/cartoes.js?v=202611171900"></script>
+  <script src="js/casal.js?v=202611171900"></script>
+  <script src="js/metas.js?v=202611171900"></script>
+  <script src="js/acoes.js?v=202611171900"></script>
+  <script src="js/eventos.js?v=202611171900"></script>
+  <script src="js/tutorial.js?v=202611171900"></script>
+  <script src="js/guia.js?v=202611171900"></script>
+  <script src="js/avisos.js?v=202611171900"></script>
+  <script src="js/bloqueio.js?v=202611171900"></script>
+  <script src="js/familia.js?v=202611171900"></script>
+  <script src="js/assinatura.js?v=202611171900"></script>
+  <script src="js/importar.js?v=202611171900"></script>
+  <script src="js/calendario.js?v=202611171900"></script>
+  <script src="js/arrastar.js?v=202611171900"></script>
+  <script src="js/demo.js?v=202611171900"></script>
+  <script src="js/inicio.js?v=202611171900"></script>
 </body>
 </html>

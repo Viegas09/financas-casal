@@ -1,1 +1,1 @@
-versão: 9001b89 Moeda por família (real, coroa sueca, euro…)
+versão: e88dcb5 Entrada animada (moeda caindo na fenda), bloqueio com Face ID e app abrindo na hora

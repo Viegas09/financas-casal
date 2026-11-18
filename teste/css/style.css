@@ -395,16 +395,26 @@ dialog form { padding: 8px 20px calc(20px + var(--safe-b)); display: grid; gap: 
    ================================================================ */
 .ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-/* Splash */
-.splash {
-  position: fixed; inset: 0; z-index: 100; display: grid; place-content: center; justify-items: center; gap: 14px;
-  background: linear-gradient(160deg, var(--hero-1), var(--hero-2)); color: #fff; font-weight: 700; font-size: 17px;
-  transition: opacity .35s ease, visibility .35s;
+/* Entrada (splash): os estilos ficam no <head> do index.html, para aparecer na hora */
+
+/* Bloqueio com Face ID */
+dialog.bloqueio {
+  position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; padding: 20px;
+  background: linear-gradient(160deg, var(--hero-1), var(--hero-2)); color: #fff;
+  display: grid; place-items: center; transition: opacity .2s ease;
 }
-.splash img { width: 84px; height: 84px; border-radius: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.25); animation: pulsa 1.2s ease-in-out infinite; }
-.splash .marca { font-size: 34px; }
-.splash.sai { opacity: 0; visibility: hidden; }
-@keyframes pulsa { 50% { transform: scale(.94); } }
+dialog.bloqueio:not([open]) { display: none; }
+dialog.bloqueio::backdrop { background: var(--hero-1); }
+dialog.bloqueio.sai { opacity: 0; }
+.bloqueio-card { display: grid; justify-items: center; gap: 14px; width: 100%; max-width: 320px; text-align: center; animation: bq-entra .3s cubic-bezier(.2,.8,.2,1); }
+@keyframes bq-entra { from { opacity: 0; transform: translateY(12px); } }
+.bloqueio-card .login-logo { width: 76px; height: 76px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.bloqueio-card h1.marca { color: #fff; margin: 0; }
+.bloqueio-sub { margin: 0 0 18px; opacity: .85; }
+.bloqueio-card .btn-primary { background: #fff; color: var(--hero-1); display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.bloqueio-card .btn-primary .ic { width: 24px; height: 24px; }
+.bloqueio-card .btn-link { color: #fff; opacity: .9; }
+.bloqueio-erro { margin: 0; min-height: 1.2em; font-size: 14px; color: #fff; opacity: .9; }
 
 /* Hero com rosca e olho */
 .hero-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
