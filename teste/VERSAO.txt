@@ -1,1 +1,1 @@
-versão: 4bf4d1b Gastos: filtro A pagar / Pagos / Todos no extrato
+versão: 2ccfaf4 Gastos: extrato separado em Crédito (paga no mês seguinte) e Débito/Pix (já pago)
