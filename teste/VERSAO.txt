@@ -1,1 +1,1 @@
-versão: 3ba1a6d Perfil: textos que apontavam para Mais → Família/Assinatura agora apontam para o Perfil
+versão: 66c1878 Domínio: monta e publica useplinc.com.br (site) e app.useplinc.com.br (app) na Cloudflare
