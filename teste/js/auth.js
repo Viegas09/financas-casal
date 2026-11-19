@@ -10,6 +10,7 @@ async function iniciar() {
   ligarTutorial();
   ligarArraste();
   ligarImportar();
+  ligarPerfil();
   ligarCalendario();
   ligarFamilia();
   ligarAssinatura();
@@ -73,7 +74,7 @@ async function validarMembro() {
     $("#login-erro").textContent = "Este usuário não tem acesso ao painel. Peça um convite para quem já usa o app.";
     return mostrarLogin();
   }
-  estado.usuario = { nome: data.nome, id: user.id };
+  estado.usuario = { nome: data.nome, id: user.id, email: user.email, desde: user.created_at };
   estado.membro = data;
   estado.familia = null;
   if (data.familia_id) {
@@ -130,8 +131,5 @@ async function entrarNoApp() {
 }
 
 async function trocarSenha() {
-  const nova = prompt("Digite sua nova senha (mínimo 8 caracteres):");
-  if (!nova || nova.length < 8) return toast("Senha não alterada.");
-  const { error } = await sb.auth.updateUser({ password: nova });
-  toast(error ? "Erro ao trocar a senha: " + error.message : "Senha alterada!");
+  if (typeof abrirTrocarSenha === "function") return abrirTrocarSenha();
 }

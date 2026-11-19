@@ -27,6 +27,7 @@ function render() {
   renderCadastroCartoes();
   renderMetas();
   renderFamilia();
+  if (typeof renderPerfil === "function") renderPerfil();
 }
 
 let totalAnterior = null;

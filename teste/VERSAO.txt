@@ -1,1 +1,1 @@
-versão: ef50263 Entrada: logo fica ~2 s na tela (antes 1 s) para dar tempo de ver
+versão: 3ba1a6d Perfil: textos que apontavam para Mais → Família/Assinatura agora apontam para o Perfil
