@@ -184,11 +184,15 @@ function aplicarSinal() {
   });
 }
 
-/** Opções de "Esses gastos foram no" e o aviso para cadastrar o cartão quando ainda não há nenhum. */
+/** Opções de "Esses gastos foram no" — sempre pergunta (débito ou crédito); só já vem escolhido quando o arquivo é claramente de um cartão. */
 function preencherFormaImp(selecionar = null) {
   const cartoes = estado.migracao3 ? estado.cartoes.filter((c) => c.ativo) : [];
-  $("#imp-forma").innerHTML = `<option value="">Pix ou débito (já pago)</option>` + (cartoes.length ? "" : `<option value="credito">💳 Crédito (paga no mês seguinte)</option>`)
-    + cartoes.map((c) => `<option value="cartao:${c.id}">💳 Cartão ${esc(c.nome)}</option>`).join("");
+  $("#imp-forma").innerHTML = `<option value="" disabled>Escolha: débito ou crédito?</option>`
+    + `<option value="debito">✓ Débito / Pix (já saiu da conta)</option>`
+    + (cartoes.length ? "" : `<option value="credito">💳 Crédito (paga no mês seguinte)</option>`)
+    + cartoes.map((c) => `<option value="cartao:${c.id}">💳 Crédito · cartão ${esc(c.nome)}</option>`).join("")
+    + `<option value="misto">↕ Tem dos dois (escolho um a um)</option>`;
+  $("#imp-forma").value = "";
   if (selecionar) $("#imp-forma").value = "cartao:" + selecionar;
   else if (importacao.cartao && cartoes.length === 1) $("#imp-forma").value = "cartao:" + cartoes[0].id;
   else if (importacao.cartao && !cartoes.length) $("#imp-forma").value = "credito";
@@ -198,6 +202,20 @@ function preencherFormaImp(selecionar = null) {
     <button type="button" class="btn btn-primary" data-acao="novo-cartao">Cadastrar cartão</button>`;
   marcarMovidos();
 }
+
+/** Opções de cada gasto quando o arquivo tem débito e crédito misturados. */
+function opcoesFormaLinha(atual) {
+  const cartoes = estado.migracao3 ? estado.cartoes.filter((c) => c.ativo) : [];
+  const ops = [["", "Débito ou crédito?"], ["debito", "✓ Débito / Pix"]]
+    .concat(cartoes.length ? cartoes.map((c) => ["cartao:" + c.id, "💳 " + c.nome]) : [["credito", "💳 Crédito"]]);
+  return ops.map(([v, t]) => `<option value="${v}" ${v === atual ? "selected" : ""} ${v ? "" : "disabled"}>${esc(t)}</option>`).join("");
+}
+
+/** Forma de pagamento de um lançamento: a do arquivo, ou a escolhida no próprio gasto (quando "tem dos dois"). */
+const formaDaLinha = (l) => { const f = $("#imp-forma").value; return f === "misto" ? (l.forma || "") : f; };
+const cartaoDaForma = (f) => (f || "").startsWith("cartao:") ? estado.cartoes.find((c) => c.id === f.slice(7)) : null;
+/** Gastos marcados que ainda não têm débito/crédito escolhido. */
+const semFormaImp = () => importacao.linhas.filter((l) => l.marcado && !formaDaLinha(l));
 
 const cartaoDaImportacao = () => { const f = $("#imp-forma").value; return f.startsWith("cartao:") ? estado.cartoes.find((c) => c.id === f.slice(7)) : null; };
 
@@ -212,6 +230,7 @@ function marcarMovidos() {
 
 function desenharImportacao() {
   const L = importacao.linhas.slice().sort((a, b) => b.data.localeCompare(a.data));
+  const misto = $("#imp-forma").value === "misto";
   const opcoes = (atual) => importacao.cats.map((c) => `<option ${c === atual ? "selected" : ""}>${esc(c)}</option>`).join("");
   $("#imp-lista").innerHTML = L.map((l) => `
     <li class="imp-item ${l.marcado ? "on" : ""} ${l.entrada ? "entrada" : ""}" data-i="${l.i}">
@@ -219,7 +238,7 @@ function desenharImportacao() {
       <div class="imp-meio">
         <div class="imp-desc">${esc(l.descricao)}</div>
         <div class="imp-meta">${esc(fmtData(l.data, { day: "numeric", month: "short" }))}${l.entrada ? ' · <span class="badge futura">entrada</span>' : ""}${l.motivo.map((m) => m === "já lançado" && l.mover ? ` · <span class="badge futura">já lançado · vai para o cartão</span>` : ` · <span class="badge ${m === "já lançado" ? "paga" : "breve"}">${esc(m)}</span>`).join("")}</div>
-        ${l.entrada ? "" : `<select class="imp-cat" data-imp-cat="${l.i}">${opcoes(l.categoria)}</select>`}
+        ${l.entrada ? "" : `<div class="imp-selects"><select class="imp-cat" data-imp-cat="${l.i}">${opcoes(l.categoria)}</select>${misto ? `<select class="imp-forma-linha ${l.forma ? "" : "falta"}" data-imp-forma="${l.i}" aria-label="Débito ou crédito">${opcoesFormaLinha(l.forma || "")}</select>` : ""}</div>`}
       </div>
       <span class="imp-valor ${l.entrada ? "bom-txt" : ""}">${l.entrada ? "+" : "−"}${brl.format(l.valor)}</span>
     </li>`).join("");
@@ -234,6 +253,13 @@ function atualizarResumoImp() {
   $("#imp-resumo").innerHTML = `<b>${sel.length}</b> gasto${sel.length !== 1 ? "s" : ""} selecionado${sel.length !== 1 ? "s" : ""} · <b>${brl.format(soma(sel, (l) => l.valor))}</b>
     <small>${importacao.linhas.length} lançamentos no arquivo${ign.length ? ` · ${ign.length} desmarcado${ign.length > 1 ? "s" : ""} (repetidos, pagamentos ou contas fixas)` : ""}</small>
     ${mov.length ? `<small>↪ <b>${mov.length}</b> já lançado${mov.length > 1 ? "s" : ""} sem cartão ${mov.length > 1 ? "vão" : "vai"} para o cartão ${esc(cartao.nome)}</small>` : ""}`;
+  const forma = $("#imp-forma").value, faltam = semFormaImp();
+  $("#imp-forma").closest("label").classList.toggle("falta", !forma);
+  if (sel.length && (!forma || faltam.length)) {
+    $("#imp-confirmar").textContent = !forma ? "Escolha: débito ou crédito" : `Falta${faltam.length > 1 ? "m" : ""} ${faltam.length}: débito ou crédito?`;
+    $("#imp-confirmar").disabled = true;
+    return;
+  }
   const partes = [];
   if (sel.length) partes.push(`Importar ${sel.length} gasto${sel.length > 1 ? "s" : ""}`);
   if (mov.length) partes.push(`${sel.length ? "mover" : "Mover"} ${mov.length} para o cartão`);
@@ -253,11 +279,13 @@ async function confirmarImportacao() {
   const cartao = cartaoDaImportacao();
   const mover = cartao ? movidosDaImportacao() : [];
   if (!sel.length && !mover.length) return;
+  if (sel.length && semFormaImp().length) return atualizarResumoImp();
   const quem = $("#imp-quem").value;
   const linhas = sel.map((l) => {
+    const f = formaDaLinha(l), c = cartaoDaForma(f);
     const g = { data: l.data, descricao: l.descricao.slice(0, 80), valor: Math.round(l.valor * 100) / 100, categoria: l.categoria, responsavel: quem,
-      forma_pagamento: cartao ? "Cartão " + cartao.nome : $("#imp-forma").value === "credito" ? "Cartão de crédito" : "Importado do extrato" };
-    if (estado.migracao3) { g.cartao_id = cartao ? cartao.id : null; g.parcelas = 1; }
+      forma_pagamento: c ? "Cartão " + c.nome : f === "credito" ? "Cartão de crédito" : "Débito / Pix" };
+    if (estado.migracao3) { g.cartao_id = c ? c.id : null; g.parcelas = 1; }
     return g;
   });
   const btn = $("#imp-confirmar"); btn.disabled = true; btn.textContent = "Importando…";
@@ -281,7 +309,7 @@ async function confirmarImportacao() {
         render(); toast("Importação desfeita");
       } catch (e) { erro(e); }
     } });
-    irPara("gastos"); mostrarSubGastos(cartao ? "cartoes" : "extrato");
+    irPara("gastos"); mostrarSubGastos(cartao && !linhas.some((g) => !g.cartao_id) ? "cartoes" : "extrato");
   } catch (e) { erro(e); btn.disabled = false; atualizarResumoImp(); }
 }
 
@@ -296,6 +324,8 @@ function ligarImportar() {
   $("#imp-lista").addEventListener("change", (ev) => {
     const c = ev.target.closest("[data-imp-chk]");
     if (c) { const l = importacao.linhas[+c.dataset.impChk]; l.marcado = c.checked; c.closest(".imp-item").classList.toggle("on", c.checked); atualizarResumoImp(); }
+    const sf = ev.target.closest("[data-imp-forma]");
+    if (sf) { importacao.linhas[+sf.dataset.impForma].forma = sf.value; sf.classList.toggle("falta", !sf.value); atualizarResumoImp(); return; }
     const s2 = ev.target.closest("[data-imp-cat]");
     if (s2) {
       const l = importacao.linhas[+s2.dataset.impCat]; l.categoria = s2.value;
