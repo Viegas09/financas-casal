@@ -165,3 +165,10 @@ Todo dia às 8h o banco chama a função, que avisa cada família do que vence a
 ## Moeda da família
 
 Cada família tem a sua moeda (real, coroa sueca, euro, dólar…). Rode `supabase/migracao-09-moeda.sql` uma vez; depois quem é dono escolhe em **Perfil → Família → Moeda da família**. Os valores não são convertidos: só o símbolo e o formato mudam (ex.: `8 500,00 kr`). Os avisos no celular também saem na moeda da família.
+
+## Domínio próprio (Cloudflare Pages)
+
+- `useplinc.com.br` → página de venda (pasta `plinc/`, que o Google mostra) · `app.useplinc.com.br` → o app.
+- `scripts/montar-sites.sh producao|teste` monta `dist/site` e `dist/app` só com os arquivos públicos (sem `testes/`, `supabase/`, README).
+- `.github/workflows/cloudflare.yml` publica depois dos testes: `main` → endereços de verdade; `teste` → `teste.plinc-app.pages.dev` (modo demonstração) e `teste.plinc-site.pages.dev`. Precisa dos segredos `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`; sem eles, só avisa e não publica.
+- No domínio de verdade a página de venda sai do `noindex` e ganha `robots.txt`, `sitemap.xml`, endereço canônico, imagem de compartilhamento (`plinc/img/og.jpg`) e dados do app para o Google. O app continua fora da busca.
