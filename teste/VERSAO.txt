@@ -1,1 +1,1 @@
-versão: b344c09 Início: total do mês por forma de pagamento (débito/Pix/boleto × crédito)
+versão: ef50263 Entrada: logo fica ~2 s na tela (antes 1 s) para dar tempo de ver
