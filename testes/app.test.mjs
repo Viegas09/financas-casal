@@ -101,6 +101,22 @@ const aba = (p, a) => p.click(`.tabbar [data-aba=${a}]`);
   await p.click("#toast button"); await p.waitForTimeout(400);
   ok(await p.locator("#extrato .swipe").count() === n0, "“Desfazer” devolve o gasto");
 
+  // Início: total por forma de pagamento (débito/Pix/boleto × crédito) fecha com o total do mês
+  {
+    await aba(p, "inicio"); await p.waitForTimeout(200);
+    const r = await p.evaluate(() => {
+      const num = (t) => Number(t.replace(/[^\d,-]/g, "").replace(",", "."));
+      const v = [...document.querySelectorAll("#por-forma .pf-valor b")].map((b) => num(b.textContent));
+      const lista = contasDoMes(estado.mes), gs = gastosDoMes(estado.mes);
+      const cred = soma(lista.filter((c) => c.cartao_id), (c) => c.valorMes) + soma(gs.filter(ehCredito), (g) => g.valor);
+      return { vis: !document.querySelector("#por-forma").hidden, v, hero: num(document.querySelector("#hero-total").textContent), cred };
+    });
+    ok(r.vis && r.v.length === 2 && Math.abs(r.v[0] + r.v[1] - r.hero) < 0.02 && Math.abs(r.v[1] - r.cred) < 0.02, "Início: débito/Pix + crédito = total do mês", r);
+    await p.click('#por-forma [data-ver-pag="apagar"]'); await p.waitForTimeout(300);
+    ok(await p.isVisible("#aba-gastos") && await p.evaluate(() => filtroPagGasto) === "apagar", "tocar em Crédito abre Gastos já em A pagar");
+    await p.evaluate(() => { filtroPagGasto = "todos"; render(); });
+  }
+
   // importar extratos
   const importar = async (arq) => {
     await p.click('#aba-gastos [data-acao="importar"]'); await p.waitForTimeout(250);
@@ -112,7 +128,18 @@ const aba = (p, a) => p.click(`.tabbar [data-aba=${a}]`);
   let it = await importar("nubank-fatura.csv");
   ok(it.length === 7 && marcados(it).length === 6 && !marcados(it).includes("Pagamento recebido"), "Nubank fatura: 6 compras marcadas, pagamento desmarcado");
   ok(it.find((x) => x.d.startsWith("Ifood")).cat === "Restaurantes e delivery" && it.find((x) => x.d.startsWith("Drogasil")).cat === "Farmácia", "categorias sugeridas (iFood, Drogasil)");
+  ok(await p.isDisabled("#imp-confirmar") && (await p.innerText("#imp-confirmar")) === "Escolha: débito ou crédito", "importação: sem escolher débito ou crédito não deixa importar");
+  await p.selectOption("#imp-forma", "misto"); await p.waitForTimeout(150);
+  ok(await p.locator("#imp-lista [data-imp-forma]").count() >= 6 && (await p.innerText("#imp-confirmar")).startsWith("Faltam 6"), "“tem dos dois”: cada gasto pergunta débito ou crédito");
+  const formas = p.locator("#imp-lista .imp-item.on [data-imp-forma]");
+  const nF = await formas.count();
+  for (let k = 0; k < nF; k++) await formas.nth(k).selectOption(k === 0 ? "debito" : { index: 2 });
+  await p.waitForTimeout(150);
+  ok((await p.innerText("#imp-confirmar")).startsWith("Importar 6"), "com todos escolhidos, libera a importação");
+  const antesImp = await p.evaluate(() => estado.gastos.length);
   await p.click("#imp-confirmar"); await p.waitForTimeout(450);
+  const novosImp = await p.evaluate((n) => estado.gastos.slice(n).map((g) => ({ c: !!g.cartao_id, f: g.forma_pagamento })), antesImp);
+  ok(novosImp.length === 6 && novosImp.filter((g) => g.c).length === 5 && novosImp.filter((g) => !g.c && g.f === "Débito / Pix").length === 1, "importa 1 no débito e 5 no cartão, como escolhido");
   it = await importar("nubank-fatura.csv");
   ok(marcados(it).length === 0, "importar o mesmo arquivo de novo não duplica (tudo “já lançado”)");
   await p.keyboard.press("Escape"); await p.waitForTimeout(250);

@@ -99,7 +99,7 @@ async function validarMembro() {
 }
 
 // A entrada (logo animado) fica pelo menos o tempo da animação; se o app ficar pronto antes, espera ela terminar.
-const SPLASH_MINIMO = navigator.webdriver ? 0 : 1000;
+const SPLASH_MINIMO = navigator.webdriver ? 0 : 2000;   // ~1 s com o logo e a frase já parados na tela
 let splashSaiu; const promessaSplash = new Promise((ok) => { splashSaiu = ok; });
 const esperarSplash = () => promessaSplash;
 
@@ -113,7 +113,7 @@ function esconderSplash() {
     s.classList.add("saindo");
     document.documentElement.classList.remove("abrindo");
     splashSaiu();
-    setTimeout(() => s.remove(), 450);
+    setTimeout(() => s.remove(), 600);
   }, falta);
 }
 

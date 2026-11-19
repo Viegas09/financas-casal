@@ -11,6 +11,7 @@ function render() {
   renderAlertas(lista);
   renderResumoGastos();
   renderProximas(lista);
+  renderPorForma(lista);
   renderProximoMes();
   if (typeof renderAcertoCasal === "function") renderAcertoCasal();
   renderListaMes(lista);
@@ -202,6 +203,45 @@ function renderDivisao(lista) {
     const metade = casal / PESSOAS.length;
     return `<div class="pessoa"><div><div class="n">${esc(p)}</div><div class="d">${fmt(ind)} só dele(a) + ${fmt(metade)} do casal</div></div><div class="t">${fmt(ind + metade)}</div></div>`;
   }).join("") + (outros.length ? `<p class="muted pequeno">${outros.length} conta(s) com responsável não reconhecido ficaram de fora.</p>` : "");
+}
+
+/** Início: o total do mês separado pela forma de pagamento — débito/Pix/boleto (sai da conta no mês) × crédito (vai para a fatura). */
+function renderPorForma(lista) {
+  const el = $("#por-forma"); if (!el) return;
+  const gastos = estado.migracao2 ? gastosDoMes(estado.mes) : [];
+  const noCartao = (c) => estado.migracao3 && !!c.cartao_id;
+  const fixDeb = soma(lista.filter((c) => !noCartao(c)), (c) => c.valorMes), fixCred = soma(lista.filter(noCartao), (c) => c.valorMes);
+  const gDeb = soma(gastos.filter((g) => !ehCredito(g)), (g) => g.valor), gCred = soma(gastos.filter(ehCredito), (g) => g.valor);
+  const deb = fixDeb + gDeb, cred = fixCred + gCred, total = deb + cred;
+  if (!total) { el.hidden = true; el.innerHTML = ""; return; }
+  // faturas que vencem neste mês (compras de meses anteriores) também saem da conta agora
+  const fatsMes = faturasDoMes(estado.mes).filter((f) => f.total > 0);
+  const totFats = soma(fatsMes, (f) => f.total);
+  const pctDeb = Math.round((deb / total) * 100), pctCred = 100 - pctDeb;
+  const mes = nomeMes(estado.mes, "mes"), prox = nomeMes(somaMes(estado.mes, 1), "mes").toLowerCase();
+  const partes = (fix, gas) => [fix && `contas fixas ${fmt(fix)}`, gas && `gastos ${fmt(gas)}`].filter(Boolean).join(" · ") || "nada lançado";
+  el.hidden = false;
+  el.innerHTML = `
+    <div class="card-topo"><h2>Como vocês pagaram em ${esc(mes)}</h2></div>
+    <div class="pf-barra" role="img" aria-label="${pctDeb}% no débito ou Pix, ${pctCred}% no crédito">
+      ${deb ? `<span class="pf-deb" style="width:${pctDeb}%"></span>` : ""}${cred ? `<span class="pf-cred" style="width:${pctCred}%"></span>` : ""}
+    </div>
+    <div class="pf-linhas">
+      <button type="button" class="pf-linha" data-ir="gastos" data-ver-pag="pagos">
+        <span class="pf-bola pf-deb"></span>
+        <div><b>Débito, Pix ou boleto</b><small>${partes(fixDeb, gDeb)}</small><em>sai da conta em ${esc(mes.toLowerCase())}</em></div>
+        <div class="pf-valor"><b>${fmt(deb)}</b><small>${pctDeb}%</small></div>
+      </button>
+      <button type="button" class="pf-linha" data-ir="gastos" data-ver-pag="apagar">
+        <span class="pf-bola pf-cred"></span>
+        <div><b>Crédito</b><small>${partes(fixCred, gCred)}</small><em>vai para a fatura · paga em ${esc(prox)} ›</em></div>
+        <div class="pf-valor"><b>${fmt(cred)}</b><small>${pctCred}%</small></div>
+      </button>
+      <div class="pm-total"><span>Total de ${esc(mes.toLowerCase())}</span><b>${fmt(total)}</b></div>
+    </div>
+    ${totFats ? `<div class="pf-caixa"><span>Saindo da conta em ${esc(mes.toLowerCase())}</span>
+      <small>débito/Pix/boleto ${fmt(deb)} + fatura${fatsMes.length > 1 ? "s" : ""} do cartão ${fmt(totFats)} (compras do mês passado)</small>
+      <b>${fmt(deb + totFats)}</b></div>` : ""}`;
 }
 
 /** Início: o que o mês que vem já tem de compromisso (contas fixas + faturas do que foi comprado no crédito). */

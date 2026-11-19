@@ -813,6 +813,12 @@ dialog.sheet-alta .sheet-corpo { min-height: 100%; align-content: start; }
 .imp-chk input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); }
 .imp-desc { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .imp-meta { font-size: 12px; color: var(--text-3); margin: 2px 0 6px; }
+.imp-selects { display: flex; flex-wrap: wrap; gap: 6px; }
+.imp-forma-linha { font-size: 14px; padding: 6px 8px; border-radius: 9px; max-width: 100%; }
+.imp-forma-linha.falta, .imp-opcoes label.falta select { border-color: var(--azul, #2a78d6); box-shadow: 0 0 0 2px color-mix(in srgb, #2a78d6 25%, transparent); }
+.imp-opcoes label:first-child { grid-column: 1 / -1; }
+.imp-item:not(.on) .imp-forma-linha { opacity: .5; border-color: transparent; box-shadow: none; }
+.imp-opcoes label.falta { color: var(--azul, #2a78d6); font-weight: 600; }
 .imp-cat { font-size: 14px; padding: 6px 8px; border-radius: 9px; max-width: 100%; }
 .imp-item:not(.on) .imp-cat { opacity: .5; }
 .imp-valor { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 14px; }
@@ -929,3 +935,19 @@ dialog.sheet-alta .sheet-corpo { min-height: 100%; align-content: start; }
 .lista-cadastro .item .dir { display: grid; gap: 3px; justify-items: end; }
 .cm-divisao > button { background: var(--bg); border: 0; border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .cm-divisao > button:active { opacity: .6; }
+
+/* Início: total por forma de pagamento */
+.por-forma .pf-barra { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--grid); margin: 12px 0 4px; gap: 2px; }
+.pf-deb { background: var(--good); }
+.pf-cred { background: var(--accent); }
+.pf-linhas { display: grid; gap: 4px; margin-top: 6px; }
+.pf-linha { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; text-align: left; background: none; border: 0; padding: 8px 0; color: inherit; font: inherit; cursor: pointer; border-bottom: 1px solid var(--grid); }
+.pf-bola { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; }
+.pf-linha b { display: block; font-size: 15px; }
+.pf-linha small { display: block; color: var(--text-2); font-size: 12.5px; margin-top: 2px; }
+.pf-linha em { display: block; font-style: normal; color: var(--text-3); font-size: 12px; margin-top: 2px; }
+.pf-valor { text-align: right; }
+.pf-valor b { font-variant-numeric: tabular-nums; }
+.pf-caixa { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--neutral-bg); font-size: 14px; }
+.pf-caixa small { grid-column: 1; color: var(--text-3); font-size: 12px; }
+.pf-caixa b { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-variant-numeric: tabular-nums; }

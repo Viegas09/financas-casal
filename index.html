@@ -24,11 +24,11 @@
     .splash {
       position: fixed; inset: 0; z-index: 200; display: grid; place-content: center; justify-items: center; gap: 6px;
       background: #2a78d6; color: #fff; -webkit-user-select: none; user-select: none;
-      transition: opacity .38s ease, visibility .38s;
+      transition: opacity .5s ease, visibility .5s;
     }
-    .splash-logo { width: 120px; height: 120px; overflow: visible; transition: transform .38s cubic-bezier(.4,0,.2,1); }
+    .splash-logo { width: 120px; height: 120px; overflow: visible; transition: transform .5s cubic-bezier(.4,0,.2,1); }
     .sp-moeda { transform-box: fill-box; transform-origin: center;
-      animation: sp-cai .62s cubic-bezier(.33,0,.2,1) both, sp-gira 1.5s 1.35s ease-in-out infinite; }
+      animation: sp-cai .62s cubic-bezier(.33,0,.2,1) both, sp-gira 1.5s 2.3s ease-in-out infinite; }
     .sp-fenda { transform-box: fill-box; transform-origin: center; animation: sp-aperta .32s .36s ease-out both; }
     .sp-brilho { fill: none; stroke: #fff; stroke-width: 4.5; stroke-linecap: round; stroke-dasharray: 10; stroke-dashoffset: 10;
       animation: sp-brilha .28s .5s ease-out forwards; }
@@ -48,7 +48,7 @@
       .splash.saindo .splash-logo { transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="css/style.css?v=202611181430" />
+  <link rel="stylesheet" href="css/style.css?v=202611191230" />
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -174,6 +174,7 @@
           </article>
 
         </div>
+        <article class="card por-forma" id="por-forma" hidden></article>
         <article class="card card-proximo-mes" id="proximo-mes" hidden></article>
         <article class="card acerto-casal" id="acerto-casal" hidden></article>
       </section>
@@ -843,29 +844,29 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=202611181430"></script>
-  <script src="js/nucleo.js?v=202611181430"></script>
-  <script src="js/offline.js?v=202611181430"></script>
-  <script src="js/aovivo.js?v=202611181430"></script>
-  <script src="js/auth.js?v=202611181430"></script>
-  <script src="js/dados.js?v=202611181430"></script>
-  <script src="js/telas.js?v=202611181430"></script>
-  <script src="js/gastos.js?v=202611181430"></script>
-  <script src="js/cartoes.js?v=202611181430"></script>
-  <script src="js/casal.js?v=202611181430"></script>
-  <script src="js/metas.js?v=202611181430"></script>
-  <script src="js/acoes.js?v=202611181430"></script>
-  <script src="js/eventos.js?v=202611181430"></script>
-  <script src="js/tutorial.js?v=202611181430"></script>
-  <script src="js/guia.js?v=202611181430"></script>
-  <script src="js/avisos.js?v=202611181430"></script>
-  <script src="js/bloqueio.js?v=202611181430"></script>
-  <script src="js/familia.js?v=202611181430"></script>
-  <script src="js/assinatura.js?v=202611181430"></script>
-  <script src="js/importar.js?v=202611181430"></script>
-  <script src="js/calendario.js?v=202611181430"></script>
-  <script src="js/arrastar.js?v=202611181430"></script>
-  <script src="js/demo.js?v=202611181430"></script>
-  <script src="js/inicio.js?v=202611181430"></script>
+  <script src="js/config.js?v=202611191230"></script>
+  <script src="js/nucleo.js?v=202611191230"></script>
+  <script src="js/offline.js?v=202611191230"></script>
+  <script src="js/aovivo.js?v=202611191230"></script>
+  <script src="js/auth.js?v=202611191230"></script>
+  <script src="js/dados.js?v=202611191230"></script>
+  <script src="js/telas.js?v=202611191230"></script>
+  <script src="js/gastos.js?v=202611191230"></script>
+  <script src="js/cartoes.js?v=202611191230"></script>
+  <script src="js/casal.js?v=202611191230"></script>
+  <script src="js/metas.js?v=202611191230"></script>
+  <script src="js/acoes.js?v=202611191230"></script>
+  <script src="js/eventos.js?v=202611191230"></script>
+  <script src="js/tutorial.js?v=202611191230"></script>
+  <script src="js/guia.js?v=202611191230"></script>
+  <script src="js/avisos.js?v=202611191230"></script>
+  <script src="js/bloqueio.js?v=202611191230"></script>
+  <script src="js/familia.js?v=202611191230"></script>
+  <script src="js/assinatura.js?v=202611191230"></script>
+  <script src="js/importar.js?v=202611191230"></script>
+  <script src="js/calendario.js?v=202611191230"></script>
+  <script src="js/arrastar.js?v=202611191230"></script>
+  <script src="js/demo.js?v=202611191230"></script>
+  <script src="js/inicio.js?v=202611191230"></script>
 </body>
 </html>
