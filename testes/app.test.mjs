@@ -101,6 +101,22 @@ const aba = (p, a) => p.click(`.tabbar [data-aba=${a}]`);
   await p.click("#toast button"); await p.waitForTimeout(400);
   ok(await p.locator("#extrato .swipe").count() === n0, "“Desfazer” devolve o gasto");
 
+  // Início: total por forma de pagamento (débito/Pix/boleto × crédito) fecha com o total do mês
+  {
+    await aba(p, "inicio"); await p.waitForTimeout(200);
+    const r = await p.evaluate(() => {
+      const num = (t) => Number(t.replace(/[^\d,-]/g, "").replace(",", "."));
+      const v = [...document.querySelectorAll("#por-forma .pf-valor b")].map((b) => num(b.textContent));
+      const lista = contasDoMes(estado.mes), gs = gastosDoMes(estado.mes);
+      const cred = soma(lista.filter((c) => c.cartao_id), (c) => c.valorMes) + soma(gs.filter(ehCredito), (g) => g.valor);
+      return { vis: !document.querySelector("#por-forma").hidden, v, hero: num(document.querySelector("#hero-total").textContent), cred };
+    });
+    ok(r.vis && r.v.length === 2 && Math.abs(r.v[0] + r.v[1] - r.hero) < 0.02 && Math.abs(r.v[1] - r.cred) < 0.02, "Início: débito/Pix + crédito = total do mês", r);
+    await p.click('#por-forma [data-ver-pag="apagar"]'); await p.waitForTimeout(300);
+    ok(await p.isVisible("#aba-gastos") && await p.evaluate(() => filtroPagGasto) === "apagar", "tocar em Crédito abre Gastos já em A pagar");
+    await p.evaluate(() => { filtroPagGasto = "todos"; render(); });
+  }
+
   // importar extratos
   const importar = async (arq) => {
     await p.click('#aba-gastos [data-acao="importar"]'); await p.waitForTimeout(250);
