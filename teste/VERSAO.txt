@@ -1,1 +1,1 @@
-versão: 2ccfaf4 Gastos: extrato separado em Crédito (paga no mês seguinte) e Débito/Pix (já pago)
+versão: 3836e7e Importar: sempre pergunta débito ou crédito (e opção de escolher em cada gasto)
