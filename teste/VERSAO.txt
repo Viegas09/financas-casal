@@ -1,1 +1,1 @@
-versão: 3836e7e Importar: sempre pergunta débito ou crédito (e opção de escolher em cada gasto)
+versão: b344c09 Início: total do mês por forma de pagamento (débito/Pix/boleto × crédito)
