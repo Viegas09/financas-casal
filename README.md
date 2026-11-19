@@ -42,7 +42,7 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
    update public.membros set admin = true where email = 'seu@email.com';
    ```
 4. Em **Authentication → Sign In / Providers**, deixe **“Allow new users to sign up” ligado** e **“Confirm email” ligado**. Quem não tem convite é recusado pelo banco.
-5. O cônjuge e outras famílias você convida pelo app: **Mais → Família**.
+5. O cônjuge e outras famílias você convida pelo app: **Perfil → Família** (toque no seu nome no topo).
 
 ### 3. Ligar o site ao banco
 1. No Supabase, abra **Project Settings → API** e copie a **Project URL** e a chave **anon / public**.
@@ -66,7 +66,7 @@ Use as setas ‹ › no topo para navegar entre os meses. Cada mês tem os próp
 
 ## Famílias e convites
 
-- **Mais → Família** mostra a sua família, quem está nela e os convites pendentes.
+- **Perfil → Família** (toque no seu nome no topo) mostra a sua família, quem está nela e os convites pendentes.
 - **Convidar para esta família:** para o cônjuge (ou outra pessoa que deve ver tudo junto). Informe o nome (como vai aparecer em “Quem paga”) e o e-mail.
 - **Convidar uma nova família** (só admin): a pessoa ganha uma família separada, com os próprios dados, e depois convida o cônjuge dela.
 - Depois de criar o convite, toque em **Compartilhar** e mande a mensagem. A pessoa abre o link, toca em **Criar minha conta**, usa **o mesmo e-mail** do convite, escolhe uma senha e confirma pelo e-mail que chega.
@@ -158,10 +158,10 @@ supabase/migracao-*   atualizações do banco para quem já instalou
 
 1. Rode `supabase/migracao-08-avisos.sql` no SQL Editor do Supabase (cria a tabela dos aparelhos e o agendamento diário às 8h de Brasília).
 2. A rotina **Publicar funções do servidor** publica a função `avisos` e cria as chaves dos avisos (VAPID) uma vez só.
-3. No app: **Mais → Avisos de vencimento no celular**. No iPhone, o Plinc precisa estar na Tela de Início (Compartilhar → Adicionar à Tela de Início).
+3. No app: **Perfil → Avisos de vencimento no celular**. No iPhone, o Plinc precisa estar na Tela de Início (Compartilhar → Adicionar à Tela de Início).
 
 Todo dia às 8h o banco chama a função, que avisa cada família do que vence amanhã e ainda não foi pago (contas fixas e faturas). Desfazer: `migracao-08-desfazer.sql`.
 
 ## Moeda da família
 
-Cada família tem a sua moeda (real, coroa sueca, euro, dólar…). Rode `supabase/migracao-09-moeda.sql` uma vez; depois quem é dono escolhe em **Mais → Família → Moeda da família**. Os valores não são convertidos: só o símbolo e o formato mudam (ex.: `8 500,00 kr`). Os avisos no celular também saem na moeda da família.
+Cada família tem a sua moeda (real, coroa sueca, euro, dólar…). Rode `supabase/migracao-09-moeda.sql` uma vez; depois quem é dono escolhe em **Perfil → Família → Moeda da família**. Os valores não são convertidos: só o símbolo e o formato mudam (ex.: `8 500,00 kr`). Os avisos no celular também saem na moeda da família.

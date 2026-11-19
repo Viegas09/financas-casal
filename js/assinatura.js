@@ -26,7 +26,7 @@ const precisaAssinar = () => !DEMO && !!estado.assinatura && !estado.assinatura.
 /** Antes de gravar: sem assinatura em dia, avisa em vez de tentar. */
 function exigirAssinatura() {
   if (assinaturaLiberada()) return;
-  throw Object.assign(new Error("Sua assinatura não está em dia: dá para consultar tudo, mas para lançar é preciso renovar em Mais → Sua assinatura."), { amigavel: true });
+  throw Object.assign(new Error("Sua assinatura não está em dia: dá para consultar tudo, mas para lançar é preciso renovar em Perfil → Assinatura."), { amigavel: true });
 }
 
 const dataBR = (iso) => (iso ? new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
