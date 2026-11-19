@@ -35,6 +35,7 @@ async function pagina({ mock = null, limpar = true, armazenar = null, url = URL_
   return p;
 }
 const aba = (p, a) => p.click(`.tabbar [data-aba=${a}]`);
+const irPerfil = async (p) => { await aba(p, "mais"); await p.waitForTimeout(150); await p.click('#aba-mais [data-ir="perfil"]'); };
 
 // ================= MODO DEMONSTRAÇÃO =================
 {
@@ -189,7 +190,7 @@ const entrar = async (p, email = "vini@x.com", { manterGuia = false } = {}) => {
   const p = await pagina({ mock: { usuarios: [VINI], tabelas: { ...tabs(), membros: [{ user_id: "u-vini", nome: "Vinícius" }] } } });
   await entrar(p);
   ok(await p.isVisible("#app") && (await p.innerText("#hero-total")).includes("2.200"), "banco SEM a migração 05: login e dados funcionam como antes");
-  await aba(p, "mais"); await p.waitForTimeout(200);
+  await irPerfil(p); await p.waitForTimeout(200);
   ok((await p.innerText("#card-familia")).includes("migracao-05"), "sem a migração, a área Família pede para rodar a 05");
   ok(p.erros.length === 0, "sem erros de JavaScript (banco atual)");
 }
@@ -198,7 +199,19 @@ const entrar = async (p, email = "vini@x.com", { manterGuia = false } = {}) => {
     membros: [{ user_id: "u-vini", nome: "Vinícius", familia_id: "f1", papel: "dono", admin: true, email: "vini@x.com" }, { user_id: "u-ma", nome: "Marcela", familia_id: "f1", papel: "dono", admin: true, email: "marcela@x.com" }],
     familias: [{ id: "f1", nome: "Vinícius & Marcela", pessoas: ["Vinícius", "Marcela"] }], convites: [] } } });
   await entrar(p);
-  await aba(p, "mais"); await p.waitForTimeout(250);
+  // Perfil: tocar no nome do topo abre o perfil
+  await p.click("header .saudacao"); await p.waitForTimeout(250);
+  const tp = await p.innerText("#perfil-topo");
+  ok(await p.isVisible("#aba-perfil") && tp.includes("Vinícius") && tp.includes("Vinícius & Marcela") && tp.includes("Marcela") && tp.includes("Dono da família")
+    && (await p.getAttribute('.tabbar [data-aba=mais]', "aria-selected")) === "true", "perfil: o topo abre o perfil com nome, família, papel e com quem divide", tp);
+  ok(await p.isVisible("#aba-perfil #btn-sair") && await p.isVisible("#aba-perfil #card-familia") && await p.isVisible("#aba-perfil #btn-bloqueio"), "perfil: família, Face ID e Sair ficam no perfil");
+  await p.click("#btn-trocar-senha"); await p.waitForTimeout(200);
+  await p.fill("#form-senha [name=nova]", "senha-nova-1"); await p.fill("#form-senha [name=repete]", "senha-nova-2");
+  await p.click("#form-senha [type=submit]"); await p.waitForTimeout(200);
+  ok((await p.innerText("#senha-erro")).includes("não são iguais") && await p.evaluate(() => document.querySelector("#modal-senha").open), "trocar senha: senhas diferentes avisam e não fecham");
+  await p.fill("#form-senha [name=repete]", "senha-nova-1"); await p.click("#form-senha [type=submit]"); await p.waitForTimeout(300);
+  ok(!(await p.evaluate(() => document.querySelector("#modal-senha").open)) && (await p.innerText("#toast")).includes("Senha alterada"), "trocar senha: senhas iguais salvam");
+  await irPerfil(p); await p.waitForTimeout(250);
   const t = await p.innerText("#card-familia");
   ok(t.includes("Vinícius & Marcela") && t.includes("Outras famílias"), "depois da 05: área Família com membros e convite de nova família (admin)");
   ok(!(await p.locator("[data-remover-membro]").count()), "um dono não aparece como removível para o outro dono");
@@ -228,7 +241,7 @@ const entrar = async (p, email = "vini@x.com", { manterGuia = false } = {}) => {
   await aba(p, "contas"); await p.click("#aba-contas .btn-add"); await p.waitForTimeout(250);
   const ops = await p.$$eval("#sel-responsavel-conta option", (e) => e.map((x) => x.value));
   ok(ops.join() === "Ana", "família de uma pessoa: “Quem paga” só com o nome dela (sem “Casal”)");
-  await p.keyboard.press("Escape"); await aba(p, "mais"); await p.waitForTimeout(200);
+  await p.keyboard.press("Escape"); await irPerfil(p); await p.waitForTimeout(200);
   ok(!(await p.innerText("#card-familia")).includes("Outras famílias"), "quem não é admin não vê “convidar nova família”");
 }
 
@@ -263,7 +276,7 @@ const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ u
   ok(await p.isHidden("#banner-offline"), "a internet volta: o aviso some e os dados atualizam");
 
   // sair apaga a cópia do aparelho
-  await aba(p, "mais"); await p.waitForTimeout(200);
+  await irPerfil(p); await p.waitForTimeout(200);
   await p.click("#btn-sair"); await p.waitForTimeout(300);
   ok(!(await p.evaluate(() => localStorage.getItem("plinc-dados-v1:u-vini"))), "ao sair da conta, os dados guardados no aparelho são apagados");
   ok(p.erros.length === 0 && p1.erros.length === 0, "sem erros de JavaScript (sem internet) " + p.erros.join(" | "));
@@ -293,7 +306,7 @@ const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ u
   };
   const p1 = await pagina({ mock: MOCK_VINI(), antes: faceFalso });
   await entrar(p1);
-  await aba(p1, "mais"); await p1.waitForTimeout(200);
+  await irPerfil(p1); await p1.waitForTimeout(200);
   ok((await p1.innerText("#bloqueio-estado")) === "desligado", "bloqueio: começa desligado " + await p1.innerText("#bloqueio-estado"));
   await p1.click("#btn-bloqueio"); await p1.waitForTimeout(300);
   ok((await p1.innerText("#bloqueio-estado")) === "ligado" && await p1.evaluate(() => __face.criou === 1 && !!JSON.parse(localStorage.getItem("plinc-bloqueio")).id),
@@ -327,7 +340,7 @@ const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ u
 }
 {
   const p = await pagina();
-  await aba(p, "mais"); await p.waitForTimeout(200);
+  await irPerfil(p); await p.waitForTimeout(200);
   ok((await p.innerText("#bloqueio-estado")) === "no app real", "bloqueio: na demonstração o item mostra que é só no app real");
 }
 
@@ -364,7 +377,7 @@ const MOCK_VINI = () => ({ usuarios: [VINI], tabelas: { ...tabs(), membros: [{ u
   ok(env.length - antes === 1 && env.at(-1).canal === "plinc-familia:f1" && env.at(-1).event === "mudou" && JSON.stringify(env.at(-1).payload) === "{}", "ao salvar, avisa os outros celulares da família (só o sinal, sem dados)");
 
   // sair: para de escutar
-  await aba(p, "mais"); await p.waitForTimeout(200); await p.click("#btn-sair"); await p.waitForTimeout(300);
+  await irPerfil(p); await p.waitForTimeout(200); await p.click("#btn-sair"); await p.waitForTimeout(300);
   ok(!(await p.evaluate(() => window.__MOCK.canais["plinc-familia:f1"])), "ao sair da conta, para de escutar o canal");
   ok(p.erros.length === 0, "sem erros de JavaScript (ao vivo) " + p.erros.join(" | "));
 }
@@ -420,7 +433,7 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   const antes = await p.evaluate(() => window.__MOCK.tabelas.gastos.length);
   const msg = await p.evaluate(async () => { try { await db.inserir("gastos", { descricao: "x", valor: 1, data: hojeISO(), categoria: "Mercado" }); return "salvou"; } catch (e) { return e.message; } });
   ok(msg.includes("assinatura") && antes === await p.evaluate(() => window.__MOCK.tabelas.gastos.length), "vencida: tentar lançar avisa da assinatura e não grava");
-  await aba(p, "mais"); await p.waitForTimeout(200);
+  await irPerfil(p); await p.waitForTimeout(200);
   ok((await p.innerText("#card-assinatura")).includes("Vencida") && await p.isVisible("#card-assinatura [data-acao=renovar-assinatura]"), "Mais → Sua assinatura: “Vencida” com botão para assinar de novo");
   await p.click("#banner-assinatura [data-acao=renovar-assinatura]"); await p.waitForTimeout(200);
   ok(await p.isVisible("#tela-assinar") && (await p.innerText("#btn-sair-assinar")) === "Voltar para o app", "Renovar abre a tela de assinar, com opção de voltar ao app");
@@ -433,7 +446,7 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   p.on("dialog", (d) => d.accept());
   await entrar(p);
   ok(await p.isHidden("#banner-assinatura"), "ativa: sem aviso no topo");
-  await aba(p, "mais"); await p.waitForTimeout(200);
+  await irPerfil(p); await p.waitForTimeout(200);
   ok((await p.innerText("#card-assinatura")).includes("Ativa") && (await p.innerText("#card-assinatura")).includes("próxima cobrança"), "Mais → Sua assinatura: “Ativa” com a próxima cobrança");
   await p.evaluate((v) => { window.__MOCK.funcoes = { assinatura: async (b) => { window.__MOCK.assinatura = { status: "cancelada", liberada: true, pago: true, valido_ate: v }; return { data: { ok: true }, error: null }; } }; }, futuro(20));
   await p.click("#card-assinatura [data-acao=cancelar-assinatura]"); await p.waitForTimeout(500);
@@ -444,7 +457,7 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   // cortesia (vocês e a irmã): nada muda
   const p = await pagina({ mock: { usuarios: [VINI], tabelas: FAM1(), assinatura: { status: "cortesia", liberada: true, pago: false } } });
   await entrar(p);
-  await aba(p, "mais"); await p.waitForTimeout(200);
+  await irPerfil(p); await p.waitForTimeout(200);
   ok(await p.isVisible("#app") && await p.isHidden("#banner-assinatura") && (await p.innerText("#card-assinatura")).includes("Cortesia") && !(await p.locator("#card-assinatura button").count()), "cortesia: app normal, “Cortesia” em Mais, sem botões de cobrança");
 }
 
@@ -617,7 +630,7 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
   await p.click("#form-gasto button[type=submit]"); await p.waitForTimeout(400);
   const ica = await p.evaluate(() => window.__MOCK.tabelas.gastos.find((g) => g.descricao === "ICA"));
   ok(ica && Number(ica.valor) === 1234.5, "moeda: aceita o número no jeito sueco (1 234,50) " + JSON.stringify(ica && ica.valor));
-  await aba(p, "mais"); await p.waitForTimeout(200);
+  await irPerfil(p); await p.waitForTimeout(200);
   ok(await p.isVisible("#sel-moeda-familia") && (await p.$eval("#sel-moeda-familia", (s) => s.value)) === "SEK", "moeda: dono vê a moeda da família em Mais → Família");
   p.once("dialog", (d) => d.accept());
   await p.selectOption("#sel-moeda-familia", "EUR"); await p.waitForTimeout(400);
@@ -628,7 +641,7 @@ const futuro = (d) => new Date(Date.now() + d * 864e5).toISOString();
 // ================= AVISOS NO CELULAR (na demonstração só explica) =================
 {
   const p = await pagina();
-  await aba(p, "mais"); await p.waitForTimeout(200);
+  await irPerfil(p); await p.waitForTimeout(200);
   ok((await p.innerText("#avisos-estado")) === "no app real", "avisos: na demonstração o item mostra que é só no app real");
   await p.click("#btn-avisos"); await p.waitForTimeout(200);
   ok((await p.innerText("#toast")).includes("demonstração"), "avisos: na demonstração explica em vez de pedir permissão");

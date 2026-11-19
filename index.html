@@ -48,7 +48,7 @@
       .splash.saindo .splash-logo { transform: none; }
     }
   </style>
-  <link rel="stylesheet" href="css/style.css?v=202611191230" />
+  <link rel="stylesheet" href="css/style.css?v=202611191300" />
 </head>
 <body>
   <div id="splash" class="splash" aria-hidden="true">
@@ -132,13 +132,13 @@
   <!-- ============ APP ============ -->
   <div id="app" hidden>
     <header class="topo">
-      <div class="saudacao">
+      <button type="button" class="saudacao" data-ir="perfil" aria-label="Abrir meu perfil">
         <span class="avatar" id="avatar" aria-hidden="true"></span>
         <div>
           <div class="ola">Olá,</div>
           <strong id="nome-usuario"></strong>
         </div>
-      </div>
+      </button>
       <div class="mes-nav" aria-label="Mês de referência">
         <button class="btn-icone" id="mes-anterior" aria-label="Mês anterior">‹</button>
         <strong id="mes-atual"></strong>
@@ -277,6 +277,11 @@
 
       <!-- ---------- MAIS ---------- -->
       <section id="aba-mais" class="aba" hidden>
+        <button type="button" class="card perfil-atalho" data-ir="perfil">
+          <span class="avatar grande" id="perfil-atalho-avatar" aria-hidden="true"></span>
+          <span class="pa-txt"><b id="perfil-atalho-nome"></b><small>Meu perfil, família e assinatura</small></span>
+          <span class="seta">›</span>
+        </button>
         <div class="titulo-aba">
           <div class="titulo-linha"><h1>Cadastros</h1><button class="btn-add" id="btn-add-cadastro" aria-label="Adicionar">+</button></div>
           <div class="segmento" id="seg-cadastro" role="group" aria-label="Escolher cadastro">
@@ -300,19 +305,36 @@
           <ul class="lista-cadastro" id="cad-cartoes"></ul>
         </article>
 
-        <article class="card card-familia" id="card-assinatura" hidden></article>
-
-        <article class="card card-familia" id="card-familia" hidden></article>
-
         <article class="card card-lista menu">
-          <button class="menu-item" id="btn-bloqueio"><span id="bloqueio-titulo">Bloqueio com Face ID</span><span class="menu-dir"><small class="muted" id="bloqueio-estado"></small><span class="seta">›</span></span></button>
-          <button class="menu-item" id="btn-avisos"><span>Avisos de vencimento no celular</span><span class="menu-dir"><small class="muted" id="avisos-estado"></small><span class="seta">›</span></span></button>
           <button class="menu-item" data-acao="guia"><span>Configuração inicial</span><span class="seta">›</span></button>
           <button class="menu-item" data-acao="tutorial"><span>Tutorial do app</span><span class="seta">›</span></button>
           <button class="menu-item" data-acao="importar"><span>Importar extrato do banco</span><span class="seta">›</span></button>
           <button class="menu-item" data-ir="analises"><span>Análises e gráficos</span><span class="seta">›</span></button>
           <button class="menu-item" id="btn-calendario"><span>Lembretes no calendário</span><span class="seta">›</span></button>
           <button class="menu-item" id="btn-exportar"><span>Exportar tudo em CSV</span><span class="seta">›</span></button>
+        </article>
+      </section>
+
+      <!-- ---------- PERFIL ---------- -->
+      <section id="aba-perfil" class="aba" hidden>
+        <div class="titulo-aba"><div class="titulo-linha"><button type="button" class="btn-link voltar" data-ir="mais">‹ Mais</button></div></div>
+        <article class="card perfil-topo" id="perfil-topo"></article>
+
+        <h2 class="perfil-secao">Conta e segurança</h2>
+        <article class="card card-lista menu">
+          <div class="menu-item estatico"><span>E-mail</span><span class="menu-dir"><small class="muted" id="perfil-email"></small></span></div>
+          <button class="menu-item" id="btn-trocar-senha"><span>Trocar senha</span><span class="seta">›</span></button>
+          <button class="menu-item" id="btn-bloqueio"><span id="bloqueio-titulo">Bloqueio com Face ID</span><span class="menu-dir"><small class="muted" id="bloqueio-estado"></small><span class="seta">›</span></span></button>
+          <button class="menu-item" id="btn-avisos"><span>Avisos de vencimento no celular</span><span class="menu-dir"><small class="muted" id="avisos-estado"></small><span class="seta">›</span></span></button>
+        </article>
+
+        <h2 class="perfil-secao">Assinatura</h2>
+        <article class="card card-familia" id="card-assinatura" hidden></article>
+
+        <h2 class="perfil-secao">Família</h2>
+        <article class="card card-familia" id="card-familia" hidden></article>
+
+        <article class="card card-lista menu">
           <button class="menu-item perigo" id="btn-sair"><span>Sair</span><span class="seta">›</span></button>
         </article>
       </section>
@@ -705,6 +727,26 @@
     </form>
   </dialog>
 
+  <dialog id="modal-senha" class="sheet">
+    <form id="form-senha" method="dialog" autocomplete="off">
+      <div class="puxador" aria-hidden="true"></div>
+      <h2>Trocar senha</h2>
+      <p class="explica">Mínimo de 8 caracteres. Vale para o login no celular e no computador.</p>
+      <label>Nova senha
+        <input name="nova" type="password" required minlength="8" autocomplete="new-password" />
+      </label>
+      <label>Repita a nova senha
+        <input name="repete" type="password" required minlength="8" autocomplete="new-password" />
+      </label>
+      <p class="erro" id="senha-erro" role="alert"></p>
+      <div class="modal-acoes">
+        <span class="espaco"></span>
+        <button type="button" class="btn btn-ghost" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar senha</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="modal-convite" class="sheet">
     <form id="form-convite" method="dialog">
       <div class="puxador" aria-hidden="true"></div>
@@ -844,29 +886,30 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js?v=202611191230"></script>
-  <script src="js/nucleo.js?v=202611191230"></script>
-  <script src="js/offline.js?v=202611191230"></script>
-  <script src="js/aovivo.js?v=202611191230"></script>
-  <script src="js/auth.js?v=202611191230"></script>
-  <script src="js/dados.js?v=202611191230"></script>
-  <script src="js/telas.js?v=202611191230"></script>
-  <script src="js/gastos.js?v=202611191230"></script>
-  <script src="js/cartoes.js?v=202611191230"></script>
-  <script src="js/casal.js?v=202611191230"></script>
-  <script src="js/metas.js?v=202611191230"></script>
-  <script src="js/acoes.js?v=202611191230"></script>
-  <script src="js/eventos.js?v=202611191230"></script>
-  <script src="js/tutorial.js?v=202611191230"></script>
-  <script src="js/guia.js?v=202611191230"></script>
-  <script src="js/avisos.js?v=202611191230"></script>
-  <script src="js/bloqueio.js?v=202611191230"></script>
-  <script src="js/familia.js?v=202611191230"></script>
-  <script src="js/assinatura.js?v=202611191230"></script>
-  <script src="js/importar.js?v=202611191230"></script>
-  <script src="js/calendario.js?v=202611191230"></script>
-  <script src="js/arrastar.js?v=202611191230"></script>
-  <script src="js/demo.js?v=202611191230"></script>
-  <script src="js/inicio.js?v=202611191230"></script>
+  <script src="js/config.js?v=202611191300"></script>
+  <script src="js/nucleo.js?v=202611191300"></script>
+  <script src="js/offline.js?v=202611191300"></script>
+  <script src="js/aovivo.js?v=202611191300"></script>
+  <script src="js/auth.js?v=202611191300"></script>
+  <script src="js/dados.js?v=202611191300"></script>
+  <script src="js/telas.js?v=202611191300"></script>
+  <script src="js/gastos.js?v=202611191300"></script>
+  <script src="js/cartoes.js?v=202611191300"></script>
+  <script src="js/casal.js?v=202611191300"></script>
+  <script src="js/metas.js?v=202611191300"></script>
+  <script src="js/acoes.js?v=202611191300"></script>
+  <script src="js/eventos.js?v=202611191300"></script>
+  <script src="js/tutorial.js?v=202611191300"></script>
+  <script src="js/guia.js?v=202611191300"></script>
+  <script src="js/avisos.js?v=202611191300"></script>
+  <script src="js/bloqueio.js?v=202611191300"></script>
+  <script src="js/familia.js?v=202611191300"></script>
+  <script src="js/perfil.js?v=202611191300"></script>
+  <script src="js/assinatura.js?v=202611191300"></script>
+  <script src="js/importar.js?v=202611191300"></script>
+  <script src="js/calendario.js?v=202611191300"></script>
+  <script src="js/arrastar.js?v=202611191300"></script>
+  <script src="js/demo.js?v=202611191300"></script>
+  <script src="js/inicio.js?v=202611191300"></script>
 </body>
 </html>
