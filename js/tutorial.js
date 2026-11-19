@@ -25,7 +25,7 @@ const TUTORIAL = [
     itens: ["O app calcula quanto guardar por mês para chegar no prazo", "Sem prazo, mostra quando chegam lá no ritmo atual", "Toque na meta → Guardar ou Retirar", "Avisa quando o ritmo está abaixo do necessário"] },
   { ic: "etiqueta", cor: "azul", titulo: "Mais: cadastros e análises", ir: "mais",
     texto: "Tudo o que se cadastra uma vez fica aqui.",
-    itens: ["Contas fixas, rendas (salários), orçamentos e cartões", "Análises e gráficos: categorias, quem paga o quê, 6 meses", "Exportar tudo em CSV (abre no Excel)", "Este tutorial também fica aqui"] },
+    itens: ["Contas fixas, rendas (salários), orçamentos e cartões", "Análises e gráficos: categorias, quem paga o quê, 6 meses", "Exportar tudo em CSV (abre no Excel)", "Este tutorial também fica aqui", "Seu perfil (toque no seu nome no topo): senha, Face ID, família e assinatura"] },
   { ic: "festa", cor: "verde", titulo: "Primeiros passos", checklist: true,
     texto: "Façam nesta ordem e o painel fica completo. Os itens se marcam sozinhos." }
 ];

@@ -177,7 +177,7 @@ const ehErroDeRede = (e) => !navigator.onLine || e?.rede || e?.name === "AuthRet
 const exigirRede = () => { if (!navigator.onLine) throw Object.assign(new Error(MSG_SEM_REDE), { rede: true }); exigirAssinatura(); };
 const falhou = (error) => ehErroDeRede(error) ? Object.assign(new Error(MSG_SEM_REDE), { rede: true })
   : /row-level security|PGRST116|violates row/i.test(String(error?.message || error?.code || "")) && estado.migracao7
-    ? Object.assign(new Error("Não deu para salvar: confira se a assinatura está em dia (Mais → Sua assinatura)."), { amigavel: true })
+    ? Object.assign(new Error("Não deu para salvar: confira se a assinatura está em dia (Perfil → Assinatura)."), { amigavel: true })
     : error;
 
 /** Depois de gravar no banco: atualiza a cópia do aparelho e avisa os outros celulares da família. */

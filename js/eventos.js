@@ -18,7 +18,8 @@ let abaAtual = "inicio";
 let cadastroAtual = "contas";
 function irPara(aba) {
   abaAtual = aba;
-  $$(".tabbar button").forEach((x) => x.setAttribute("aria-selected", x.dataset.aba === aba));
+  const naAba = aba === "perfil" ? "mais" : aba;   // perfil fica "dentro" de Mais
+  $$(".tabbar button").forEach((x) => x.setAttribute("aria-selected", x.dataset.aba === naAba));
   $$(".aba").forEach((a) => (a.hidden = a.id !== "aba-" + aba));
   window.scrollTo({ top: 0 });
 }

@@ -951,3 +951,30 @@ dialog.sheet-alta .sheet-corpo { min-height: 100%; align-content: start; }
 .pf-caixa { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--neutral-bg); font-size: 14px; }
 .pf-caixa small { grid-column: 1; color: var(--text-3); font-size: 12px; }
 .pf-caixa b { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-variant-numeric: tabular-nums; }
+
+/* Perfil */
+button.saudacao { background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 12px; }
+button.saudacao:active .avatar { transform: scale(.94); }
+.avatar.grande { width: 46px; height: 46px; font-size: 18px; }
+.avatar.enorme { width: 84px; height: 84px; font-size: 34px; margin: 4px auto 10px; background: var(--accent); color: #fff; }
+.perfil-atalho { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; border: 0; }
+.perfil-atalho .pa-txt b { display: block; font-size: 16px; }
+.perfil-atalho .pa-txt small { color: var(--text-3); font-size: 13px; }
+.perfil-atalho .seta, .menu-item .seta { color: var(--text-3); }
+.perfil-topo { text-align: center; display: grid; justify-items: center; }
+.perfil-topo h1 { font-size: 22px; margin: 0; }
+.perfil-topo > p { margin: 2px 0 0; font-size: 14px; }
+.perfil-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 12px 0 4px; }
+.chip-perfil { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; background: var(--neutral-bg); font-size: 12.5px; font-weight: 600; }
+.chip-perfil svg { width: 14px; height: 14px; }
+.chip-perfil.bom { background: var(--good-bg); color: var(--good); }
+.chip-perfil.crit { background: var(--crit-bg); color: var(--crit); }
+.perfil-dados { width: 100%; margin: 12px 0 0; display: grid; gap: 0; text-align: left; }
+.perfil-dados div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--grid); font-size: 14px; }
+.perfil-dados dt { color: var(--text-2); }
+.perfil-dados dd { margin: 0; font-weight: 600; text-align: right; }
+.perfil-secao { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); margin: 18px 4px 6px; font-weight: 600; }
+.menu-item.estatico { cursor: default; }
+.menu-item.estatico small { max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+.btn-link.voltar { font-size: 15px; padding-left: 0; }
+.perfil-secao:has(+ .card[hidden]) { display: none; }
